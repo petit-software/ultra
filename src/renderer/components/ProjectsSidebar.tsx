@@ -65,7 +65,7 @@ export default function ProjectsSidebar(): JSX.Element {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-5 w-5 text-muted-foreground opacity-0 transition group-hover/project:opacity-100"
+                        className="h-5 w-5 text-muted-foreground/60 transition hover:text-destructive"
                         onClick={() => confirmRemove(p.id, p.name)}
                       >
                         <Trash2 />
