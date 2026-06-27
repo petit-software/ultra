@@ -27,7 +27,27 @@ const api = {
   store: {
     load: (): Promise<unknown | null> => ipcRenderer.invoke('store:load'),
     save: (data: unknown): Promise<void> => ipcRenderer.invoke('store:save', data)
+  },
+  fs: {
+    listDir: (dir: string): Promise<DirEntry[]> => ipcRenderer.invoke('fs:listDir', dir),
+    readFile: (
+      path: string
+    ): Promise<{ content: string; truncated: boolean; tooLarge: boolean }> =>
+      ipcRenderer.invoke('fs:readFile', path),
+    watch: (root: string) => ipcRenderer.send('fs:watch', root),
+    unwatch: (root: string) => ipcRenderer.send('fs:unwatch', root),
+    onChanged: (cb: (root: string) => void): Unsubscribe => {
+      const h = (_e: IpcRendererEvent, p: { root: string }) => cb(p.root)
+      ipcRenderer.on('fs:changed', h)
+      return () => ipcRenderer.removeListener('fs:changed', h)
+    }
   }
+}
+
+export interface DirEntry {
+  name: string
+  path: string
+  isDir: boolean
 }
 
 contextBridge.exposeInMainWorld('api', api)

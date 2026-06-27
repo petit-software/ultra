@@ -2,6 +2,13 @@ import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { createPty, writePty, resizePty, killPty, killAllPty } from './pty'
 import { loadWorkspace, saveWorkspace } from './store'
+import {
+  listDir,
+  readFilePreview,
+  watchRoot,
+  unwatchRoot,
+  unwatchAll
+} from './fs-service'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -58,6 +65,14 @@ function registerIpc(): void {
 
   ipcMain.handle('store:load', () => loadWorkspace())
   ipcMain.handle('store:save', (_e, data) => saveWorkspace(data))
+
+  ipcMain.handle('fs:listDir', (_e, dir: string) => listDir(dir))
+  ipcMain.handle('fs:readFile', (_e, path: string) => readFilePreview(path))
+  ipcMain.on('fs:watch', (e, root: string) => {
+    const win = BrowserWindow.fromWebContents(e.sender)
+    if (win && root) watchRoot(win, root)
+  })
+  ipcMain.on('fs:unwatch', (_e, root: string) => unwatchRoot(root))
 }
 
 app.whenReady().then(() => {
@@ -71,7 +86,11 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   killAllPty()
+  unwatchAll()
   if (process.platform !== 'darwin') app.quit()
 })
 
-app.on('before-quit', () => killAllPty())
+app.on('before-quit', () => {
+  killAllPty()
+  unwatchAll()
+})
