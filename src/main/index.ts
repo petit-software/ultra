@@ -74,6 +74,16 @@ function registerIpc(): void {
     if (win && root) watchRoot(win, root)
   })
   ipcMain.on('fs:unwatch', (_e, root: string) => unwatchRoot(root))
+  ipcMain.on('fs:reveal', (_e, path: string) => shell.showItemInFolder(path))
+  ipcMain.handle('fs:openPath', (_e, path: string) => shell.openPath(path))
+  ipcMain.handle('fs:trash', async (_e, path: string) => {
+    try {
+      await shell.trashItem(path)
+      return true
+    } catch {
+      return false
+    }
+  })
 
   ipcMain.handle('agent:probe', (_e, command: string) => probeCommand(command))
 }

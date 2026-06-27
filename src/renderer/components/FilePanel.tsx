@@ -7,6 +7,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useStore } from '../store/useStore'
 import type { DirEntry } from '../types'
 
+/** Path relative to the project root, for terminal @mentions. */
+function relTo(root: string, p: string): string {
+  const r = root.replace(/\/+$/, '')
+  return r && p.startsWith(r + '/') ? p.slice(r.length + 1) : p
+}
+
 export default function FilePanel(): JSX.Element {
   const sessions = useStore((s) => s.sessions)
   const projects = useStore((s) => s.projects)
@@ -28,19 +34,24 @@ export default function FilePanel(): JSX.Element {
     })
   }
 
+  const sendToAgent = (entry: DirEntry): void => {
+    if (!activeSessionId) return
+    window.api.pty.input(activeSessionId, `@${relTo(root, entry.path)} `)
+  }
+
   return (
     <div className="flex h-full flex-col">
       <PaneHeader title="Files" />
-      <ScrollArea className="flex-1">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
         {root ? (
-          <FileTree root={root} onOpenFile={(e) => void openFile(e)} />
+          <FileTree root={root} onOpenFile={(e) => void openFile(e)} onSend={sendToAgent} />
         ) : (
           <div className="space-y-1 p-4 text-sm text-muted-foreground">
             <p>No folder open.</p>
             <p>Open a folder from the Projects sidebar to browse its files.</p>
           </div>
         )}
-      </ScrollArea>
+      </div>
 
       <PaneHeader title="Context" className="border-t" />
       <ContextPanel />

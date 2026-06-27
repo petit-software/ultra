@@ -1,6 +1,24 @@
 import { useEffect, useState, useCallback } from 'react'
-import { ChevronRight, File as FileIcon, Folder, FolderOpen } from 'lucide-react'
+import {
+  ChevronRight,
+  File as FileIcon,
+  Folder,
+  FolderOpen,
+  CornerDownLeft,
+  MoreHorizontal,
+  FolderOpen as RevealIcon,
+  Pencil,
+  Trash2
+} from 'lucide-react'
 import type { DirEntry } from '../types'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator
+} from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 
 interface NodeProps {
@@ -8,12 +26,14 @@ interface NodeProps {
   depth: number
   version: number
   onOpenFile: (entry: DirEntry) => void
+  onSend: (entry: DirEntry) => void
 }
 
-function TreeNode({ entry, depth, version, onOpenFile }: NodeProps): JSX.Element {
+function TreeNode({ entry, depth, version, onOpenFile, onSend }: NodeProps): JSX.Element {
   const [expanded, setExpanded] = useState(false)
   const [children, setChildren] = useState<DirEntry[] | null>(null)
   const [loading, setLoading] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -47,7 +67,7 @@ function TreeNode({ entry, depth, version, onOpenFile }: NodeProps): JSX.Element
           e.dataTransfer.effectAllowed = 'copy'
         }}
         style={{ paddingLeft: depth * 12 + 8 }}
-        className="flex cursor-pointer items-center gap-1 rounded-sm py-1 pr-2 text-sm hover:bg-secondary/60"
+        className="group/row flex cursor-pointer items-center gap-1 rounded-sm py-1 pr-1 text-sm hover:bg-secondary/60"
       >
         {entry.isDir ? (
           <>
@@ -66,7 +86,61 @@ function TreeNode({ entry, depth, version, onOpenFile }: NodeProps): JSX.Element
             <FileIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           </>
         )}
-        <span className="truncate">{entry.name}</span>
+        <span className="min-w-0 flex-1 truncate">{entry.name}</span>
+
+        <div
+          className="flex shrink-0 items-center opacity-0 transition group-hover/row:opacity-100 data-[open=true]:opacity-100"
+          data-open={menuOpen}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {!entry.isDir && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-5 w-5 text-muted-foreground hover:text-foreground"
+              title="Send to agent"
+              onClick={() => onSend(entry)}
+            >
+              <CornerDownLeft className="h-3.5 w-3.5" />
+            </Button>
+          )}
+          <DropdownMenu onOpenChange={setMenuOpen}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-5 w-5 text-muted-foreground hover:text-foreground"
+                title="More"
+              >
+                <MoreHorizontal className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onSelect={() => window.api.fs.reveal(entry.path)}>
+                <RevealIcon className="h-4 w-4" />
+                Open in Finder
+              </DropdownMenuItem>
+              {!entry.isDir && (
+                <DropdownMenuItem onSelect={() => void window.api.fs.openPath(entry.path)}>
+                  <Pencil className="h-4 w-4" />
+                  Edit
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onSelect={() => {
+                  if (window.confirm(`Move "${entry.name}" to the Trash?`)) {
+                    void window.api.fs.trash(entry.path)
+                  }
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+                Remove
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {entry.isDir && expanded && (
@@ -83,6 +157,7 @@ function TreeNode({ entry, depth, version, onOpenFile }: NodeProps): JSX.Element
               depth={depth + 1}
               version={version}
               onOpenFile={onOpenFile}
+              onSend={onSend}
             />
           ))}
           {children?.length === 0 && (
@@ -99,9 +174,10 @@ function TreeNode({ entry, depth, version, onOpenFile }: NodeProps): JSX.Element
 interface Props {
   root: string
   onOpenFile: (entry: DirEntry) => void
+  onSend: (entry: DirEntry) => void
 }
 
-export default function FileTree({ root, onOpenFile }: Props): JSX.Element {
+export default function FileTree({ root, onOpenFile, onSend }: Props): JSX.Element {
   const [entries, setEntries] = useState<DirEntry[] | null>(null)
   const [version, setVersion] = useState(0)
 
@@ -127,7 +203,14 @@ export default function FileTree({ root, onOpenFile }: Props): JSX.Element {
   return (
     <div className="py-1">
       {entries.map((e) => (
-        <TreeNode key={e.path} entry={e} depth={0} version={version} onOpenFile={onOpenFile} />
+        <TreeNode
+          key={e.path}
+          entry={e}
+          depth={0}
+          version={version}
+          onOpenFile={onOpenFile}
+          onSend={onSend}
+        />
       ))}
     </div>
   )

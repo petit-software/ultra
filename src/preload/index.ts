@@ -36,6 +36,9 @@ const api = {
       ipcRenderer.invoke('fs:readFile', path),
     watch: (root: string) => ipcRenderer.send('fs:watch', root),
     unwatch: (root: string) => ipcRenderer.send('fs:unwatch', root),
+    reveal: (path: string) => ipcRenderer.send('fs:reveal', path),
+    openPath: (path: string): Promise<string> => ipcRenderer.invoke('fs:openPath', path),
+    trash: (path: string): Promise<boolean> => ipcRenderer.invoke('fs:trash', path),
     onChanged: (cb: (root: string) => void): Unsubscribe => {
       const h = (_e: IpcRendererEvent, p: { root: string }) => cb(p.root)
       ipcRenderer.on('fs:changed', h)
