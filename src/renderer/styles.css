@@ -5,9 +5,9 @@
 @layer base {
   /* Light theme */
   :root {
-    --background: 0 0% 100%;
+    --background: 210 16% 95%;
     --foreground: 222 16% 12%;
-    --card: 0 0% 98%;
+    --card: 0 0% 100%;
     --card-foreground: 222 16% 12%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 16% 12%;
@@ -30,9 +30,9 @@
   .dark {
     --background: 0 0% 0%;
     --foreground: 0 0% 92%;
-    --card: 0 0% 5%;
+    --card: 0 0% 8%;
     --card-foreground: 0 0% 92%;
-    --popover: 0 0% 6%;
+    --popover: 0 0% 9%;
     --popover-foreground: 0 0% 92%;
     --primary: 209 100% 71%;
     --primary-foreground: 213 60% 12%;
