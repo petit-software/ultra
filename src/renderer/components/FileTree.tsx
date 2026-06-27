@@ -60,7 +60,7 @@ function TreeNode({ entry, depth, version, onOpenFile, onSend }: NodeProps): JSX
     <div>
       <div
         onClick={toggle}
-        draggable={!entry.isDir}
+        draggable
         onDragStart={(e) => {
           e.dataTransfer.setData('application/x-ultra-path', entry.path)
           e.dataTransfer.setData('text/plain', entry.path)
@@ -93,17 +93,15 @@ function TreeNode({ entry, depth, version, onOpenFile, onSend }: NodeProps): JSX
           data-open={menuOpen}
           onClick={(e) => e.stopPropagation()}
         >
-          {!entry.isDir && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-5 w-5 text-muted-foreground hover:text-foreground"
-              title="Send to agent"
-              onClick={() => onSend(entry)}
-            >
-              <CornerDownLeft className="h-3.5 w-3.5" />
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-5 w-5 text-muted-foreground hover:text-foreground"
+            title="Send to agent"
+            onClick={() => onSend(entry)}
+          >
+            <CornerDownLeft className="h-3.5 w-3.5" />
+          </Button>
           <DropdownMenu onOpenChange={setMenuOpen}>
             <DropdownMenuTrigger asChild>
               <Button
