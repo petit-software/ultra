@@ -30,7 +30,7 @@ export default function ContextPanel(): JSX.Element {
 
   const [over, setOver] = useState(false)
 
-  const onDrop = (e: React.DragEvent): void => {
+  const onDrop = async (e: React.DragEvent): Promise<void> => {
     e.preventDefault()
     setOver(false)
     if (!project) return
@@ -41,7 +41,10 @@ export default function ContextPanel(): JSX.Element {
       const p = (f as File & { path?: string }).path
       if (p) paths.push(p)
     }
-    if (paths.length) pinContext(project.id, paths)
+    if (!paths.length) return
+    // Expand any dropped folders to the files inside them.
+    const files = await window.api.fs.expandToFiles(paths)
+    if (files.length) pinContext(project.id, files)
   }
 
   /** Type `@relpath ` into the active terminal so the agent can read the file. */
@@ -58,7 +61,7 @@ export default function ContextPanel(): JSX.Element {
         setOver(true)
       }}
       onDragLeave={() => setOver(false)}
-      onDrop={onDrop}
+      onDrop={(e) => void onDrop(e)}
       className={cn(
         'flex-none border-t border-dashed transition-colors',
         over ? 'border-primary bg-primary/10' : 'border-transparent'

@@ -46,7 +46,9 @@ export default function FilePanel(): JSX.Element {
   const pinFolder = async (): Promise<void> => {
     if (!project) return
     const dir = await window.api.dialog.pickDirectory()
-    if (dir) pinContext(project.id, [dir])
+    if (!dir) return
+    const files = await window.api.fs.expandToFiles([dir])
+    if (files.length) pinContext(project.id, files)
   }
 
   return (

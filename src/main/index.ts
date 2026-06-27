@@ -5,6 +5,7 @@ import { loadWorkspace, saveWorkspace } from './store'
 import {
   listDir,
   readFilePreview,
+  expandToFiles,
   watchRoot,
   unwatchRoot,
   unwatchAll
@@ -69,6 +70,7 @@ function registerIpc(): void {
 
   ipcMain.handle('fs:listDir', (_e, dir: string) => listDir(dir))
   ipcMain.handle('fs:readFile', (_e, path: string) => readFilePreview(path))
+  ipcMain.handle('fs:expandToFiles', (_e, paths: string[]) => expandToFiles(paths))
   ipcMain.on('fs:watch', (e, root: string) => {
     const win = BrowserWindow.fromWebContents(e.sender)
     if (win && root) watchRoot(win, root)

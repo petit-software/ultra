@@ -39,6 +39,8 @@ const api = {
     reveal: (path: string) => ipcRenderer.send('fs:reveal', path),
     openPath: (path: string): Promise<string> => ipcRenderer.invoke('fs:openPath', path),
     trash: (path: string): Promise<boolean> => ipcRenderer.invoke('fs:trash', path),
+    expandToFiles: (paths: string[]): Promise<string[]> =>
+      ipcRenderer.invoke('fs:expandToFiles', paths),
     onChanged: (cb: (root: string) => void): Unsubscribe => {
       const h = (_e: IpcRendererEvent, p: { root: string }) => cb(p.root)
       ipcRenderer.on('fs:changed', h)

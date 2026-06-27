@@ -41,6 +41,48 @@ export async function readFilePreview(
   return { content: buf.toString('utf8'), truncated: false, tooLarge: false }
 }
 
+/**
+ * Expand a list of paths to the files they contain: files pass through,
+ * directories are walked recursively (ignored dirs skipped, capped).
+ */
+export async function expandToFiles(paths: string[], cap = 500): Promise<string[]> {
+  const out: string[] = []
+
+  const walk = async (p: string): Promise<void> => {
+    if (out.length >= cap) return
+    let stat
+    try {
+      stat = await fs.stat(p)
+    } catch {
+      return
+    }
+    if (stat.isFile()) {
+      out.push(p)
+      return
+    }
+    if (!stat.isDirectory()) return
+    let entries
+    try {
+      entries = await fs.readdir(p, { withFileTypes: true })
+    } catch {
+      return
+    }
+    for (const d of entries) {
+      if (out.length >= cap) break
+      if (IGNORED.has(d.name)) continue
+      const child = join(p, d.name)
+      if (d.isDirectory()) await walk(child)
+      else if (d.isFile()) out.push(child)
+    }
+  }
+
+  for (const p of paths) {
+    if (out.length >= cap) break
+    await walk(p)
+  }
+  return [...new Set(out)]
+}
+
 const watchers = new Map<string, FSWatcher>()
 
 /** Watch a project root and notify the window (debounced) when it changes. */
