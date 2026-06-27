@@ -78,10 +78,11 @@
 }
 
 /* xterm host — the one piece shadcn/Tailwind can't own (it's a canvas). */
+/* No padding here — the gap lives on the wrapper so FitAddon measures the
+   reduced area and rows don't bleed into the padding. */
 .terminal-host {
   height: 100%;
   min-height: 0;
-  padding: 6px 4px 12px 8px;
 }
 .terminal-host .xterm {
   height: 100%;

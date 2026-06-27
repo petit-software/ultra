@@ -104,7 +104,10 @@ export default function TerminalView({ sessionId, cwd, visible, command }: Props
   }, [visible, sessionId])
 
   return (
-    <div className="absolute inset-0" style={{ display: visible ? 'block' : 'none' }}>
+    <div
+      className="absolute inset-0 pb-3 pl-2 pr-1 pt-1.5"
+      style={{ display: visible ? 'block' : 'none' }}
+    >
       <div className="terminal-host" ref={hostRef} />
     </div>
   )
