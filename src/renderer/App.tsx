@@ -1,10 +1,17 @@
+import { useEffect } from 'react'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import ProjectsSidebar from './components/ProjectsSidebar'
 import TerminalPane from './components/TerminalPane'
 import AgentPanel from './components/AgentPanel'
 import FilePanel from './components/FilePanel'
+import { useStore } from './store/useStore'
 
 export default function App(): JSX.Element {
+  const hydrate = useStore((s) => s.hydrate)
+  useEffect(() => {
+    void hydrate()
+  }, [hydrate])
+
   return (
     <div className="app">
       <div className="titlebar">

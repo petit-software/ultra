@@ -96,7 +96,7 @@ MAIN (Node)                          RENDERER (React)
 
 - [x] M1 Skeleton
 - [x] M2 Live terminal
-- [ ] M3 Projects/sessions
+- [x] M3 Projects/sessions
 - [ ] M4 File tree
 - [ ] M5 Agent loop (read-only)
 - [ ] M6 Mutating tools + approvals

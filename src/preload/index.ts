@@ -20,6 +20,13 @@ const api = {
       ipcRenderer.on('pty:exit', h)
       return () => ipcRenderer.removeListener('pty:exit', h)
     }
+  },
+  dialog: {
+    pickDirectory: (): Promise<string | null> => ipcRenderer.invoke('dialog:pickDirectory')
+  },
+  store: {
+    load: (): Promise<unknown | null> => ipcRenderer.invoke('store:load'),
+    save: (data: unknown): Promise<void> => ipcRenderer.invoke('store:save', data)
   }
 }
 

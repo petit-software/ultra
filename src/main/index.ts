@@ -1,6 +1,7 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { createPty, writePty, resizePty, killPty, killAllPty } from './pty'
+import { loadWorkspace, saveWorkspace } from './store'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -46,6 +47,17 @@ function registerIpc(): void {
   ipcMain.on('pty:input', (_e, { id, data }) => writePty(id, data))
   ipcMain.on('pty:resize', (_e, { id, cols, rows }) => resizePty(id, cols, rows))
   ipcMain.on('pty:kill', (_e, { id }) => killPty(id))
+
+  ipcMain.handle('dialog:pickDirectory', async (e) => {
+    const win = BrowserWindow.fromWebContents(e.sender)
+    const res = await dialog.showOpenDialog(win!, {
+      properties: ['openDirectory', 'createDirectory']
+    })
+    return res.canceled || res.filePaths.length === 0 ? null : res.filePaths[0]
+  })
+
+  ipcMain.handle('store:load', () => loadWorkspace())
+  ipcMain.handle('store:save', (_e, data) => saveWorkspace(data))
 }
 
 app.whenReady().then(() => {
