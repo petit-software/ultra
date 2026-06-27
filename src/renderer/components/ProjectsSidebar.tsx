@@ -39,14 +39,14 @@ export default function ProjectsSidebar(): JSX.Element {
         <div className="py-1">
           {projects.map((p) => (
             <div key={p.id} className="group/project mb-1">
-              <div className="flex items-center justify-between px-3 pb-1 pt-2">
+              <div className="flex items-center justify-between gap-1 px-3 pb-1 pt-2">
                 <span
-                  className="truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
+                  className="min-w-0 flex-1 truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
                   title={p.path || 'home'}
                 >
                   {p.name}
                 </span>
-                <div className="flex items-center">
+                <div className="flex shrink-0 items-center">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
