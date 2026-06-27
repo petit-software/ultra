@@ -1,4 +1,4 @@
-import { FolderPlus, Plus, X } from 'lucide-react'
+import { FolderPlus, Plus, X, Trash2 } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -14,6 +14,13 @@ export default function ProjectsSidebar(): JSX.Element {
   const newSession = useStore((s) => s.newSession)
   const closeSession = useStore((s) => s.closeSession)
   const addProject = useStore((s) => s.addProject)
+  const removeProject = useStore((s) => s.removeProject)
+
+  const confirmRemove = (id: string, name: string): void => {
+    if (window.confirm(`Remove project "${name}" from the sidebar? Its sessions will be closed.`)) {
+      removeProject(id)
+    }
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -31,7 +38,7 @@ export default function ProjectsSidebar(): JSX.Element {
       <ScrollArea className="flex-1">
         <div className="py-1">
           {projects.map((p) => (
-            <div key={p.id} className="mb-1">
+            <div key={p.id} className="group/project mb-1">
               <div className="flex items-center justify-between px-3 pb-1 pt-2">
                 <span
                   className="truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
@@ -39,19 +46,34 @@ export default function ProjectsSidebar(): JSX.Element {
                 >
                   {p.name}
                 </span>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-5 w-5"
-                      onClick={() => newSession(p.id)}
-                    >
-                      <Plus />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>New session</TooltipContent>
-                </Tooltip>
+                <div className="flex items-center">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5"
+                        onClick={() => newSession(p.id)}
+                      >
+                        <Plus />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>New session</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 text-muted-foreground opacity-0 transition group-hover/project:opacity-100"
+                        onClick={() => confirmRemove(p.id, p.name)}
+                      >
+                        <Trash2 />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Remove project</TooltipContent>
+                  </Tooltip>
+                </div>
               </div>
 
               <ul className="px-1.5">

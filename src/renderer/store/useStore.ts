@@ -51,6 +51,7 @@ interface AppState extends PersistShape {
   addProject: () => Promise<void>
   newSession: (projectId: string) => void
   launchAgent: (projectId: string, agent: Agent) => void
+  removeProject: (projectId: string) => void
   closeSession: (id: string) => void
   setActiveSession: (id: string) => void
   addAgent: (name: string, command: string) => void
@@ -233,6 +234,24 @@ export const useStore = create<AppState>((set, get) => ({
       const theme: ThemeMode = st.theme === 'dark' ? 'light' : 'dark'
       applyTheme(theme)
       const next = { ...st, theme }
+      schedulePersist(next)
+      return next
+    }),
+
+  removeProject: (projectId) =>
+    set((st) => {
+      const project = st.projects.find((p) => p.id === projectId)
+      if (!project) return st
+      // Kill every PTY belonging to the project and drop its sessions.
+      const sessions = { ...st.sessions }
+      for (const sid of project.sessionIds) {
+        window.api.pty.kill(sid)
+        delete sessions[sid]
+      }
+      const projects = st.projects.filter((p) => p.id !== projectId)
+      let active = st.activeSessionId
+      if (active && !sessions[active]) active = Object.keys(sessions)[0] ?? null
+      const next: AppState = { ...st, projects, sessions, activeSessionId: active }
       schedulePersist(next)
       return next
     }),
