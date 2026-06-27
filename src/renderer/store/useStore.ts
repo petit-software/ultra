@@ -30,11 +30,18 @@ const DEFAULT_AGENTS: Agent[] = [
   { id: 'codex', name: 'Codex', command: 'codex' }
 ]
 
+export type ThemeMode = 'dark' | 'light'
+
 interface PersistShape {
   projects: Project[]
   sessions: Record<string, Session>
   activeSessionId: string | null
   agents: Agent[]
+  theme: ThemeMode
+}
+
+function applyTheme(theme: ThemeMode): void {
+  document.documentElement.classList.toggle('dark', theme === 'dark')
 }
 
 interface AppState extends PersistShape {
@@ -50,6 +57,7 @@ interface AppState extends PersistShape {
   removeAgent: (id: string) => void
   pinContext: (projectId: string, paths: string[]) => void
   unpinContext: (projectId: string, path: string) => void
+  toggleTheme: () => void
 }
 
 let counter = 0
@@ -64,7 +72,8 @@ function makeDefault(): PersistShape {
     projects: [project],
     sessions: { [session.id]: session },
     activeSessionId: session.id,
-    agents: DEFAULT_AGENTS
+    agents: DEFAULT_AGENTS,
+    theme: 'dark'
   }
 }
 
@@ -73,7 +82,8 @@ function snapshot(s: AppState): PersistShape {
     projects: s.projects,
     sessions: s.sessions,
     activeSessionId: s.activeSessionId,
-    agents: s.agents
+    agents: s.agents,
+    theme: s.theme
   }
 }
 
@@ -97,8 +107,11 @@ export const useStore = create<AppState>((set, get) => ({
           : (Object.keys(loaded.sessions)[0] ?? null)
       const agents =
         Array.isArray(loaded.agents) && loaded.agents.length > 0 ? loaded.agents : DEFAULT_AGENTS
-      set({ ...loaded, agents, activeSessionId: active, hydrated: true })
+      const theme: ThemeMode = loaded.theme === 'light' ? 'light' : 'dark'
+      applyTheme(theme)
+      set({ ...loaded, agents, theme, activeSessionId: active, hydrated: true })
     } else {
+      applyTheme(get().theme)
       set({ hydrated: true })
     }
   },
@@ -211,6 +224,15 @@ export const useStore = create<AppState>((set, get) => ({
             : p
         )
       }
+      schedulePersist(next)
+      return next
+    }),
+
+  toggleTheme: () =>
+    set((st) => {
+      const theme: ThemeMode = st.theme === 'dark' ? 'light' : 'dark'
+      applyTheme(theme)
+      const next = { ...st, theme }
       schedulePersist(next)
       return next
     }),

@@ -3,15 +3,8 @@ import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { SearchAddon } from '@xterm/addon-search'
-
-const THEME = {
-  background: '#14161b',
-  foreground: '#d6dae0',
-  cursor: '#6cb6ff',
-  selectionBackground: '#2a3140',
-  black: '#14161b',
-  brightBlack: '#5a6273'
-}
+import { useStore } from '../store/useStore'
+import { xtermTheme } from '../themes'
 
 interface Props {
   sessionId: string
@@ -28,6 +21,7 @@ export default function TerminalView({ sessionId, cwd, visible, command }: Props
   const hostRef = useRef<HTMLDivElement>(null)
   const fitRef = useRef<FitAddon | null>(null)
   const termRef = useRef<Terminal | null>(null)
+  const theme = useStore((s) => s.theme)
 
   useEffect(() => {
     if (!hostRef.current) return
@@ -37,7 +31,7 @@ export default function TerminalView({ sessionId, cwd, visible, command }: Props
       fontSize: 13,
       lineHeight: 1.2,
       cursorBlink: true,
-      theme: THEME,
+      theme: xtermTheme(useStore.getState().theme),
       allowProposedApi: true
     })
     const fit = new FitAddon()
@@ -85,6 +79,11 @@ export default function TerminalView({ sessionId, cwd, visible, command }: Props
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId])
+
+  // Live-update the palette when the user toggles light/dark.
+  useEffect(() => {
+    if (termRef.current) termRef.current.options.theme = xtermTheme(theme)
+  }, [theme])
 
   // Refit whenever this view becomes visible (fit needs real layout).
   useEffect(() => {

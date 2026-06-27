@@ -5,6 +5,7 @@ import ProjectsSidebar from './components/ProjectsSidebar'
 import TerminalPane from './components/TerminalPane'
 import FilePanel from './components/FilePanel'
 import AgentMenu from './components/AgentMenu'
+import ThemeToggle from './components/ThemeToggle'
 import { useStore } from './store/useStore'
 
 export default function App(): JSX.Element {
@@ -19,7 +20,8 @@ export default function App(): JSX.Element {
         <header className="app-drag flex h-9 flex-none items-center gap-2 border-b border-border bg-card pl-[86px] pr-2">
           <span className="font-semibold tracking-tight">Ultra</span>
           <span className="text-[11px] text-muted-foreground">agentic terminal</span>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-1">
+            <ThemeToggle />
             <AgentMenu />
           </div>
         </header>
