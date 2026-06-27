@@ -81,7 +81,7 @@
 .terminal-host {
   height: 100%;
   min-height: 0;
-  padding: 6px 4px 4px 8px;
+  padding: 6px 4px 12px 8px;
 }
 .terminal-host .xterm {
   height: 100%;
