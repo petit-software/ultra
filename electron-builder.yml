@@ -1,0 +1,40 @@
+appId: com.ultra.terminal
+productName: Ultra
+directories:
+  buildResources: build
+  output: release
+
+# Only-negative globs keep electron-builder's default include (**/*) and its
+# production-dependency pruning, while dropping source/config we don't ship.
+files:
+  - '!src/**'
+  - '!docs/**'
+  - '!**/*.map'
+  - '!electron.vite.config.ts'
+  - '!tsconfig*.json'
+  - '!tailwind.config.js'
+  - '!postcss.config.js'
+  - '!components.json'
+
+# node-pty ships a native .node binary that can't be loaded from inside the asar.
+asarUnpack:
+  - node_modules/node-pty/**
+
+mac:
+  category: public.app-category.developer-tools
+  identity: null # local/unsigned build — no Developer ID required
+  target:
+    - target: dmg
+      arch: arm64
+    - target: zip
+      arch: arm64
+
+dmg:
+  title: Ultra ${version}
+
+win:
+  target: nsis
+
+linux:
+  target: AppImage
+  category: Development

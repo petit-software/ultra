@@ -3,17 +3,18 @@
   "version": "0.1.0",
   "description": "Agentic terminal — Electron + xterm.js with projects and file-tree sidebars",
   "main": "./out/main/index.js",
-  "author": "",
+  "author": "bart",
   "license": "MIT",
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "start": "electron-vite preview",
     "postinstall": "electron-rebuild -f -w node-pty",
-    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json"
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "dist": "npm run build && electron-builder",
+    "dist:mac": "npm run build && electron-builder --mac"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.32.1",
     "@radix-ui/react-dialog": "^1.1.17",
     "@radix-ui/react-dropdown-menu": "^2.1.18",
     "@radix-ui/react-scroll-area": "^1.2.12",
@@ -44,6 +45,7 @@
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.5.2",
     "electron": "^31.7.6",
+    "electron-builder": "^25.1.8",
     "electron-vite": "^2.3.0",
     "postcss": "^8.5.15",
     "tailwindcss": "^3.4.19",
