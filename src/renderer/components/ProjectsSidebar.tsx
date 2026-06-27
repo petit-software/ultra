@@ -1,7 +1,6 @@
 import { FolderPlus, Plus, X, Trash2 } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import PaneHeader from './PaneHeader'
 import { cn } from '@/lib/utils'
@@ -35,7 +34,7 @@ export default function ProjectsSidebar(): JSX.Element {
         </Tooltip>
       </PaneHeader>
 
-      <ScrollArea className="flex-1">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
         <div className="py-1">
           {projects.map((p) => (
             <div key={p.id} className="group/project mb-1">
@@ -116,7 +115,7 @@ export default function ProjectsSidebar(): JSX.Element {
             </div>
           ))}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   )
 }
