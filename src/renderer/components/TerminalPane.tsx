@@ -1,32 +1,36 @@
+import { X } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import TerminalView from './TerminalView'
+import PaneHeader from './PaneHeader'
+import { Button } from '@/components/ui/button'
 
 export default function TerminalPane(): JSX.Element {
   const sessions = useStore((s) => s.sessions)
   const activeSessionId = useStore((s) => s.activeSessionId)
   const closeSession = useStore((s) => s.closeSession)
   const active = activeSessionId ? sessions[activeSessionId] : null
-
   const ids = Object.keys(sessions)
 
   return (
-    <div className="terminal-pane">
-      <div className="pane-header">
-        <span className="pane-title">{active?.title ?? 'terminal'}</span>
+    <div className="flex h-full flex-col bg-background">
+      <PaneHeader title={active?.title ?? 'terminal'}>
         {active && (
-          <button
-            className="icon-btn"
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-5 w-5"
             title="Close session"
             onClick={() => closeSession(active.id)}
           >
-            ×
-          </button>
+            <X />
+          </Button>
         )}
-      </div>
-      <div className="terminal-stack">
+      </PaneHeader>
+
+      <div className="relative min-h-0 flex-1">
         {ids.length === 0 && (
-          <div className="placeholder">
-            <p className="muted">No active session. Create one from the Projects sidebar.</p>
+          <div className="p-4 text-sm text-muted-foreground">
+            No active session. Create one from the Projects sidebar.
           </div>
         )}
         {ids.map((id) => (

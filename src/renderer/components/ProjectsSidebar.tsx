@@ -1,4 +1,10 @@
+import { FolderPlus, Plus, X } from 'lucide-react'
 import { useStore } from '../store/useStore'
+import { Button } from '@/components/ui/button'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
+import PaneHeader from './PaneHeader'
+import { cn } from '@/lib/utils'
 
 export default function ProjectsSidebar(): JSX.Element {
   const projects = useStore((s) => s.projects)
@@ -10,55 +16,85 @@ export default function ProjectsSidebar(): JSX.Element {
   const addProject = useStore((s) => s.addProject)
 
   return (
-    <div className="sidebar">
-      <div className="pane-header">
-        <span className="pane-title">Projects</span>
-        <button className="icon-btn" title="Open folder as project" onClick={() => void addProject()}>
-          +
-        </button>
-      </div>
-      <div className="sidebar-body">
-        {projects.map((p) => (
-          <div key={p.id} className="project">
-            <div className="project-name">
-              <span title={p.path || 'home'}>{p.name}</span>
-              <button
-                className="icon-btn"
-                title="New session in this project"
-                onClick={() => newSession(p.id)}
-              >
-                +
-              </button>
-            </div>
-            <ul className="session-list">
-              {p.sessionIds.map((sid) => {
-                const s = sessions[sid]
-                if (!s) return null
-                return (
-                  <li
-                    key={sid}
-                    className={`session-item${sid === activeSessionId ? ' active' : ''}`}
-                    onClick={() => setActiveSession(sid)}
-                  >
-                    <span className="session-dot" />
-                    <span className="session-label">{s.title}</span>
-                    <button
-                      className="session-close"
-                      title="Close session"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        closeSession(sid)
-                      }}
+    <div className="flex h-full flex-col">
+      <PaneHeader title="Projects">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" onClick={() => void addProject()}>
+              <FolderPlus />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Open folder as project</TooltipContent>
+        </Tooltip>
+      </PaneHeader>
+
+      <ScrollArea className="flex-1">
+        <div className="py-1">
+          {projects.map((p) => (
+            <div key={p.id} className="mb-1">
+              <div className="flex items-center justify-between px-3 pb-1 pt-2">
+                <span
+                  className="truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
+                  title={p.path || 'home'}
+                >
+                  {p.name}
+                </span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5"
+                      onClick={() => newSession(p.id)}
                     >
-                      ×
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
-        ))}
-      </div>
+                      <Plus />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>New session</TooltipContent>
+                </Tooltip>
+              </div>
+
+              <ul className="px-1.5">
+                {p.sessionIds.map((sid) => {
+                  const s = sessions[sid]
+                  if (!s) return null
+                  const active = sid === activeSessionId
+                  return (
+                    <li
+                      key={sid}
+                      onClick={() => setActiveSession(sid)}
+                      className={cn(
+                        'group flex cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-sm',
+                        active
+                          ? 'bg-accent text-accent-foreground'
+                          : 'hover:bg-secondary/60'
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'h-1.5 w-1.5 rounded-full',
+                          active ? 'bg-primary' : 'bg-muted-foreground'
+                        )}
+                      />
+                      <span className="flex-1 truncate">{s.title}</span>
+                      <button
+                        title="Close session"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          closeSession(sid)
+                        }}
+                        className="text-muted-foreground opacity-0 transition hover:text-foreground group-hover:opacity-100"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
     </div>
   )
 }

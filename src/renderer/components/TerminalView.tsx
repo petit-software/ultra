@@ -104,7 +104,7 @@ export default function TerminalView({ sessionId, cwd, visible }: Props): JSX.El
   }, [visible, sessionId])
 
   return (
-    <div className="terminal-view" style={{ display: visible ? 'block' : 'none' }}>
+    <div className="absolute inset-0" style={{ display: visible ? 'block' : 'none' }}>
       <div className="terminal-host" ref={hostRef} />
     </div>
   )
