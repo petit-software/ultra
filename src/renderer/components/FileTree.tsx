@@ -40,6 +40,12 @@ function TreeNode({ entry, depth, version, onOpenFile }: NodeProps): JSX.Element
     <div>
       <div
         onClick={toggle}
+        draggable={!entry.isDir}
+        onDragStart={(e) => {
+          e.dataTransfer.setData('application/x-ultra-path', entry.path)
+          e.dataTransfer.setData('text/plain', entry.path)
+          e.dataTransfer.effectAllowed = 'copy'
+        }}
         style={{ paddingLeft: depth * 12 + 8 }}
         className="flex cursor-pointer items-center gap-1 rounded-sm py-1 pr-2 text-sm hover:bg-secondary/60"
       >

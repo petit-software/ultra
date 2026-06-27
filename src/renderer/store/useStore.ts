@@ -15,6 +15,8 @@ export interface Project {
   name: string
   path: string
   sessionIds: string[]
+  /** Absolute paths the user pinned as agent context for this project. */
+  contextPaths?: string[]
 }
 
 export interface Agent {
@@ -46,6 +48,8 @@ interface AppState extends PersistShape {
   setActiveSession: (id: string) => void
   addAgent: (name: string, command: string) => void
   removeAgent: (id: string) => void
+  pinContext: (projectId: string, paths: string[]) => void
+  unpinContext: (projectId: string, path: string) => void
 }
 
 let counter = 0
@@ -179,6 +183,34 @@ export const useStore = create<AppState>((set, get) => ({
   removeAgent: (id) =>
     set((st) => {
       const next = { ...st, agents: st.agents.filter((a) => a.id !== id) }
+      schedulePersist(next)
+      return next
+    }),
+
+  pinContext: (projectId, paths) =>
+    set((st) => {
+      const next = {
+        ...st,
+        projects: st.projects.map((p) => {
+          if (p.id !== projectId) return p
+          const merged = [...new Set([...(p.contextPaths ?? []), ...paths])]
+          return { ...p, contextPaths: merged }
+        })
+      }
+      schedulePersist(next)
+      return next
+    }),
+
+  unpinContext: (projectId, path) =>
+    set((st) => {
+      const next = {
+        ...st,
+        projects: st.projects.map((p) =>
+          p.id === projectId
+            ? { ...p, contextPaths: (p.contextPaths ?? []).filter((c) => c !== path) }
+            : p
+        )
+      }
       schedulePersist(next)
       return next
     }),

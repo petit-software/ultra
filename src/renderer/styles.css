@@ -84,3 +84,12 @@
 .terminal-host .xterm {
   height: 100%;
 }
+/* Hide xterm's scrollbar — scroll with wheel/trackpad, no visible bar. */
+.terminal-host .xterm-viewport {
+  scrollbar-width: none; /* Firefox */
+}
+.terminal-host .xterm-viewport::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}

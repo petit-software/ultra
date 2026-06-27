@@ -3,8 +3,8 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/componen
 import { TooltipProvider } from '@/components/ui/tooltip'
 import ProjectsSidebar from './components/ProjectsSidebar'
 import TerminalPane from './components/TerminalPane'
-import AgentPanel from './components/AgentPanel'
 import FilePanel from './components/FilePanel'
+import AgentMenu from './components/AgentMenu'
 import { useStore } from './store/useStore'
 
 export default function App(): JSX.Element {
@@ -16,9 +16,12 @@ export default function App(): JSX.Element {
   return (
     <TooltipProvider delayDuration={300}>
       <div className="flex h-full flex-col">
-        <header className="app-drag flex h-9 flex-none items-center gap-2 border-b border-border bg-card pl-[86px] pr-4">
+        <header className="app-drag flex h-9 flex-none items-center gap-2 border-b border-border bg-card pl-[86px] pr-2">
           <span className="font-semibold tracking-tight">Ultra</span>
           <span className="text-[11px] text-muted-foreground">agentic terminal</span>
+          <div className="ml-auto">
+            <AgentMenu />
+          </div>
         </header>
 
         <ResizablePanelGroup direction="horizontal" className="min-h-0 flex-1" autoSaveId="ultra-layout">
@@ -28,15 +31,7 @@ export default function App(): JSX.Element {
           <ResizableHandle />
 
           <ResizablePanel defaultSize={54} minSize={30}>
-            <ResizablePanelGroup direction="vertical">
-              <ResizablePanel defaultSize={62} minSize={20}>
-                <TerminalPane />
-              </ResizablePanel>
-              <ResizableHandle />
-              <ResizablePanel defaultSize={38} minSize={15}>
-                <AgentPanel />
-              </ResizablePanel>
-            </ResizablePanelGroup>
+            <TerminalPane />
           </ResizablePanel>
           <ResizableHandle />
 

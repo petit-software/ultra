@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import PaneHeader from './PaneHeader'
 import FileTree from './FileTree'
+import ContextPanel from './ContextPanel'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useStore } from '../store/useStore'
@@ -42,9 +43,7 @@ export default function FilePanel(): JSX.Element {
       </ScrollArea>
 
       <PaneHeader title="Context" className="border-t" />
-      <div className="flex-none p-4 text-sm text-muted-foreground">
-        Drag files here to pin them as agent context (M7).
-      </div>
+      <ContextPanel />
 
       <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
         <DialogContent>
