@@ -17,13 +17,14 @@ interface Props {
   sessionId: string
   cwd: string
   visible: boolean
+  command?: string
 }
 
 /**
  * One xterm + PTY, mounted once for the lifetime of the session.
  * Hidden (not unmounted) when another session is active, so the PTY stays alive.
  */
-export default function TerminalView({ sessionId, cwd, visible }: Props): JSX.Element {
+export default function TerminalView({ sessionId, cwd, visible, command }: Props): JSX.Element {
   const hostRef = useRef<HTMLDivElement>(null)
   const fitRef = useRef<FitAddon | null>(null)
   const termRef = useRef<Terminal | null>(null)
@@ -53,7 +54,7 @@ export default function TerminalView({ sessionId, cwd, visible }: Props): JSX.El
       /* not laid out yet */
     }
 
-    window.api.pty.create(sessionId, { cwd, cols: term.cols, rows: term.rows })
+    window.api.pty.create(sessionId, { cwd, cols: term.cols, rows: term.rows, command })
 
     const offData = window.api.pty.onData((sid, data) => {
       if (sid === sessionId) term.write(data)

@@ -5,6 +5,9 @@ export interface Session {
   title: string
   cwd: string
   projectId: string
+  /** When set, the PTY runs this agent command instead of a plain shell. */
+  command?: string
+  agentName?: string
 }
 
 export interface Project {
@@ -14,10 +17,22 @@ export interface Project {
   sessionIds: string[]
 }
 
+export interface Agent {
+  id: string
+  name: string
+  command: string
+}
+
+const DEFAULT_AGENTS: Agent[] = [
+  { id: 'claude', name: 'Claude Code', command: 'claude' },
+  { id: 'codex', name: 'Codex', command: 'codex' }
+]
+
 interface PersistShape {
   projects: Project[]
   sessions: Record<string, Session>
   activeSessionId: string | null
+  agents: Agent[]
 }
 
 interface AppState extends PersistShape {
@@ -26,8 +41,11 @@ interface AppState extends PersistShape {
   hydrate: () => Promise<void>
   addProject: () => Promise<void>
   newSession: (projectId: string) => void
+  launchAgent: (projectId: string, agent: Agent) => void
   closeSession: (id: string) => void
   setActiveSession: (id: string) => void
+  addAgent: (name: string, command: string) => void
+  removeAgent: (id: string) => void
 }
 
 let counter = 0
@@ -41,12 +59,18 @@ function makeDefault(): PersistShape {
   return {
     projects: [project],
     sessions: { [session.id]: session },
-    activeSessionId: session.id
+    activeSessionId: session.id,
+    agents: DEFAULT_AGENTS
   }
 }
 
 function snapshot(s: AppState): PersistShape {
-  return { projects: s.projects, sessions: s.sessions, activeSessionId: s.activeSessionId }
+  return {
+    projects: s.projects,
+    sessions: s.sessions,
+    activeSessionId: s.activeSessionId,
+    agents: s.agents
+  }
 }
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null
@@ -67,7 +91,9 @@ export const useStore = create<AppState>((set, get) => ({
         loaded.activeSessionId && loaded.sessions[loaded.activeSessionId]
           ? loaded.activeSessionId
           : (Object.keys(loaded.sessions)[0] ?? null)
-      set({ ...loaded, activeSessionId: active, hydrated: true })
+      const agents =
+        Array.isArray(loaded.agents) && loaded.agents.length > 0 ? loaded.agents : DEFAULT_AGENTS
+      set({ ...loaded, agents, activeSessionId: active, hydrated: true })
     } else {
       set({ hydrated: true })
     }
@@ -114,6 +140,45 @@ export const useStore = create<AppState>((set, get) => ({
         sessions: { ...st.sessions, [session.id]: session },
         activeSessionId: session.id
       }
+      schedulePersist(next)
+      return next
+    }),
+
+  launchAgent: (projectId, agent) =>
+    set((st) => {
+      const project = st.projects.find((p) => p.id === projectId)
+      if (!project) return st
+      const session: Session = {
+        id: newId('sess'),
+        title: agent.name,
+        cwd: project.path,
+        projectId,
+        command: agent.command,
+        agentName: agent.name
+      }
+      const next: AppState = {
+        ...st,
+        projects: st.projects.map((p) =>
+          p.id === projectId ? { ...p, sessionIds: [...p.sessionIds, session.id] } : p
+        ),
+        sessions: { ...st.sessions, [session.id]: session },
+        activeSessionId: session.id
+      }
+      schedulePersist(next)
+      return next
+    }),
+
+  addAgent: (name, command) =>
+    set((st) => {
+      const agent: Agent = { id: newId('agent'), name: name.trim(), command: command.trim() }
+      const next = { ...st, agents: [...st.agents, agent] }
+      schedulePersist(next)
+      return next
+    }),
+
+  removeAgent: (id) =>
+    set((st) => {
+      const next = { ...st, agents: st.agents.filter((a) => a.id !== id) }
       schedulePersist(next)
       return next
     }),

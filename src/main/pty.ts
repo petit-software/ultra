@@ -15,12 +15,24 @@ const sessions = new Map<string, Session>()
 export function createPty(
   win: BrowserWindow,
   id: string,
-  opts: { cwd?: string; cols?: number; rows?: number } = {}
+  opts: { cwd?: string; cols?: number; rows?: number; command?: string } = {}
 ): void {
   if (sessions.has(id)) return
 
   const cwd = opts.cwd && opts.cwd.length > 0 ? opts.cwd : os.homedir()
-  const pty = spawn(shell, [], {
+
+  // Plain shell, or an agent command run via a login shell so it inherits the
+  // user's PATH/env and gets a real TTY for its TUI. `exec` replaces the shell
+  // so closing the agent ends the session.
+  const isWin = os.platform() === 'win32'
+  const args =
+    opts.command && opts.command.trim()
+      ? isWin
+        ? ['-NoLogo', '-Command', opts.command]
+        : ['-l', '-c', `exec ${opts.command}`]
+      : []
+
+  const pty = spawn(shell, args, {
     name: 'xterm-color',
     cols: opts.cols ?? 80,
     rows: opts.rows ?? 24,

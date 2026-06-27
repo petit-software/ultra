@@ -62,14 +62,21 @@ MAIN (Node)                          RENDERER (React)
 - **Uploaded context** = files dragged/pinned; stored as references the agent may
   read. Show a token-count estimate per pinned file.
 
-### D. Agentic layer
-- Loop in main: user message → Claude with tool definitions → tool calls →
-  execute → feed results back → stream text to the agent panel.
-- **Tools:** `run_command`, `read_file`, `write_file`/`edit_file`,
-  `list_directory`, `search`.
-- **Approvals:** every state-changing tool routes through a UI approval before
-  executing. Per-session "auto-approve read-only" allowed.
-- Stream tokens incrementally; render tool calls as collapsible cards.
+### D. Agentic layer — bring-your-own agent CLI
+The agent is **any external CLI tool** (Claude Code `claude`, OpenAI Codex
+`codex`, aider, …), launched in a PTY scoped to the active project's directory.
+Ultra is the harness — projects, files, sessions — around whatever agent you run.
+
+- **Agent registry:** a configurable list of `{ name, command }` entries,
+  persisted. Ships with Claude Code and Codex; user can add custom commands.
+- **Availability detection:** each agent's binary is probed with `which` so the
+  launcher shows what's installed.
+- **Launch:** "New agent session" creates a session whose PTY runs the agent
+  command via a login shell (`zsh -l -c "exec <command>"`) in the project cwd, so
+  the agent inherits the user's PATH/env and gets a real TTY for its TUI.
+- The agent's own interface lives in the terminal; Ultra adds the surrounding
+  project/file/session context. (A future optional path could embed a native
+  Anthropic SDK loop, but the default is bring-your-own-CLI.)
 
 ## Build order (milestones)
 
@@ -98,7 +105,6 @@ MAIN (Node)                          RENDERER (React)
 - [x] M2 Live terminal
 - [x] M3 Projects/sessions
 - [x] M4 File tree
-- [ ] M5 Agent loop (read-only)
-- [ ] M6 Mutating tools + approvals
-- [ ] M7 Uploaded context
-- [ ] M8 Polish
+- [x] M5 Agent launcher (bring-your-own CLI: claude / codex / custom)
+- [ ] M6 Uploaded/pinned context
+- [ ] M7 Polish (themes, keybindings, scrollback persistence)

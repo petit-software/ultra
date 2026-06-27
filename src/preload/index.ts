@@ -4,7 +4,7 @@ type Unsubscribe = () => void
 
 const api = {
   pty: {
-    create: (id: string, opts: { cwd?: string; cols?: number; rows?: number }) =>
+    create: (id: string, opts: { cwd?: string; cols?: number; rows?: number; command?: string }) =>
       ipcRenderer.send('pty:create', { id, ...opts }),
     input: (id: string, data: string) => ipcRenderer.send('pty:input', { id, data }),
     resize: (id: string, cols: number, rows: number) =>
@@ -41,6 +41,9 @@ const api = {
       ipcRenderer.on('fs:changed', h)
       return () => ipcRenderer.removeListener('fs:changed', h)
     }
+  },
+  agent: {
+    probe: (command: string): Promise<boolean> => ipcRenderer.invoke('agent:probe', command)
   }
 }
 

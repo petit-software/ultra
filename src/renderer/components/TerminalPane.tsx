@@ -38,6 +38,7 @@ export default function TerminalPane(): JSX.Element {
             key={id}
             sessionId={id}
             cwd={sessions[id].cwd}
+            command={sessions[id].command}
             visible={id === activeSessionId}
           />
         ))}

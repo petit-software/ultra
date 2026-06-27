@@ -9,6 +9,7 @@ import {
   unwatchRoot,
   unwatchAll
 } from './fs-service'
+import { probeCommand } from './agents'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -47,9 +48,9 @@ function createWindow(): void {
 }
 
 function registerIpc(): void {
-  ipcMain.on('pty:create', (e, { id, cwd, cols, rows }) => {
+  ipcMain.on('pty:create', (e, { id, cwd, cols, rows, command }) => {
     const win = BrowserWindow.fromWebContents(e.sender)
-    if (win) createPty(win, id, { cwd, cols, rows })
+    if (win) createPty(win, id, { cwd, cols, rows, command })
   })
   ipcMain.on('pty:input', (_e, { id, data }) => writePty(id, data))
   ipcMain.on('pty:resize', (_e, { id, cols, rows }) => resizePty(id, cols, rows))
@@ -73,6 +74,8 @@ function registerIpc(): void {
     if (win && root) watchRoot(win, root)
   })
   ipcMain.on('fs:unwatch', (_e, root: string) => unwatchRoot(root))
+
+  ipcMain.handle('agent:probe', (_e, command: string) => probeCommand(command))
 }
 
 app.whenReady().then(() => {
