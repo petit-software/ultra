@@ -8,7 +8,7 @@ import AgentMenu from './components/AgentMenu'
 import ThemeToggle from './components/ThemeToggle'
 import { useStore } from './store/useStore'
 
-const CARD = 'overflow-hidden rounded-xl bg-card shadow-md'
+const CARD = 'overflow-hidden rounded-xl bg-card'
 // Terminal: flush with the base, no rounded border or shadow.
 const TERM = 'bg-background'
 const GAP = 'w-2 bg-transparent'
