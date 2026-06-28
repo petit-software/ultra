@@ -3,7 +3,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/componen
 import { TooltipProvider } from '@/components/ui/tooltip'
 import LeftSidebar from './components/LeftSidebar'
 import TerminalPane from './components/TerminalPane'
-import FilePanel from './components/FilePanel'
+import RightSidebar from './components/RightSidebar'
 import AgentMenu from './components/AgentMenu'
 import ThemeToggle from './components/ThemeToggle'
 import SettingsMenu from './components/SettingsMenu'
@@ -49,7 +49,7 @@ export default function App(): JSX.Element {
           <ResizableHandle className={GAP} />
 
           <ResizablePanel defaultSize={28} minSize={16} maxSize={40} className={CARD}>
-            <FilePanel />
+            <RightSidebar />
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>

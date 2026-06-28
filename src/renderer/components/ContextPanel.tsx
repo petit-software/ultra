@@ -63,7 +63,7 @@ export default function ContextPanel(): JSX.Element {
       onDragLeave={() => setOver(false)}
       onDrop={(e) => void onDrop(e)}
       className={cn(
-        'flex-none border-t border-dashed transition-colors',
+        'flex min-h-0 flex-1 flex-col border-2 border-dashed transition-colors',
         over ? 'border-primary bg-primary/10' : 'border-transparent'
       )}
     >
@@ -75,7 +75,7 @@ export default function ContextPanel(): JSX.Element {
         </div>
       ) : (
         <>
-          <div className="flex items-center justify-between px-3 py-1.5">
+          <div className="flex flex-none items-center justify-between px-3 py-1.5">
             <span className="text-[11px] text-muted-foreground">{pinned.length} pinned</span>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -93,7 +93,7 @@ export default function ContextPanel(): JSX.Element {
               <TooltipContent>Insert all as @mentions in the active terminal</TooltipContent>
             </Tooltip>
           </div>
-          <ul className="max-h-40 overflow-auto px-2 pb-2">
+          <ul className="min-h-0 flex-1 overflow-auto px-2 pb-2">
             {pinned.map((p) => (
               <li
                 key={p}

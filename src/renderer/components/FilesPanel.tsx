@@ -1,11 +1,7 @@
 import { useState } from 'react'
-import { FolderPlus } from 'lucide-react'
 import PaneHeader from './PaneHeader'
 import FileTree from './FileTree'
-import ContextPanel from './ContextPanel'
-import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useStore } from '../store/useStore'
 import type { DirEntry } from '../types'
@@ -16,11 +12,10 @@ function relTo(root: string, p: string): string {
   return r && p.startsWith(r + '/') ? p.slice(r.length + 1) : p
 }
 
-export default function FilePanel(): JSX.Element {
+export default function FilesPanel(): JSX.Element {
   const sessions = useStore((s) => s.sessions)
   const projects = useStore((s) => s.projects)
   const activeSessionId = useStore((s) => s.activeSessionId)
-  const pinContext = useStore((s) => s.pinContext)
   const editorCommand = useStore((s) => s.editorCommand)
 
   const activeSession = activeSessionId ? sessions[activeSessionId] : null
@@ -44,14 +39,6 @@ export default function FilePanel(): JSX.Element {
     window.api.pty.input(activeSessionId, `@${relTo(root, entry.path)} `)
   }
 
-  const pinFolder = async (): Promise<void> => {
-    if (!project) return
-    const dir = await window.api.dialog.pickDirectory()
-    if (!dir) return
-    const files = await window.api.fs.expandToFiles([dir])
-    if (files.length) pinContext(project.id, files)
-  }
-
   return (
     <div className="flex h-full flex-col">
       <PaneHeader title="Files" />
@@ -70,24 +57,6 @@ export default function FilePanel(): JSX.Element {
           </div>
         )}
       </div>
-
-      <PaneHeader title="Context" className="border-t">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-5 w-5"
-              disabled={!project}
-              onClick={() => void pinFolder()}
-            >
-              <FolderPlus />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Pin a folder as context</TooltipContent>
-        </Tooltip>
-      </PaneHeader>
-      <ContextPanel />
 
       <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
         <DialogContent>
