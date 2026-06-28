@@ -9,7 +9,6 @@ import ThemeToggle from './components/ThemeToggle'
 import SettingsMenu from './components/SettingsMenu'
 import { useStore } from './store/useStore'
 
-const CARD = 'overflow-hidden rounded-xl bg-card'
 // Terminal: flush with the base, no rounded border or shadow.
 const TERM = 'bg-background'
 const GAP = 'w-2 bg-transparent'
@@ -38,7 +37,7 @@ export default function App(): JSX.Element {
           className="min-h-0 flex-1 p-2 pt-0"
           autoSaveId="ultra-layout"
         >
-          <ResizablePanel defaultSize={18} minSize={12} maxSize={32} className={CARD}>
+          <ResizablePanel defaultSize={18} minSize={12} maxSize={32}>
             <LeftSidebar />
           </ResizablePanel>
           <ResizableHandle className={GAP} />
@@ -48,7 +47,7 @@ export default function App(): JSX.Element {
           </ResizablePanel>
           <ResizableHandle className={GAP} />
 
-          <ResizablePanel defaultSize={28} minSize={16} maxSize={40} className={CARD}>
+          <ResizablePanel defaultSize={28} minSize={16} maxSize={40}>
             <RightSidebar />
           </ResizablePanel>
         </ResizablePanelGroup>
