@@ -10,7 +10,7 @@ export default function LeftSidebar(): JSX.Element {
       <ResizablePanel defaultSize={50} minSize={15} className={SECTION}>
         <ProjectsSidebar />
       </ResizablePanel>
-      <ResizableHandle className="h-2 bg-transparent" />
+      <ResizableHandle className="bg-transparent data-[panel-group-direction=vertical]:h-2" />
       <ResizablePanel defaultSize={50} minSize={15} className={SECTION}>
         <GitPanel />
       </ResizablePanel>
