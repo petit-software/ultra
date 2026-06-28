@@ -9,8 +9,8 @@ import ThemeToggle from './components/ThemeToggle'
 import { useStore } from './store/useStore'
 
 const CARD = 'overflow-hidden rounded-xl bg-card shadow-md'
-// The terminal card matches the xterm background so its inset has no lighter frame.
-const TERM = 'overflow-hidden rounded-xl bg-background shadow-md'
+// Terminal: flush with the base, no rounded border or shadow.
+const TERM = 'bg-background'
 const GAP = 'w-2 bg-transparent'
 
 export default function App(): JSX.Element {
