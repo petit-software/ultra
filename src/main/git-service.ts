@@ -138,14 +138,16 @@ export const createBranch = (
 ): Promise<{ ok: boolean; stderr: string }> =>
   run(cwd, ['switch', '-c', name]).then((r) => ({ ok: r.ok, stderr: r.stderr }))
 
-export const push = (cwd: string): Promise<{ ok: boolean; stderr: string }> =>
-  run(cwd, ['push']).then((r) => ({ ok: r.ok, stderr: r.stderr }))
+type RemoteResult = { ok: boolean; stdout: string; stderr: string }
 
-export const pull = (cwd: string): Promise<{ ok: boolean; stderr: string }> =>
-  run(cwd, ['pull']).then((r) => ({ ok: r.ok, stderr: r.stderr }))
+export const push = (cwd: string): Promise<RemoteResult> =>
+  run(cwd, ['push']).then((r) => ({ ok: r.ok, stdout: r.stdout, stderr: r.stderr }))
 
-export const fetch = (cwd: string): Promise<{ ok: boolean; stderr: string }> =>
-  run(cwd, ['fetch']).then((r) => ({ ok: r.ok, stderr: r.stderr }))
+export const pull = (cwd: string): Promise<RemoteResult> =>
+  run(cwd, ['pull']).then((r) => ({ ok: r.ok, stdout: r.stdout, stderr: r.stderr }))
+
+export const fetch = (cwd: string): Promise<RemoteResult> =>
+  run(cwd, ['fetch']).then((r) => ({ ok: r.ok, stdout: r.stdout, stderr: r.stderr }))
 
 export async function diff(cwd: string, file: string, staged: boolean): Promise<string> {
   const args = staged ? ['diff', '--staged', '--', file] : ['diff', '--', file]

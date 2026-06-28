@@ -135,6 +135,24 @@ export default function GitPanel(): JSX.Element {
     setDiff({ title: `${staged ? 'Staged: ' : ''}${f.path}`, text: text || '(no diff)' })
   }
 
+  // Remote operations: confirm (explaining what happens) before, report after.
+  const remote = async (
+    label: string,
+    message: string,
+    fn: () => Promise<{ ok: boolean; stdout?: string; stderr?: string }>
+  ): Promise<void> => {
+    if (!window.confirm(message)) return
+    setBusy(true)
+    try {
+      const res = await fn()
+      const out = `${res.stdout ?? ''}\n${res.stderr ?? ''}`.trim()
+      window.alert(`${label} ${res.ok ? 'complete' : 'failed'}${out ? `:\n\n${out}` : '.'}`)
+    } finally {
+      setBusy(false)
+      await refresh()
+    }
+  }
+
   // --- render states -------------------------------------------------------
 
   if (!project || !cwd) {
@@ -231,7 +249,19 @@ export default function GitPanel(): JSX.Element {
         <div className="ml-auto flex items-center">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-6 w-6" disabled={busy} onClick={() => void act(() => window.api.git.fetch(cwd))}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                disabled={busy}
+                onClick={() =>
+                  void remote(
+                    'Fetch',
+                    `Fetch from the remote?\n\nDownloads remote changes for "${status?.branch ?? 'this branch'}" so you can see what's new. It does NOT modify your working files or current branch.`,
+                    () => window.api.git.fetch(cwd)
+                  )
+                }
+              >
                 <RotateCw className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
@@ -239,7 +269,19 @@ export default function GitPanel(): JSX.Element {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-6 w-6" disabled={busy} onClick={() => void act(() => window.api.git.pull(cwd))}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                disabled={busy}
+                onClick={() =>
+                  void remote(
+                    'Pull',
+                    `Pull into "${status?.branch ?? 'this branch'}"?\n\nThis fetches and MERGES remote changes${status?.behind ? ` (${status.behind} behind)` : ''} into your local branch, changing your working files. Commit or stash local changes first to avoid conflicts.`,
+                    () => window.api.git.pull(cwd)
+                  )
+                }
+              >
                 <ArrowDown className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
@@ -247,7 +289,19 @@ export default function GitPanel(): JSX.Element {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-6 w-6" disabled={busy} onClick={() => void act(() => window.api.git.push(cwd))}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                disabled={busy}
+                onClick={() =>
+                  void remote(
+                    'Push',
+                    `Push "${status?.branch ?? 'this branch'}" to the remote?\n\nThis uploads your${status?.ahead ? ` ${status.ahead}` : ''} local commit(s) to origin${status?.hasUpstream ? '' : ' and sets the upstream'}. This publishes your work to the remote.`,
+                    () => window.api.git.push(cwd)
+                  )
+                }
+              >
                 <ArrowUp className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
