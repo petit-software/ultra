@@ -140,7 +140,7 @@ export default function GitPanel(): JSX.Element {
   if (!project || !cwd) {
     return (
       <div className="flex h-full flex-col">
-        <PaneHeader title="Source Control" />
+        <PaneHeader title="Git" />
         <div className="p-4 text-xs text-muted-foreground">Open a project to use Git.</div>
       </div>
     )
@@ -149,7 +149,7 @@ export default function GitPanel(): JSX.Element {
   if (status && !status.isRepo) {
     return (
       <div className="flex h-full flex-col">
-        <PaneHeader title="Source Control" />
+        <PaneHeader title="Git" />
         <div className="space-y-3 p-4 text-xs text-muted-foreground">
           <p>No git repository in this project.</p>
           <Button size="sm" disabled={busy} onClick={() => void act(() => window.api.git.init(cwd))}>
@@ -166,7 +166,7 @@ export default function GitPanel(): JSX.Element {
 
   return (
     <div className="flex h-full flex-col">
-      <PaneHeader title="Source Control">
+      <PaneHeader title="Git">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => void refresh()}>
@@ -261,7 +261,11 @@ export default function GitPanel(): JSX.Element {
         <Textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder={`Message (commit ${staged.length} staged)`}
+          placeholder={
+            staged.length
+              ? `Commit message (${staged.length} staged)`
+              : 'Stage files to commit, then write a message'
+          }
           rows={2}
           className="min-h-0 resize-none text-xs"
         />
