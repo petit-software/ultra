@@ -3,49 +3,49 @@
 @tailwind utilities;
 
 @layer base {
-  /* Light theme */
+  /* Light theme — white base + terminal, light-gray sidebars */
   :root {
-    --background: 210 16% 95%;
+    --background: 0 0% 100%;
     --foreground: 222 16% 12%;
-    --card: 0 0% 100%;
+    --card: 214 16% 95%;
     --card-foreground: 222 16% 12%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 16% 12%;
     --primary: 209 90% 45%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 14% 94%;
+    --secondary: 214 16% 88%;
     --secondary-foreground: 222 16% 20%;
-    --muted: 220 14% 94%;
+    --muted: 214 16% 90%;
     --muted-foreground: 220 9% 40%;
-    --accent: 220 14% 90%;
+    --accent: 214 18% 84%;
     --accent-foreground: 222 16% 12%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 13% 86%;
-    --input: 220 13% 86%;
+    --border: 214 15% 85%;
+    --input: 214 15% 85%;
     --ring: 209 90% 45%;
     --radius: 0.5rem;
   }
-  /* Dark theme — pure black, Hyper-style */
+  /* Dark theme — black base + terminal, lifted-gray sidebars */
   .dark {
     --background: 0 0% 0%;
     --foreground: 0 0% 92%;
-    --card: 0 0% 8%;
+    --card: 0 0% 10%;
     --card-foreground: 0 0% 92%;
-    --popover: 0 0% 9%;
+    --popover: 0 0% 12%;
     --popover-foreground: 0 0% 92%;
     --primary: 209 100% 71%;
     --primary-foreground: 213 60% 12%;
-    --secondary: 0 0% 12%;
+    --secondary: 0 0% 16%;
     --secondary-foreground: 0 0% 92%;
-    --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 55%;
-    --accent: 0 0% 16%;
+    --muted: 0 0% 16%;
+    --muted-foreground: 0 0% 58%;
+    --accent: 0 0% 20%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14%;
-    --input: 0 0% 16%;
+    --border: 0 0% 18%;
+    --input: 0 0% 20%;
     --ring: 209 100% 71%;
   }
 }

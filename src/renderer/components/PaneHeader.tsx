@@ -10,7 +10,7 @@ export default function PaneHeader({ title, children, className }: Props): JSX.E
   return (
     <div
       className={cn(
-        'flex h-[30px] flex-none items-center justify-between border-b border-border bg-card px-3',
+        'flex h-[30px] flex-none items-center justify-between border-b border-border px-3',
         className
       )}
     >
