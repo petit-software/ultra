@@ -27,9 +27,10 @@ interface NodeProps {
   version: number
   onOpenFile: (entry: DirEntry) => void
   onSend: (entry: DirEntry) => void
+  onEdit: (entry: DirEntry) => void
 }
 
-function TreeNode({ entry, depth, version, onOpenFile, onSend }: NodeProps): JSX.Element {
+function TreeNode({ entry, depth, version, onOpenFile, onSend, onEdit }: NodeProps): JSX.Element {
   const [expanded, setExpanded] = useState(false)
   const [children, setChildren] = useState<DirEntry[] | null>(null)
   const [loading, setLoading] = useState(false)
@@ -119,7 +120,7 @@ function TreeNode({ entry, depth, version, onOpenFile, onSend }: NodeProps): JSX
                 Open in Finder
               </DropdownMenuItem>
               {!entry.isDir && (
-                <DropdownMenuItem onSelect={() => void window.api.fs.openPath(entry.path)}>
+                <DropdownMenuItem onSelect={() => onEdit(entry)}>
                   <Pencil className="h-4 w-4" />
                   Edit
                 </DropdownMenuItem>
@@ -156,6 +157,7 @@ function TreeNode({ entry, depth, version, onOpenFile, onSend }: NodeProps): JSX
               version={version}
               onOpenFile={onOpenFile}
               onSend={onSend}
+              onEdit={onEdit}
             />
           ))}
           {children?.length === 0 && (
@@ -173,9 +175,10 @@ interface Props {
   root: string
   onOpenFile: (entry: DirEntry) => void
   onSend: (entry: DirEntry) => void
+  onEdit: (entry: DirEntry) => void
 }
 
-export default function FileTree({ root, onOpenFile, onSend }: Props): JSX.Element {
+export default function FileTree({ root, onOpenFile, onSend, onEdit }: Props): JSX.Element {
   const [entries, setEntries] = useState<DirEntry[] | null>(null)
   const [version, setVersion] = useState(0)
 
@@ -208,6 +211,7 @@ export default function FileTree({ root, onOpenFile, onSend }: Props): JSX.Eleme
           version={version}
           onOpenFile={onOpenFile}
           onSend={onSend}
+          onEdit={onEdit}
         />
       ))}
     </div>

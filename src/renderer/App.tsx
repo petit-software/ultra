@@ -1,11 +1,12 @@
 import { useEffect } from 'react'
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import ProjectsSidebar from './components/ProjectsSidebar'
+import LeftSidebar from './components/LeftSidebar'
 import TerminalPane from './components/TerminalPane'
 import FilePanel from './components/FilePanel'
 import AgentMenu from './components/AgentMenu'
 import ThemeToggle from './components/ThemeToggle'
+import SettingsMenu from './components/SettingsMenu'
 import { useStore } from './store/useStore'
 
 const CARD = 'overflow-hidden rounded-xl bg-card'
@@ -26,6 +27,7 @@ export default function App(): JSX.Element {
           <span className="font-semibold tracking-tight">Ultra</span>
           <span className="text-[11px] text-muted-foreground">agentic terminal</span>
           <div className="ml-auto flex items-center gap-1">
+            <SettingsMenu />
             <ThemeToggle />
             <AgentMenu />
           </div>
@@ -37,7 +39,7 @@ export default function App(): JSX.Element {
           autoSaveId="ultra-layout"
         >
           <ResizablePanel defaultSize={18} minSize={12} maxSize={32} className={CARD}>
-            <ProjectsSidebar />
+            <LeftSidebar />
           </ResizablePanel>
           <ResizableHandle className={GAP} />
 

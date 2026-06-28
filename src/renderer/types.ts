@@ -3,3 +3,25 @@ export interface DirEntry {
   path: string
   isDir: boolean
 }
+
+export interface GitFile {
+  path: string
+  x: string
+  y: string
+}
+
+export interface GitStatus {
+  isRepo: boolean
+  branch: string | null
+  ahead: number
+  behind: number
+  hasUpstream: boolean
+  files: GitFile[]
+}
+
+export interface GitCommit {
+  hash: string
+  subject: string
+  author: string
+  relative: string
+}

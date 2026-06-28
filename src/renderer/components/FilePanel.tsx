@@ -21,6 +21,7 @@ export default function FilePanel(): JSX.Element {
   const projects = useStore((s) => s.projects)
   const activeSessionId = useStore((s) => s.activeSessionId)
   const pinContext = useStore((s) => s.pinContext)
+  const editorCommand = useStore((s) => s.editorCommand)
 
   const activeSession = activeSessionId ? sessions[activeSessionId] : null
   const project = activeSession
@@ -56,7 +57,12 @@ export default function FilePanel(): JSX.Element {
       <PaneHeader title="Files" />
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
         {root ? (
-          <FileTree root={root} onOpenFile={(e) => void openFile(e)} onSend={sendToAgent} />
+          <FileTree
+            root={root}
+            onOpenFile={(e) => void openFile(e)}
+            onSend={sendToAgent}
+            onEdit={(e) => void window.api.editor.open(editorCommand, e.path)}
+          />
         ) : (
           <div className="space-y-1 p-4 text-sm text-muted-foreground">
             <p>No folder open.</p>

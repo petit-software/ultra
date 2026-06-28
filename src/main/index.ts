@@ -11,6 +11,8 @@ import {
   unwatchAll
 } from './fs-service'
 import { probeCommand } from './agents'
+import * as git from './git-service'
+import { openInEditor } from './editor'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -88,6 +90,32 @@ function registerIpc(): void {
   })
 
   ipcMain.handle('agent:probe', (_e, command: string) => probeCommand(command))
+
+  ipcMain.handle('git:status', (_e, cwd: string) => git.getStatus(cwd))
+  ipcMain.handle('git:init', (_e, cwd: string) => git.init(cwd))
+  ipcMain.handle('git:stage', (_e, cwd: string, file: string) => git.stage(cwd, file))
+  ipcMain.handle('git:stageAll', (_e, cwd: string) => git.stageAll(cwd))
+  ipcMain.handle('git:unstage', (_e, cwd: string, file: string) => git.unstage(cwd, file))
+  ipcMain.handle('git:discard', (_e, cwd: string, file: string, untracked: boolean) =>
+    git.discard(cwd, file, untracked)
+  )
+  ipcMain.handle('git:commit', (_e, cwd: string, message: string) => git.commit(cwd, message))
+  ipcMain.handle('git:branches', (_e, cwd: string) => git.branches(cwd))
+  ipcMain.handle('git:switch', (_e, cwd: string, name: string) => git.switchBranch(cwd, name))
+  ipcMain.handle('git:createBranch', (_e, cwd: string, name: string) =>
+    git.createBranch(cwd, name)
+  )
+  ipcMain.handle('git:push', (_e, cwd: string) => git.push(cwd))
+  ipcMain.handle('git:pull', (_e, cwd: string) => git.pull(cwd))
+  ipcMain.handle('git:fetch', (_e, cwd: string) => git.fetch(cwd))
+  ipcMain.handle('git:diff', (_e, cwd: string, file: string, staged: boolean) =>
+    git.diff(cwd, file, staged)
+  )
+  ipcMain.handle('git:log', (_e, cwd: string) => git.log(cwd))
+
+  ipcMain.handle('editor:open', (_e, command: string, path: string) =>
+    openInEditor(command, path)
+  )
 }
 
 app.whenReady().then(() => {

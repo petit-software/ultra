@@ -49,6 +49,30 @@ const api = {
   },
   agent: {
     probe: (command: string): Promise<boolean> => ipcRenderer.invoke('agent:probe', command)
+  },
+  git: {
+    status: (cwd: string) => ipcRenderer.invoke('git:status', cwd),
+    init: (cwd: string) => ipcRenderer.invoke('git:init', cwd),
+    stage: (cwd: string, file: string) => ipcRenderer.invoke('git:stage', cwd, file),
+    stageAll: (cwd: string) => ipcRenderer.invoke('git:stageAll', cwd),
+    unstage: (cwd: string, file: string) => ipcRenderer.invoke('git:unstage', cwd, file),
+    discard: (cwd: string, file: string, untracked: boolean) =>
+      ipcRenderer.invoke('git:discard', cwd, file, untracked),
+    commit: (cwd: string, message: string) => ipcRenderer.invoke('git:commit', cwd, message),
+    branches: (cwd: string) => ipcRenderer.invoke('git:branches', cwd),
+    switchBranch: (cwd: string, name: string) => ipcRenderer.invoke('git:switch', cwd, name),
+    createBranch: (cwd: string, name: string) =>
+      ipcRenderer.invoke('git:createBranch', cwd, name),
+    push: (cwd: string) => ipcRenderer.invoke('git:push', cwd),
+    pull: (cwd: string) => ipcRenderer.invoke('git:pull', cwd),
+    fetch: (cwd: string) => ipcRenderer.invoke('git:fetch', cwd),
+    diff: (cwd: string, file: string, staged: boolean) =>
+      ipcRenderer.invoke('git:diff', cwd, file, staged),
+    log: (cwd: string) => ipcRenderer.invoke('git:log', cwd)
+  },
+  editor: {
+    open: (command: string, path: string): Promise<boolean> =>
+      ipcRenderer.invoke('editor:open', command, path)
   }
 }
 

@@ -38,6 +38,7 @@ interface PersistShape {
   activeSessionId: string | null
   agents: Agent[]
   theme: ThemeMode
+  editorCommand: string
 }
 
 function applyTheme(theme: ThemeMode): void {
@@ -59,6 +60,7 @@ interface AppState extends PersistShape {
   pinContext: (projectId: string, paths: string[]) => void
   unpinContext: (projectId: string, path: string) => void
   toggleTheme: () => void
+  setEditorCommand: (command: string) => void
 }
 
 let counter = 0
@@ -74,7 +76,8 @@ function makeDefault(): PersistShape {
     sessions: { [session.id]: session },
     activeSessionId: session.id,
     agents: DEFAULT_AGENTS,
-    theme: 'dark'
+    theme: 'dark',
+    editorCommand: 'code'
   }
 }
 
@@ -84,7 +87,8 @@ function snapshot(s: AppState): PersistShape {
     sessions: s.sessions,
     activeSessionId: s.activeSessionId,
     agents: s.agents,
-    theme: s.theme
+    theme: s.theme,
+    editorCommand: s.editorCommand
   }
 }
 
@@ -110,7 +114,8 @@ export const useStore = create<AppState>((set, get) => ({
         Array.isArray(loaded.agents) && loaded.agents.length > 0 ? loaded.agents : DEFAULT_AGENTS
       const theme: ThemeMode = loaded.theme === 'light' ? 'light' : 'dark'
       applyTheme(theme)
-      set({ ...loaded, agents, theme, activeSessionId: active, hydrated: true })
+      const editorCommand = loaded.editorCommand || 'code'
+      set({ ...loaded, agents, theme, editorCommand, activeSessionId: active, hydrated: true })
     } else {
       applyTheme(get().theme)
       set({ hydrated: true })
@@ -234,6 +239,13 @@ export const useStore = create<AppState>((set, get) => ({
       const theme: ThemeMode = st.theme === 'dark' ? 'light' : 'dark'
       applyTheme(theme)
       const next = { ...st, theme }
+      schedulePersist(next)
+      return next
+    }),
+
+  setEditorCommand: (command) =>
+    set((st) => {
+      const next = { ...st, editorCommand: command }
       schedulePersist(next)
       return next
     }),
