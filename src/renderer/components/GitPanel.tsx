@@ -312,38 +312,36 @@ export default function GitPanel(): JSX.Element {
         </div>
       </div>
 
-      {/* Commit box */}
-      <div className="flex flex-none gap-2 border-b border-border p-2">
-        <Textarea
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder={
-            staged.length
-              ? `Commit message (${staged.length} staged)`
-              : 'Stage files to commit, then write a message'
-          }
-          rows={2}
-          className="min-h-0 resize-none text-xs"
-        />
-        <Button
-          size="icon"
-          className="h-auto"
-          title="Commit staged"
-          disabled={busy || !message.trim() || staged.length === 0}
-          onClick={() =>
-            void act(async () => {
-              const res = (await window.api.git.commit(cwd, message.trim())) as {
-                ok: boolean
-                stderr: string
-              }
-              if (res.ok) setMessage('')
-              else window.alert(res.stderr || 'Commit failed')
-            })
-          }
-        >
-          <Check />
-        </Button>
-      </div>
+      {/* Commit box — only when something is staged */}
+      {staged.length > 0 && (
+        <div className="flex flex-none gap-2 border-b border-border p-2">
+          <Textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder={`Commit message (${staged.length} staged)`}
+            rows={2}
+            className="min-h-0 resize-none text-xs"
+          />
+          <Button
+            size="icon"
+            className="h-auto"
+            title="Commit staged"
+            disabled={busy || !message.trim()}
+            onClick={() =>
+              void act(async () => {
+                const res = (await window.api.git.commit(cwd, message.trim())) as {
+                  ok: boolean
+                  stderr: string
+                }
+                if (res.ok) setMessage('')
+                else window.alert(res.stderr || 'Commit failed')
+              })
+            }
+          >
+            <Check />
+          </Button>
+        </div>
+      )}
 
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
         <Section
