@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, File as FileIcon, Folder } from 'lucide-react'
+import { Plus, File as FileIcon, Folder, Check, X } from 'lucide-react'
 import PaneHeader from './PaneHeader'
 import FileTree from './FileTree'
 import { Button } from '@/components/ui/button'
@@ -95,12 +95,49 @@ export default function FilesPanel(): JSX.Element {
       </PaneHeader>
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
         {root ? (
-          <FileTree
-            root={root}
-            onOpenFile={(e) => void openFile(e)}
-            onSend={sendToAgent}
-            onEdit={(e) => void window.api.editor.open(editorCommand, e.path)}
-          />
+          <div className="py-1">
+            {creating && (
+              <div className="flex items-center gap-1 py-1 pl-2 pr-1 text-sm">
+                <span className="w-3.5 shrink-0" />
+                {creating === 'dir' ? (
+                  <Folder className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                ) : (
+                  <FileIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                )}
+                <input
+                  autoFocus
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') void submitCreate()
+                    else if (e.key === 'Escape') setCreating(null)
+                  }}
+                  placeholder={creating === 'dir' ? 'folder name' : 'file name'}
+                  className="min-w-0 flex-1 rounded border border-input bg-background px-1 py-0.5 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
+                <button
+                  title="Create"
+                  onClick={() => void submitCreate()}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <Check className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  title="Cancel"
+                  onClick={() => setCreating(null)}
+                  className="text-muted-foreground hover:text-destructive"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
+            <FileTree
+              root={root}
+              onOpenFile={(e) => void openFile(e)}
+              onSend={sendToAgent}
+              onEdit={(e) => void window.api.editor.open(editorCommand, e.path)}
+            />
+          </div>
         ) : (
           <div className="space-y-1 p-4 text-sm text-muted-foreground">
             <p>No folder open.</p>
@@ -108,32 +145,6 @@ export default function FilesPanel(): JSX.Element {
           </div>
         )}
       </div>
-
-      <Dialog open={!!creating} onOpenChange={(o) => !o && setCreating(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{creating === 'dir' ? 'New folder' : 'New file'}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2">
-            <input
-              autoFocus
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && void submitCreate()}
-              placeholder={creating === 'dir' ? 'folder name (sub/dir ok)' : 'file name (sub/dir/name ok)'}
-              className="w-full rounded-md border border-input bg-secondary/40 px-2 py-1.5 font-mono text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            />
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setCreating(null)}>
-                Cancel
-              </Button>
-              <Button size="sm" onClick={() => void submitCreate()}>
-                Create
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
         <DialogContent>
