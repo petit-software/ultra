@@ -8,6 +8,7 @@ import {
   expandToFiles,
   createFile,
   createDir,
+  rename,
   watchRoot,
   unwatchRoot,
   unwatchAll
@@ -79,6 +80,7 @@ function registerIpc(): void {
   ipcMain.handle('fs:expandToFiles', (_e, paths: string[]) => expandToFiles(paths))
   ipcMain.handle('fs:createFile', (_e, path: string) => createFile(path))
   ipcMain.handle('fs:createDir', (_e, path: string) => createDir(path))
+  ipcMain.handle('fs:rename', (_e, oldPath: string, newPath: string) => rename(oldPath, newPath))
   ipcMain.on('fs:watch', (e, root: string) => {
     const win = BrowserWindow.fromWebContents(e.sender)
     if (win && root) watchRoot(win, root)

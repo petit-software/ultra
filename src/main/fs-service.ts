@@ -104,6 +104,23 @@ export async function createDir(path: string): Promise<boolean> {
   }
 }
 
+/** Rename/move a path. Refuses if the destination already exists. */
+export async function rename(oldPath: string, newPath: string): Promise<boolean> {
+  if (oldPath === newPath) return true
+  try {
+    try {
+      await fs.access(newPath)
+      return false // destination exists — don't clobber
+    } catch {
+      /* destination free */
+    }
+    await fs.rename(oldPath, newPath)
+    return true
+  } catch {
+    return false
+  }
+}
+
 const watchers = new Map<string, FSWatcher>()
 
 /** Watch a project root and notify the window (debounced) when it changes. */

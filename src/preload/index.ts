@@ -43,6 +43,8 @@ const api = {
       ipcRenderer.invoke('fs:expandToFiles', paths),
     createFile: (path: string): Promise<boolean> => ipcRenderer.invoke('fs:createFile', path),
     createDir: (path: string): Promise<boolean> => ipcRenderer.invoke('fs:createDir', path),
+    rename: (oldPath: string, newPath: string): Promise<boolean> =>
+      ipcRenderer.invoke('fs:rename', oldPath, newPath),
     onChanged: (cb: (root: string) => void): Unsubscribe => {
       const h = (_e: IpcRendererEvent, p: { root: string }) => cb(p.root)
       ipcRenderer.on('fs:changed', h)
