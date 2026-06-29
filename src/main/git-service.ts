@@ -46,22 +46,12 @@ async function run(
   })
 }
 
-export async function getStatus(cwd: string): Promise<GitStatus> {
-  const empty: GitStatus = {
-    isRepo: false,
-    branch: null,
-    ahead: 0,
-    behind: 0,
-    hasUpstream: false,
-    files: []
-  }
-  if (!cwd) return empty
-
-  const inside = await run(cwd, ['rev-parse', '--is-inside-work-tree'])
-  if (!inside.ok || inside.stdout.trim() !== 'true') return empty
-
-  const res = await run(cwd, ['status', '--porcelain=v1', '-b', '-z'])
-  const tokens = res.stdout.split('\0')
+/**
+ * Parse the NUL-separated output of `git status --porcelain=v1 -b -z`.
+ * Pure (no I/O) so it can be unit-tested directly.
+ */
+export function parseStatus(stdout: string): Omit<GitStatus, 'isRepo'> {
+  const tokens = stdout.split('\0')
   const files: GitFile[] = []
   let branch: string | null = null
   let ahead = 0
@@ -90,7 +80,25 @@ export async function getStatus(cwd: string): Promise<GitStatus> {
     if (x === 'R' || x === 'C') i++
   }
 
-  return { isRepo: true, branch, ahead, behind, hasUpstream, files }
+  return { branch, ahead, behind, hasUpstream, files }
+}
+
+export async function getStatus(cwd: string): Promise<GitStatus> {
+  const empty: GitStatus = {
+    isRepo: false,
+    branch: null,
+    ahead: 0,
+    behind: 0,
+    hasUpstream: false,
+    files: []
+  }
+  if (!cwd) return empty
+
+  const inside = await run(cwd, ['rev-parse', '--is-inside-work-tree'])
+  if (!inside.ok || inside.stdout.trim() !== 'true') return empty
+
+  const res = await run(cwd, ['status', '--porcelain=v1', '-b', '-z'])
+  return { isRepo: true, ...parseStatus(res.stdout) }
 }
 
 export const init = (cwd: string): Promise<{ ok: boolean; stderr: string }> =>

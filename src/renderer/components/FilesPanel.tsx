@@ -12,13 +12,8 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useStore } from '../store/useStore'
+import { relTo } from '../lib/paths'
 import type { DirEntry } from '../types'
-
-/** Path relative to the project root, for terminal @mentions. */
-function relTo(root: string, p: string): string {
-  const r = root.replace(/\/+$/, '')
-  return r && p.startsWith(r + '/') ? p.slice(r.length + 1) : p
-}
 
 export default function FilesPanel(): JSX.Element {
   const sessions = useStore((s) => s.sessions)

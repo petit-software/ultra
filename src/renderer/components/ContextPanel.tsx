@@ -3,17 +3,8 @@ import { FileText, X, CornerDownLeft } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
+import { basename, relTo } from '../lib/paths'
 import { cn } from '@/lib/utils'
-
-const basename = (p: string): string => p.replace(/\/+$/, '').split('/').pop() || p
-
-/** Path relative to the project root, for terminal @mentions. */
-function relTo(root: string, p: string): string {
-  if (root && p.startsWith(root.replace(/\/+$/, '') + '/')) {
-    return p.slice(root.replace(/\/+$/, '').length + 1)
-  }
-  return p
-}
 
 export default function ContextPanel(): JSX.Element {
   const sessions = useStore((s) => s.sessions)
