@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { Plus } from 'lucide-react'
-import { VscNewFile, VscNewFolder } from 'react-icons/vsc'
+import { Plus, File as FileIcon, Folder } from 'lucide-react'
 import PaneHeader from './PaneHeader'
 import FileTree from './FileTree'
 import { Button } from '@/components/ui/button'
@@ -69,11 +68,11 @@ export default function FilesPanel(): JSX.Element {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onSelect={() => void create('file')}>
-              <VscNewFile className="h-4 w-4" />
+              <FileIcon className="h-4 w-4" />
               New file
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => void create('dir')}>
-              <VscNewFolder className="h-4 w-4" />
+              <Folder className="h-4 w-4" />
               New folder
             </DropdownMenuItem>
           </DropdownMenuContent>

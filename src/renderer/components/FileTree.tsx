@@ -76,9 +76,9 @@ function TreeNode({ entry, depth, version, onOpenFile, onSend, onEdit }: NodePro
               className={cn('h-3.5 w-3.5 shrink-0 transition-transform', expanded && 'rotate-90')}
             />
             {expanded ? (
-              <FolderOpen className="h-3.5 w-3.5 shrink-0 text-primary/80" />
+              <FolderOpen className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
             ) : (
-              <Folder className="h-3.5 w-3.5 shrink-0 text-primary/80" />
+              <Folder className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
             )}
           </>
         ) : (
