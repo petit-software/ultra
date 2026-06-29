@@ -8,6 +8,7 @@ import AgentMenu from './components/AgentMenu'
 import ThemeToggle from './components/ThemeToggle'
 import EditorMenu from './components/EditorMenu'
 import ViewMenu from './components/ViewMenu'
+import WelcomeModal from './components/WelcomeModal'
 import { useStore } from './store/useStore'
 
 // Terminal: flush with the base, no rounded border or shadow.
@@ -25,6 +26,7 @@ export default function App(): JSX.Element {
 
   return (
     <TooltipProvider delayDuration={300}>
+      <WelcomeModal />
       <div className="flex h-full flex-col bg-background">
         <header className="app-drag flex h-9 flex-none items-center gap-2 pl-[86px] pr-2">
           <span className="font-semibold tracking-tight">Ultra</span>

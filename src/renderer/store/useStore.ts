@@ -41,6 +41,7 @@ interface PersistShape {
   editorCommand: string
   leftSidebarVisible: boolean
   rightSidebarVisible: boolean
+  onboarded: boolean
 }
 
 function applyTheme(theme: ThemeMode): void {
@@ -66,6 +67,7 @@ interface AppState extends PersistShape {
   setEditorCommand: (command: string) => void
   toggleLeftSidebar: () => void
   toggleRightSidebar: () => void
+  completeOnboarding: () => void
 }
 
 let counter = 0
@@ -84,7 +86,8 @@ function makeDefault(): PersistShape {
     theme: 'dark',
     editorCommand: 'code',
     leftSidebarVisible: true,
-    rightSidebarVisible: true
+    rightSidebarVisible: true,
+    onboarded: false
   }
 }
 
@@ -97,7 +100,8 @@ function snapshot(s: AppState): PersistShape {
     theme: s.theme,
     editorCommand: s.editorCommand,
     leftSidebarVisible: s.leftSidebarVisible,
-    rightSidebarVisible: s.rightSidebarVisible
+    rightSidebarVisible: s.rightSidebarVisible,
+    onboarded: s.onboarded
   }
 }
 
@@ -131,6 +135,7 @@ export const useStore = create<AppState>((set, get) => ({
         editorCommand,
         leftSidebarVisible: loaded.leftSidebarVisible ?? true,
         rightSidebarVisible: loaded.rightSidebarVisible ?? true,
+        onboarded: loaded.onboarded ?? false,
         activeSessionId: active,
         hydrated: true
       })
@@ -278,6 +283,13 @@ export const useStore = create<AppState>((set, get) => ({
   toggleRightSidebar: () =>
     set((st) => {
       const next = { ...st, rightSidebarVisible: !st.rightSidebarVisible }
+      schedulePersist(next)
+      return next
+    }),
+
+  completeOnboarding: () =>
+    set((st) => {
+      const next = { ...st, onboarded: true }
       schedulePersist(next)
       return next
     }),
