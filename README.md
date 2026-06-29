@@ -1,3 +1,5 @@
+<img width="64" height="64" alt="Icon-iOS-ClearDark-1024x1024@1x" src="https://github.com/user-attachments/assets/7da074e2-829e-480c-a49b-73eebb1cbb49" />
+
 # Ultra
 
 An **agentic terminal** — a desktop app that wraps a real terminal with an
