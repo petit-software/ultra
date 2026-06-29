@@ -124,31 +124,22 @@ export default function ProjectsSidebar(): JSX.Element {
                             value={editValue}
                             onChange={(e) => setEditValue(e.target.value)}
                             onClick={(e) => e.stopPropagation()}
+                            onBlur={() => setEditingId(null)}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') commitEdit()
                               else if (e.key === 'Escape') setEditingId(null)
                             }}
-                            className="min-w-0 flex-1 rounded border border-input bg-background px-1 py-0.5 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            className="min-w-0 flex-1 bg-transparent p-0 text-sm text-foreground outline-none"
                           />
                           <button
                             title="Save"
-                            onClick={(e) => {
-                              e.stopPropagation()
+                            onMouseDown={(e) => {
+                              e.preventDefault()
                               commitEdit()
                             }}
                             className="text-muted-foreground hover:text-foreground"
                           >
                             <Check className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            title="Cancel"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setEditingId(null)
-                            }}
-                            className="text-muted-foreground hover:text-destructive"
-                          >
-                            <X className="h-3.5 w-3.5" />
                           </button>
                         </>
                       ) : (

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, File as FileIcon, Folder, Check, X } from 'lucide-react'
+import { Plus, File as FileIcon, Folder, Check } from 'lucide-react'
 import PaneHeader from './PaneHeader'
 import FileTree from './FileTree'
 import { Button } from '@/components/ui/button'
@@ -71,7 +71,7 @@ export default function FilesPanel(): JSX.Element {
               <Plus />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" onCloseAutoFocus={(e) => e.preventDefault()}>
             <DropdownMenuItem
               onSelect={() => {
                 setNewName('')
@@ -108,26 +108,23 @@ export default function FilesPanel(): JSX.Element {
                   autoFocus
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
+                  onBlur={() => setCreating(null)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') void submitCreate()
                     else if (e.key === 'Escape') setCreating(null)
                   }}
                   placeholder={creating === 'dir' ? 'folder name' : 'file name'}
-                  className="min-w-0 flex-1 rounded border border-input bg-background px-1 py-0.5 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="min-w-0 flex-1 bg-transparent p-0 text-sm text-foreground outline-none placeholder:text-muted-foreground"
                 />
                 <button
                   title="Create"
-                  onClick={() => void submitCreate()}
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    void submitCreate()
+                  }}
                   className="text-muted-foreground hover:text-foreground"
                 >
                   <Check className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  title="Cancel"
-                  onClick={() => setCreating(null)}
-                  className="text-muted-foreground hover:text-destructive"
-                >
-                  <X className="h-3.5 w-3.5" />
                 </button>
               </div>
             )}
