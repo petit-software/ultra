@@ -22,6 +22,7 @@ asarUnpack:
 
 mac:
   category: public.app-category.developer-tools
+  icon: build/icon.icns
   identity: null # local/unsigned build — no Developer ID required
   target:
     - target: dmg
