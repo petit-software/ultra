@@ -69,9 +69,12 @@
   }
 }
 
-/* Custom scrollbars — thin, rounded, theme-aware. */
+/* Custom scrollbars — thin, rounded, and only visible while hovering the area. */
 * {
   scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+*:hover {
   scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
 }
 *::-webkit-scrollbar {
@@ -82,13 +85,16 @@
   background: transparent;
 }
 *::-webkit-scrollbar-thumb {
-  background-color: hsl(var(--muted-foreground) / 0.25);
+  background-color: transparent;
   border-radius: 9999px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
+*:hover::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--muted-foreground) / 0.3);
+}
 *::-webkit-scrollbar-thumb:hover {
-  background-color: hsl(var(--muted-foreground) / 0.45);
+  background-color: hsl(var(--muted-foreground) / 0.5);
 }
 *::-webkit-scrollbar-corner {
   background: transparent;

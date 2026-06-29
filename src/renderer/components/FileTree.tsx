@@ -3,7 +3,6 @@ import {
   ChevronRight,
   File as FileIcon,
   Folder,
-  FolderOpen,
   CornerDownLeft,
   MoreHorizontal,
   FolderOpen as RevealIcon,
@@ -88,11 +87,7 @@ function TreeNode({ entry, depth, version, onOpenFile, onSend, onEdit }: NodePro
             <ChevronRight
               className={cn('h-3.5 w-3.5 shrink-0 transition-transform', expanded && 'rotate-90')}
             />
-            {expanded ? (
-              <FolderOpen className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            ) : (
-              <Folder className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            )}
+            <Folder className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           </>
         ) : (
           <>

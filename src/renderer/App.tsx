@@ -12,7 +12,7 @@ import { useStore } from './store/useStore'
 
 // Terminal: flush with the base, no rounded border or shadow.
 const TERM = 'bg-background'
-const GAP = 'w-2 bg-transparent'
+const GAP = 'w-2 my-1 bg-transparent'
 
 export default function App(): JSX.Element {
   const hydrate = useStore((s) => s.hydrate)

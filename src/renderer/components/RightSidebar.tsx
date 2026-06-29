@@ -10,7 +10,7 @@ export default function RightSidebar(): JSX.Element {
       <ResizablePanel defaultSize={60} minSize={15} className={SECTION}>
         <FilesPanel />
       </ResizablePanel>
-      <ResizableHandle className="bg-transparent data-[panel-group-direction=vertical]:h-2" />
+      <ResizableHandle className="mx-1 bg-transparent data-[panel-group-direction=vertical]:h-2" />
       <ResizablePanel defaultSize={40} minSize={15} className={SECTION}>
         <ContextSection />
       </ResizablePanel>
