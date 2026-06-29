@@ -21,11 +21,14 @@ export default function TerminalView({ sessionId, cwd, visible, command }: Props
   const hostRef = useRef<HTMLDivElement>(null)
   const fitRef = useRef<FitAddon | null>(null)
   const termRef = useRef<Terminal | null>(null)
+  const openedRef = useRef(false)
   const theme = useStore((s) => s.theme)
 
+  // Create the terminal + PTY at mount. We deliberately do NOT call term.open()
+  // here: opening on a zero-size (display:none) host makes xterm's Viewport throw
+  // asynchronously while reading render dimensions. Writes are buffered by xterm
+  // until the host is opened, so background sessions still capture their output.
   useEffect(() => {
-    if (!hostRef.current) return
-
     const term = new Terminal({
       fontFamily: 'Menlo, "SF Mono", "JetBrains Mono", monospace',
       fontSize: 13,
@@ -38,15 +41,8 @@ export default function TerminalView({ sessionId, cwd, visible, command }: Props
     term.loadAddon(fit)
     term.loadAddon(new WebLinksAddon())
     term.loadAddon(new SearchAddon())
-    term.open(hostRef.current)
     termRef.current = term
     fitRef.current = fit
-
-    try {
-      fit.fit()
-    } catch {
-      /* not laid out yet */
-    }
 
     window.api.pty.create(sessionId, { cwd, cols: term.cols, rows: term.rows, command })
 
@@ -58,23 +54,11 @@ export default function TerminalView({ sessionId, cwd, visible, command }: Props
     })
     term.onData((data) => window.api.pty.input(sessionId, data))
 
-    const doFit = (): void => {
-      try {
-        fit.fit()
-        window.api.pty.resize(sessionId, term.cols, term.rows)
-      } catch {
-        /* host hidden / not laid out */
-      }
-    }
-    const ro = new ResizeObserver(doFit)
-    ro.observe(hostRef.current)
-    requestAnimationFrame(doFit)
-
     return () => {
-      ro.disconnect()
       offData()
       offExit()
       term.dispose()
+      openedRef.current = false
       // PTY itself is killed via store.closeSession, not on unmount-from-hide.
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -85,22 +69,46 @@ export default function TerminalView({ sessionId, cwd, visible, command }: Props
     if (termRef.current) termRef.current.options.theme = xtermTheme(theme)
   }, [theme])
 
-  // Refit whenever this view becomes visible (fit needs real layout).
+  // Open (once) and refit whenever this view is visible — fit needs real layout.
   useEffect(() => {
     if (!visible) return
     const id = requestAnimationFrame(() => {
       const term = termRef.current
       const fit = fitRef.current
-      if (!term || !fit) return
+      const host = hostRef.current
+      if (!term || !fit || !host) return
+      if (!openedRef.current) {
+        term.open(host)
+        openedRef.current = true
+      }
       try {
         fit.fit()
         term.focus()
         window.api.pty.resize(sessionId, term.cols, term.rows)
       } catch {
-        /* ignore */
+        /* not laid out yet */
       }
     })
-    return () => cancelAnimationFrame(id)
+
+    // Keep the grid sized to the pane while it's visible.
+    const doFit = (): void => {
+      const term = termRef.current
+      const fit = fitRef.current
+      if (!term || !fit || !openedRef.current) return
+      try {
+        fit.fit()
+        window.api.pty.resize(sessionId, term.cols, term.rows)
+      } catch {
+        /* host hidden / not laid out */
+      }
+    }
+    const ro = hostRef.current ? new ResizeObserver(doFit) : null
+    if (ro && hostRef.current) ro.observe(hostRef.current)
+
+    return () => {
+      cancelAnimationFrame(id)
+      ro?.disconnect()
+    }
   }, [visible, sessionId])
 
   return (

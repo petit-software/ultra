@@ -8,6 +8,8 @@ export interface Session {
   /** When set, the PTY runs this agent command instead of a plain shell. */
   command?: string
   agentName?: string
+  /** True once an agent has been launched into this shell (hides the quick bar). */
+  agentStarted?: boolean
 }
 
 export interface Project {
@@ -37,6 +39,8 @@ interface PersistShape {
   sessions: Record<string, Session>
   activeSessionId: string | null
   agents: Agent[]
+  /** Agent ids in most-recently-used order, so the last one used sorts first. */
+  recentAgentIds: string[]
   theme: ThemeMode
   editorCommand: string
   leftSidebarVisible: boolean
@@ -57,6 +61,7 @@ interface AppState extends PersistShape {
   addProject: () => Promise<void>
   newSession: (projectId: string) => void
   launchAgent: (projectId: string, agent: Agent) => void
+  startAgent: (sessionId: string, agent: Agent) => void
   removeProject: (projectId: string) => void
   renameSession: (id: string, title: string) => void
   closeSession: (id: string) => void
@@ -85,6 +90,7 @@ function makeDefault(): PersistShape {
     sessions: { [session.id]: session },
     activeSessionId: session.id,
     agents: DEFAULT_AGENTS,
+    recentAgentIds: [],
     theme: 'dark',
     editorCommand: 'code',
     leftSidebarVisible: true,
@@ -99,6 +105,7 @@ function snapshot(s: AppState): PersistShape {
     sessions: s.sessions,
     activeSessionId: s.activeSessionId,
     agents: s.agents,
+    recentAgentIds: s.recentAgentIds,
     theme: s.theme,
     editorCommand: s.editorCommand,
     leftSidebarVisible: s.leftSidebarVisible,
@@ -133,6 +140,7 @@ export const useStore = create<AppState>((set, get) => ({
       set({
         ...loaded,
         agents,
+        recentAgentIds: Array.isArray(loaded.recentAgentIds) ? loaded.recentAgentIds : [],
         theme,
         editorCommand,
         leftSidebarVisible: loaded.leftSidebarVisible ?? true,
@@ -210,7 +218,26 @@ export const useStore = create<AppState>((set, get) => ({
           p.id === projectId ? { ...p, sessionIds: [...p.sessionIds, session.id] } : p
         ),
         sessions: { ...st.sessions, [session.id]: session },
-        activeSessionId: session.id
+        activeSessionId: session.id,
+        recentAgentIds: [agent.id, ...st.recentAgentIds.filter((id) => id !== agent.id)]
+      }
+      schedulePersist(next)
+      return next
+    }),
+
+  startAgent: (sessionId, agent) =>
+    set((st) => {
+      const session = st.sessions[sessionId]
+      if (!session) return st
+      // Run the agent in the shell the user already opened.
+      window.api.pty.input(sessionId, agent.command + '\r')
+      const next: AppState = {
+        ...st,
+        sessions: {
+          ...st.sessions,
+          [sessionId]: { ...session, agentStarted: true, agentName: agent.name }
+        },
+        recentAgentIds: [agent.id, ...st.recentAgentIds.filter((id) => id !== agent.id)]
       }
       schedulePersist(next)
       return next

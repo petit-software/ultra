@@ -1,6 +1,7 @@
 import { X } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import TerminalView from './TerminalView'
+import AgentBar from './AgentBar'
 import PaneHeader from './PaneHeader'
 import { Button } from '@/components/ui/button'
 
@@ -42,6 +43,7 @@ export default function TerminalPane(): JSX.Element {
             visible={id === activeSessionId}
           />
         ))}
+        {active && !active.command && !active.agentStarted && <AgentBar sessionId={active.id} />}
       </div>
     </div>
   )

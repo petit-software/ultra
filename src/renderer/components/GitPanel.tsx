@@ -147,8 +147,11 @@ export default function GitPanel(): JSX.Element {
     setBusy(true)
     try {
       const res = await fn()
-      const out = `${res.stdout ?? ''}\n${res.stderr ?? ''}`.trim()
-      window.alert(`${label} ${res.ok ? 'complete' : 'failed'}${out ? `:\n\n${out}` : '.'}`)
+      // Success is reflected in the refreshed panel — only surface failures.
+      if (!res.ok) {
+        const out = `${res.stdout ?? ''}\n${res.stderr ?? ''}`.trim()
+        window.alert(`${label} failed${out ? `:\n\n${out}` : '.'}`)
+      }
     } finally {
       setBusy(false)
       await refresh()
@@ -172,7 +175,12 @@ export default function GitPanel(): JSX.Element {
         <PaneHeader title="Git" />
         <div className="space-y-3 p-4 text-xs text-muted-foreground">
           <p>No git repository in this project.</p>
-          <Button size="sm" disabled={busy} onClick={() => void act(() => window.api.git.init(cwd))}>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={busy}
+            onClick={() => void act(() => window.api.git.init(cwd))}
+          >
             <GitBranch className="h-4 w-4" />
             Initialize Repository
           </Button>
@@ -248,7 +256,8 @@ export default function GitPanel(): JSX.Element {
           </span>
         )}
 
-        <div className="ml-auto flex items-center">
+        <div className="ml-auto flex items-center opacity-0 transition group-hover/section:opacity-100">
+
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -440,7 +449,7 @@ export default function GitPanel(): JSX.Element {
             {logEntries.map((c) => (
               <li key={c.hash} className="px-3 py-1 text-xs">
                 <div className="flex items-center gap-2">
-                  <code className="text-primary">{c.hash}</code>
+                  <code className="text-foreground">{c.hash}</code>
                   <span className="truncate">{c.subject}</span>
                 </div>
                 <div className="text-[10px] text-muted-foreground">
