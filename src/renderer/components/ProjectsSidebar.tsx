@@ -99,7 +99,7 @@ export default function ProjectsSidebar(): JSX.Element {
                       <span
                         className={cn(
                           'h-1.5 w-1.5 rounded-full',
-                          active ? 'bg-primary' : 'bg-muted-foreground'
+                          active ? 'bg-foreground' : 'bg-muted-foreground/40'
                         )}
                       />
                       <span className="flex-1 truncate">{s.title}</span>
