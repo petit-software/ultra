@@ -1,4 +1,4 @@
-import { TbBrandVscode } from 'react-icons/tb'
+import { VscVscode, VscSparkleFilled } from 'react-icons/vsc'
 import {
   SiZedindustries,
   SiSublimetext,
@@ -8,17 +8,17 @@ import {
   SiClaude,
   SiOpenai
 } from 'react-icons/si'
-import { Wrench, Bot, MousePointer2 } from 'lucide-react'
+import { Wrench, MousePointer2 } from 'lucide-react'
 
 type IconComp = React.ComponentType<{ className?: string }>
 
 /** First token of a command, e.g. "subl -n" -> "subl". */
 const bin = (command: string): string => command.trim().split(/\s+/)[0]
 
-// Editor command -> logo. Simple Icons lacks VS Code (Microsoft) and Cursor,
-// so VS Code uses Tabler's brand glyph and Cursor a cursor-style stand-in.
+// Editor command -> logo. Simple Icons lacks Cursor, so it gets a cursor-style
+// stand-in; VS Code uses its own VS Code icon.
 const EDITOR_ICONS: Record<string, IconComp> = {
-  code: TbBrandVscode,
+  code: VscVscode,
   cursor: MousePointer2,
   zed: SiZedindustries,
   subl: SiSublimetext,
@@ -50,6 +50,6 @@ export function AgentIcon({
   command: string
   className?: string
 }): JSX.Element {
-  const Icon = AGENT_ICONS[bin(command)] ?? Bot
+  const Icon = AGENT_ICONS[bin(command)] ?? VscSparkleFilled
   return <Icon className={className} />
 }

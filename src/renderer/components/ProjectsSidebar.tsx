@@ -1,4 +1,4 @@
-import { FolderPlus, Plus, X, Trash2 } from 'lucide-react'
+import { Plus, X, Trash2 } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
@@ -26,8 +26,13 @@ export default function ProjectsSidebar(): JSX.Element {
       <PaneHeader title="Projects">
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={() => void addProject()}>
-              <FolderPlus />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-5 w-5"
+              onClick={() => void addProject()}
+            >
+              <Plus />
             </Button>
           </TooltipTrigger>
           <TooltipContent>Open folder as project</TooltipContent>

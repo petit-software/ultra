@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Bot, Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
+import { VscSparkleFilled } from 'react-icons/vsc'
 import { AgentIcon } from '../lib/toolIcons'
 import { useStore, type Agent } from '../store/useStore'
 import { Button } from '@/components/ui/button'
@@ -60,7 +61,7 @@ export default function AgentMenu(): JSX.Element {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="app-no-drag" title="Launch agent">
-            <Bot className="h-4 w-4" />
+            <VscSparkleFilled className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-[15rem]">

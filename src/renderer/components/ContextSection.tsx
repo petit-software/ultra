@@ -1,4 +1,4 @@
-import { FolderPlus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import PaneHeader from './PaneHeader'
 import ContextPanel from './ContextPanel'
 import { Button } from '@/components/ui/button'
@@ -36,7 +36,7 @@ export default function ContextSection(): JSX.Element {
               disabled={!project}
               onClick={() => void pinFolder()}
             >
-              <FolderPlus />
+              <Plus />
             </Button>
           </TooltipTrigger>
           <TooltipContent>Pin a folder as context</TooltipContent>

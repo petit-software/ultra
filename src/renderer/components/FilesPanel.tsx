@@ -1,6 +1,9 @@
 import { useState } from 'react'
+import { VscNewFile, VscNewFolder } from 'react-icons/vsc'
 import PaneHeader from './PaneHeader'
 import FileTree from './FileTree'
+import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useStore } from '../store/useStore'
@@ -39,9 +42,48 @@ export default function FilesPanel(): JSX.Element {
     window.api.pty.input(activeSessionId, `@${relTo(root, entry.path)} `)
   }
 
+  const create = async (kind: 'file' | 'dir'): Promise<void> => {
+    if (!root) return
+    const name = window.prompt(`New ${kind === 'file' ? 'file' : 'folder'} name`)
+    if (!name?.trim()) return
+    const path = `${root.replace(/\/+$/, '')}/${name.trim().replace(/^\/+/, '')}`
+    const ok =
+      kind === 'file' ? await window.api.fs.createFile(path) : await window.api.fs.createDir(path)
+    if (!ok) window.alert(`Could not create ${kind === 'file' ? 'file' : 'folder'} (already exists?)`)
+  }
+
   return (
     <div className="flex h-full flex-col">
-      <PaneHeader title="Files" />
+      <PaneHeader title="Files">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-5 w-5"
+              disabled={!root}
+              onClick={() => void create('file')}
+            >
+              <VscNewFile className="h-3.5 w-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>New file</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-5 w-5"
+              disabled={!root}
+              onClick={() => void create('dir')}
+            >
+              <VscNewFolder className="h-3.5 w-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>New folder</TooltipContent>
+        </Tooltip>
+      </PaneHeader>
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
         {root ? (
           <FileTree

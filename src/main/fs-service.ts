@@ -83,6 +83,27 @@ export async function expandToFiles(paths: string[], cap = 500): Promise<string[
   return [...new Set(out)]
 }
 
+/** Create an empty file (fails if it already exists). */
+export async function createFile(path: string): Promise<boolean> {
+  try {
+    await fs.mkdir(join(path, '..'), { recursive: true })
+    await fs.writeFile(path, '', { flag: 'wx' })
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** Create a directory (recursive). */
+export async function createDir(path: string): Promise<boolean> {
+  try {
+    await fs.mkdir(path, { recursive: true })
+    return true
+  } catch {
+    return false
+  }
+}
+
 const watchers = new Map<string, FSWatcher>()
 
 /** Watch a project root and notify the window (debounced) when it changes. */
