@@ -20,6 +20,13 @@ files:
 asarUnpack:
   - node_modules/node-pty/**
 
+# Appearance-specific dock icons, loaded at runtime.
+extraResources:
+  - from: build/icon-light.png
+    to: icon-light.png
+  - from: build/icon-dark.png
+    to: icon-dark.png
+
 mac:
   category: public.app-category.developer-tools
   icon: build/icon.icns

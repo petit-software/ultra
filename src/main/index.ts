@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog, nativeTheme, nativeImage } from 'electron'
 import { join } from 'path'
 import { createPty, writePty, resizePty, killPty, killAllPty } from './pty'
 import { loadWorkspace, saveWorkspace } from './store'
@@ -18,6 +18,17 @@ import * as git from './git-service'
 import { openInEditor } from './editor'
 
 let mainWindow: BrowserWindow | null = null
+
+/** Swap the macOS Dock icon to match the system light/dark appearance. */
+function applyDockIcon(): void {
+  if (process.platform !== 'darwin' || !app.dock) return
+  const name = nativeTheme.shouldUseDarkColors ? 'icon-dark.png' : 'icon-light.png'
+  const path = app.isPackaged
+    ? join(process.resourcesPath, name)
+    : join(app.getAppPath(), 'build', name)
+  const img = nativeImage.createFromPath(path)
+  if (!img.isEmpty()) app.dock.setIcon(img)
+}
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -128,6 +139,8 @@ function registerIpc(): void {
 
 app.whenReady().then(() => {
   registerIpc()
+  applyDockIcon()
+  nativeTheme.on('updated', applyDockIcon)
   createWindow()
 
   app.on('activate', () => {
