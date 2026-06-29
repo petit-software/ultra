@@ -60,7 +60,12 @@ export default function AgentMenu(): JSX.Element {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="app-no-drag" title="Launch agent">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="app-no-drag text-muted-foreground hover:bg-transparent hover:text-foreground"
+            title="Launch agent"
+          >
             <VscSparkleFilled className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>

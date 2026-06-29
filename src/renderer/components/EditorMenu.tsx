@@ -77,7 +77,7 @@ export default function EditorMenu(): JSX.Element {
           <Button
             variant="ghost"
             size="icon"
-            className="app-no-drag"
+            className="app-no-drag text-muted-foreground hover:bg-transparent hover:text-foreground"
             title={`Edit files with ${displayName(editorCommand)}`}
           >
             <EditorIcon command={editorCommand} className="h-4 w-4" />

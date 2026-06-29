@@ -19,7 +19,12 @@ export default function ViewMenu(): JSX.Element {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="app-no-drag" title="Panels">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="app-no-drag text-muted-foreground hover:bg-transparent hover:text-foreground"
+          title="Panels"
+        >
           <HiMiniViewColumns className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>

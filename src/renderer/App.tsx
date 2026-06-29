@@ -28,7 +28,6 @@ export default function App(): JSX.Element {
       <div className="flex h-full flex-col bg-background">
         <header className="app-drag flex h-9 flex-none items-center gap-2 pl-[86px] pr-2">
           <span className="font-semibold tracking-tight">Ultra</span>
-          <span className="text-[11px] text-muted-foreground">agentic terminal</span>
           <div className="ml-auto flex items-center gap-1">
             <ViewMenu />
             <div className="mx-1 h-4 w-px bg-border" />

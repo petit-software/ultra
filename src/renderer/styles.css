@@ -3,26 +3,26 @@
 @tailwind utilities;
 
 @layer base {
-  /* Light theme — white base + terminal, light-gray sidebars */
+  /* Light theme — white base + terminal, gray sidebars */
   :root {
     --background: 0 0% 100%;
     --foreground: 222 16% 12%;
-    --card: 214 16% 95%;
+    --card: 216 14% 89%;
     --card-foreground: 222 16% 12%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 16% 12%;
     --primary: 209 90% 45%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 214 16% 88%;
+    --secondary: 216 13% 82%;
     --secondary-foreground: 222 16% 20%;
-    --muted: 214 16% 90%;
-    --muted-foreground: 220 9% 40%;
-    --accent: 214 18% 84%;
+    --muted: 216 13% 84%;
+    --muted-foreground: 220 9% 38%;
+    --accent: 216 14% 78%;
     --accent-foreground: 222 16% 12%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 214 15% 85%;
-    --input: 214 15% 85%;
+    --border: 216 13% 80%;
+    --input: 216 13% 80%;
     --ring: 209 90% 45%;
     --radius: 0.5rem;
   }

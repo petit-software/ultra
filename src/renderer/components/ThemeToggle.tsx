@@ -10,7 +10,12 @@ export default function ThemeToggle(): JSX.Element {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button variant="ghost" size="icon" className="app-no-drag" onClick={toggleTheme}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="app-no-drag text-muted-foreground hover:bg-transparent hover:text-foreground"
+          onClick={toggleTheme}
+        >
           {theme === 'dark' ? <IoMdSunny /> : <IoMdMoon />}
         </Button>
       </TooltipTrigger>
