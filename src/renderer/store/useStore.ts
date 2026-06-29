@@ -39,6 +39,8 @@ interface PersistShape {
   agents: Agent[]
   theme: ThemeMode
   editorCommand: string
+  leftSidebarVisible: boolean
+  rightSidebarVisible: boolean
 }
 
 function applyTheme(theme: ThemeMode): void {
@@ -61,6 +63,8 @@ interface AppState extends PersistShape {
   unpinContext: (projectId: string, path: string) => void
   toggleTheme: () => void
   setEditorCommand: (command: string) => void
+  toggleLeftSidebar: () => void
+  toggleRightSidebar: () => void
 }
 
 let counter = 0
@@ -77,7 +81,9 @@ function makeDefault(): PersistShape {
     activeSessionId: session.id,
     agents: DEFAULT_AGENTS,
     theme: 'dark',
-    editorCommand: 'code'
+    editorCommand: 'code',
+    leftSidebarVisible: true,
+    rightSidebarVisible: true
   }
 }
 
@@ -88,7 +94,9 @@ function snapshot(s: AppState): PersistShape {
     activeSessionId: s.activeSessionId,
     agents: s.agents,
     theme: s.theme,
-    editorCommand: s.editorCommand
+    editorCommand: s.editorCommand,
+    leftSidebarVisible: s.leftSidebarVisible,
+    rightSidebarVisible: s.rightSidebarVisible
   }
 }
 
@@ -115,7 +123,16 @@ export const useStore = create<AppState>((set, get) => ({
       const theme: ThemeMode = loaded.theme === 'light' ? 'light' : 'dark'
       applyTheme(theme)
       const editorCommand = loaded.editorCommand || 'code'
-      set({ ...loaded, agents, theme, editorCommand, activeSessionId: active, hydrated: true })
+      set({
+        ...loaded,
+        agents,
+        theme,
+        editorCommand,
+        leftSidebarVisible: loaded.leftSidebarVisible ?? true,
+        rightSidebarVisible: loaded.rightSidebarVisible ?? true,
+        activeSessionId: active,
+        hydrated: true
+      })
     } else {
       applyTheme(get().theme)
       set({ hydrated: true })
@@ -246,6 +263,20 @@ export const useStore = create<AppState>((set, get) => ({
   setEditorCommand: (command) =>
     set((st) => {
       const next = { ...st, editorCommand: command }
+      schedulePersist(next)
+      return next
+    }),
+
+  toggleLeftSidebar: () =>
+    set((st) => {
+      const next = { ...st, leftSidebarVisible: !st.leftSidebarVisible }
+      schedulePersist(next)
+      return next
+    }),
+
+  toggleRightSidebar: () =>
+    set((st) => {
+      const next = { ...st, rightSidebarVisible: !st.rightSidebarVisible }
       schedulePersist(next)
       return next
     }),

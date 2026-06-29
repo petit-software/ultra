@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Bot, ChevronDown, Plus, Trash2 } from 'lucide-react'
+import { Bot, Plus, Trash2 } from 'lucide-react'
 import { AgentIcon } from '../lib/toolIcons'
 import { useStore, type Agent } from '../store/useStore'
 import { Button } from '@/components/ui/button'
@@ -59,10 +59,8 @@ export default function AgentMenu(): JSX.Element {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="app-no-drag gap-1.5">
+          <Button variant="ghost" size="icon" className="app-no-drag" title="Launch agent">
             <Bot className="h-4 w-4" />
-            Agents
-            <ChevronDown className="h-3.5 w-3.5 opacity-60" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-[15rem]">

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ChevronDown, Check, Plus } from 'lucide-react'
+import { Check, Plus } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import { EditorIcon } from '../lib/toolIcons'
 import { Button } from '@/components/ui/button'
@@ -74,10 +74,13 @@ export default function EditorMenu(): JSX.Element {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="app-no-drag gap-1.5">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="app-no-drag"
+            title={`Edit files with ${displayName(editorCommand)}`}
+          >
             <EditorIcon command={editorCommand} className="h-4 w-4" />
-            <span className="max-w-[10rem] truncate">{displayName(editorCommand)}</span>
-            <ChevronDown className="h-3.5 w-3.5 opacity-60" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-[14rem]">
