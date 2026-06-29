@@ -135,6 +135,11 @@ function registerIpc(): void {
   ipcMain.handle('editor:open', (_e, command: string, path: string) =>
     openInEditor(command, path)
   )
+
+  // Sync the native window appearance (titlebar + traffic lights) to the app theme.
+  ipcMain.on('theme:setNative', (_e, mode: 'dark' | 'light') => {
+    nativeTheme.themeSource = mode === 'dark' ? 'dark' : 'light'
+  })
 }
 
 app.whenReady().then(() => {

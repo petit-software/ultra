@@ -46,6 +46,8 @@ interface PersistShape {
 
 function applyTheme(theme: ThemeMode): void {
   document.documentElement.classList.toggle('dark', theme === 'dark')
+  // Match the native window chrome (titlebar + traffic lights) to the app theme.
+  window.api.theme.setNative(theme)
 }
 
 interface AppState extends PersistShape {

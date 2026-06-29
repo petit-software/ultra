@@ -93,9 +93,9 @@ export default function FilesPanel(): JSX.Element {
           </DropdownMenuContent>
         </DropdownMenu>
       </PaneHeader>
-      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden py-1 pr-1">
         {root ? (
-          <div className="py-1">
+          <div>
             {creating && (
               <div className="flex items-center gap-1 py-1 pl-2 pr-1 text-sm">
                 <span className="w-3.5 shrink-0" />

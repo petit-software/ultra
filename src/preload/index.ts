@@ -77,6 +77,9 @@ const api = {
   editor: {
     open: (command: string, path: string): Promise<boolean> =>
       ipcRenderer.invoke('editor:open', command, path)
+  },
+  theme: {
+    setNative: (mode: 'dark' | 'light') => ipcRenderer.send('theme:setNative', mode)
   }
 }
 

@@ -53,8 +53,8 @@ export default function ProjectsSidebar(): JSX.Element {
         </Tooltip>
       </PaneHeader>
 
-      <div className="flex-1 overflow-y-auto overflow-x-hidden">
-        <div className="py-1">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden py-1 pr-1">
+        <div>
           {projects.map((p) => (
             <div key={p.id} className="group/project mb-1">
               <div className="flex items-center justify-between gap-1 px-3 pb-1 pt-2">
