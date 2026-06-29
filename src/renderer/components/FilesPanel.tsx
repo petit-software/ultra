@@ -1,9 +1,15 @@
 import { useState } from 'react'
+import { Plus } from 'lucide-react'
 import { VscNewFile, VscNewFolder } from 'react-icons/vsc'
 import PaneHeader from './PaneHeader'
 import FileTree from './FileTree'
 import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem
+} from '@/components/ui/dropdown-menu'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useStore } from '../store/useStore'
@@ -55,34 +61,23 @@ export default function FilesPanel(): JSX.Element {
   return (
     <div className="flex h-full flex-col">
       <PaneHeader title="Files">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-5 w-5"
-              disabled={!root}
-              onClick={() => void create('file')}
-            >
-              <VscNewFile className="h-3.5 w-3.5" />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-5 w-5" disabled={!root} title="Add">
+              <Plus />
             </Button>
-          </TooltipTrigger>
-          <TooltipContent>New file</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-5 w-5"
-              disabled={!root}
-              onClick={() => void create('dir')}
-            >
-              <VscNewFolder className="h-3.5 w-3.5" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>New folder</TooltipContent>
-        </Tooltip>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={() => void create('file')}>
+              <VscNewFile className="h-4 w-4" />
+              New file
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => void create('dir')}>
+              <VscNewFolder className="h-4 w-4" />
+              New folder
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </PaneHeader>
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
         {root ? (
