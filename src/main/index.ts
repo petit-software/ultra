@@ -62,8 +62,9 @@ function createWindow(): void {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
-  // Always open the inspector on launch (dev and packaged).
-  mainWindow.webContents.openDevTools({ mode: 'detach' })
+  // Open the inspector only in development — never in packaged (DMG) builds,
+  // so end users don't see the console on launch.
+  if (!app.isPackaged) mainWindow.webContents.openDevTools({ mode: 'detach' })
 }
 
 function registerIpc(): void {
