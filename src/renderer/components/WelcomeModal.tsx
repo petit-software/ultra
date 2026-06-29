@@ -33,9 +33,7 @@ export default function WelcomeModal(): JSX.Element {
           >
             Start working
           </Button>
-          <p className="text-xs text-muted-foreground">
-            Early version — a few rough edges and unintended bugs may still surface.
-          </p>
+          <p className="text-xs text-muted-foreground">Early version — expect a few bugs.</p>
         </div>
       </DialogContent>
     </Dialog>
