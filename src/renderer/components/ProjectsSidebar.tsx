@@ -1,4 +1,5 @@
-import { Plus, X, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { Plus, X, Trash2, Pencil, Check } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
@@ -14,6 +15,19 @@ export default function ProjectsSidebar(): JSX.Element {
   const closeSession = useStore((s) => s.closeSession)
   const addProject = useStore((s) => s.addProject)
   const removeProject = useStore((s) => s.removeProject)
+  const renameSession = useStore((s) => s.renameSession)
+
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editValue, setEditValue] = useState('')
+
+  const startEdit = (id: string, title: string): void => {
+    setEditingId(id)
+    setEditValue(title)
+  }
+  const commitEdit = (): void => {
+    if (editingId) renameSession(editingId, editValue)
+    setEditingId(null)
+  }
 
   const confirmRemove = (id: string, name: string): void => {
     if (window.confirm(`Remove project "${name}" from the sidebar? Its sessions will be closed.`)) {
@@ -85,34 +99,91 @@ export default function ProjectsSidebar(): JSX.Element {
                   const s = sessions[sid]
                   if (!s) return null
                   const active = sid === activeSessionId
+                  const editing = sid === editingId
                   return (
                     <li
                       key={sid}
-                      onClick={() => setActiveSession(sid)}
+                      onClick={() => !editing && setActiveSession(sid)}
                       className={cn(
-                        'group flex cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-sm',
-                        active
-                          ? 'bg-accent text-accent-foreground'
-                          : 'hover:bg-secondary/60'
+                        'group flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm',
+                        !editing && 'cursor-pointer',
+                        active ? 'bg-accent text-accent-foreground' : 'hover:bg-secondary/60'
                       )}
                     >
                       <span
                         className={cn(
-                          'h-1.5 w-1.5 rounded-full',
+                          'h-1.5 w-1.5 shrink-0 rounded-full',
                           active ? 'bg-foreground' : 'bg-muted-foreground/40'
                         )}
                       />
-                      <span className="flex-1 truncate">{s.title}</span>
-                      <button
-                        title="Close session"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          closeSession(sid)
-                        }}
-                        className="text-muted-foreground opacity-0 transition hover:text-foreground group-hover:opacity-100"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
+
+                      {editing ? (
+                        <>
+                          <input
+                            autoFocus
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') commitEdit()
+                              else if (e.key === 'Escape') setEditingId(null)
+                            }}
+                            className="min-w-0 flex-1 rounded border border-input bg-background px-1 py-0.5 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                          />
+                          <button
+                            title="Save"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              commitEdit()
+                            }}
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            <Check className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            title="Cancel"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setEditingId(null)
+                            }}
+                            className="text-muted-foreground hover:text-destructive"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <span
+                            className="flex-1 truncate"
+                            onDoubleClick={(e) => {
+                              e.stopPropagation()
+                              startEdit(sid, s.title)
+                            }}
+                          >
+                            {s.title}
+                          </span>
+                          <button
+                            title="Rename session"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              startEdit(sid, s.title)
+                            }}
+                            className="text-muted-foreground opacity-0 transition hover:text-foreground group-hover:opacity-100"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            title="Close session"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              closeSession(sid)
+                            }}
+                            className="text-muted-foreground opacity-0 transition hover:text-foreground group-hover:opacity-100"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </>
+                      )}
                     </li>
                   )
                 })}

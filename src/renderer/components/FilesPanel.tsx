@@ -33,6 +33,8 @@ export default function FilesPanel(): JSX.Element {
   const root = project?.path || ''
 
   const [preview, setPreview] = useState<{ name: string; body: string } | null>(null)
+  const [creating, setCreating] = useState<'file' | 'dir' | null>(null)
+  const [newName, setNewName] = useState('')
 
   const openFile = async (entry: DirEntry): Promise<void> => {
     const res = await window.api.fs.readFile(entry.path)
@@ -47,14 +49,17 @@ export default function FilesPanel(): JSX.Element {
     window.api.pty.input(activeSessionId, `@${relTo(root, entry.path)} `)
   }
 
-  const create = async (kind: 'file' | 'dir'): Promise<void> => {
-    if (!root) return
-    const name = window.prompt(`New ${kind === 'file' ? 'file' : 'folder'} name`)
-    if (!name?.trim()) return
-    const path = `${root.replace(/\/+$/, '')}/${name.trim().replace(/^\/+/, '')}`
+  const submitCreate = async (): Promise<void> => {
+    const name = newName.trim().replace(/^\/+/, '')
+    if (!root || !creating || !name) return
+    const path = `${root.replace(/\/+$/, '')}/${name}`
     const ok =
-      kind === 'file' ? await window.api.fs.createFile(path) : await window.api.fs.createDir(path)
-    if (!ok) window.alert(`Could not create ${kind === 'file' ? 'file' : 'folder'} (already exists?)`)
+      creating === 'file'
+        ? await window.api.fs.createFile(path)
+        : await window.api.fs.createDir(path)
+    if (!ok) window.alert(`Could not create ${creating === 'file' ? 'file' : 'folder'} (already exists?)`)
+    setCreating(null)
+    setNewName('')
   }
 
   return (
@@ -67,11 +72,21 @@ export default function FilesPanel(): JSX.Element {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => void create('file')}>
+            <DropdownMenuItem
+              onSelect={() => {
+                setNewName('')
+                setCreating('file')
+              }}
+            >
               <FileIcon className="h-4 w-4" />
               New file
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => void create('dir')}>
+            <DropdownMenuItem
+              onSelect={() => {
+                setNewName('')
+                setCreating('dir')
+              }}
+            >
               <Folder className="h-4 w-4" />
               New folder
             </DropdownMenuItem>
@@ -93,6 +108,32 @@ export default function FilesPanel(): JSX.Element {
           </div>
         )}
       </div>
+
+      <Dialog open={!!creating} onOpenChange={(o) => !o && setCreating(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{creating === 'dir' ? 'New folder' : 'New file'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <input
+              autoFocus
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && void submitCreate()}
+              placeholder={creating === 'dir' ? 'folder name (sub/dir ok)' : 'file name (sub/dir/name ok)'}
+              className="w-full rounded-md border border-input bg-secondary/40 px-2 py-1.5 font-mono text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setCreating(null)}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={() => void submitCreate()}>
+                Create
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
         <DialogContent>

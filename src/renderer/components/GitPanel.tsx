@@ -91,6 +91,8 @@ export default function GitPanel(): JSX.Element {
   const [diff, setDiff] = useState<{ title: string; text: string } | null>(null)
   const [showHistory, setShowHistory] = useState(false)
   const [logEntries, setLogEntries] = useState<GitCommit[]>([])
+  const [branchOpen, setBranchOpen] = useState(false)
+  const [branchName, setBranchName] = useState('')
 
   const refresh = useCallback(async () => {
     if (!cwd) {
@@ -219,8 +221,8 @@ export default function GitPanel(): JSX.Element {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onSelect={() => {
-                const name = window.prompt('New branch name')
-                if (name) void act(() => window.api.git.createBranch(cwd, name.trim()))
+                setBranchName('')
+                setBranchOpen(true)
               }}
             >
               <Plus className="h-3.5 w-3.5" />
@@ -451,6 +453,44 @@ export default function GitPanel(): JSX.Element {
           </ul>
         )}
       </div>
+
+      <Dialog open={branchOpen} onOpenChange={setBranchOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>New branch</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <input
+              autoFocus
+              value={branchName}
+              onChange={(e) => setBranchName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && branchName.trim()) {
+                  setBranchOpen(false)
+                  void act(() => window.api.git.createBranch(cwd, branchName.trim()))
+                }
+              }}
+              placeholder="branch name"
+              className="w-full rounded-md border border-input bg-secondary/40 px-2 py-1.5 font-mono text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setBranchOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                disabled={!branchName.trim()}
+                onClick={() => {
+                  setBranchOpen(false)
+                  void act(() => window.api.git.createBranch(cwd, branchName.trim()))
+                }}
+              >
+                Create
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!diff} onOpenChange={(o) => !o && setDiff(null)}>
         <DialogContent className="max-w-4xl">

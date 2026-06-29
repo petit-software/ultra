@@ -55,6 +55,7 @@ interface AppState extends PersistShape {
   newSession: (projectId: string) => void
   launchAgent: (projectId: string, agent: Agent) => void
   removeProject: (projectId: string) => void
+  renameSession: (id: string, title: string) => void
   closeSession: (id: string) => void
   setActiveSession: (id: string) => void
   addAgent: (name: string, command: string) => void
@@ -295,6 +296,18 @@ export const useStore = create<AppState>((set, get) => ({
       let active = st.activeSessionId
       if (active && !sessions[active]) active = Object.keys(sessions)[0] ?? null
       const next: AppState = { ...st, projects, sessions, activeSessionId: active }
+      schedulePersist(next)
+      return next
+    }),
+
+  renameSession: (id, title) =>
+    set((st) => {
+      const s = st.sessions[id]
+      if (!s) return st
+      const next = {
+        ...st,
+        sessions: { ...st.sessions, [id]: { ...s, title: title.trim() || s.title } }
+      }
       schedulePersist(next)
       return next
     }),
