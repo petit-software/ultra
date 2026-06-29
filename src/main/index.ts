@@ -44,10 +44,12 @@ function createWindow(): void {
   const devUrl = process.env['ELECTRON_RENDERER_URL']
   if (devUrl) {
     mainWindow.loadURL(devUrl)
-    mainWindow.webContents.openDevTools({ mode: 'detach' })
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
+
+  // Always open the inspector on launch (dev and packaged).
+  mainWindow.webContents.openDevTools({ mode: 'detach' })
 }
 
 function registerIpc(): void {

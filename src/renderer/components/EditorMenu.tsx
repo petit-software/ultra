@@ -73,7 +73,7 @@ export default function EditorMenu(): JSX.Element {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="app-no-drag gap-1.5">
+          <Button variant="ghost" size="sm" className="app-no-drag gap-1.5">
             <Wrench className="h-4 w-4" />
             <span className="max-w-[10rem] truncate">{displayName(editorCommand)}</span>
             <ChevronDown className="h-3.5 w-3.5 opacity-60" />

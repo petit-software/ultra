@@ -58,7 +58,7 @@ export default function AgentMenu(): JSX.Element {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="app-no-drag gap-1.5">
+          <Button variant="ghost" size="sm" className="app-no-drag gap-1.5">
             <Bot className="h-4 w-4" />
             Agents
             <ChevronDown className="h-3.5 w-3.5 opacity-60" />
