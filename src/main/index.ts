@@ -19,10 +19,10 @@ import { openInEditor } from './editor'
 
 let mainWindow: BrowserWindow | null = null
 
-/** Swap the macOS Dock icon to match the system light/dark appearance. */
+/** Always use the black Ultra icon in the macOS Dock. */
 function applyDockIcon(): void {
   if (process.platform !== 'darwin' || !app.dock) return
-  const name = nativeTheme.shouldUseDarkColors ? 'icon-dark.png' : 'icon-light.png'
+  const name = 'icon-dark.png'
   const path = app.isPackaged
     ? join(process.resourcesPath, name)
     : join(app.getAppPath(), 'build', name)
