@@ -15,7 +15,7 @@ export default function WelcomeModal(): JSX.Element {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && completeOnboarding()}>
-      <DialogContent className="max-w-md rounded-[32px] text-center">
+      <DialogContent className="max-w-md rounded-[24px] text-center">
         <div className="flex flex-col items-center gap-4 px-2 py-4">
           <img src={iconUrl} alt="Ultra" className="h-20 w-20 rounded-2xl shadow-sm" />
           <DialogTitle className="text-lg font-semibold leading-snug">
@@ -24,13 +24,8 @@ export default function WelcomeModal(): JSX.Element {
             your agentic terminal
           </DialogTitle>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Ultra brings your shell, files, git, and AI coding agents into a single window —
-            so you stop hopping between tools and stay in flow. It grew out of how scattered
-            and slow-moving the terminal workflow still is, and aims to move it forward.
-          </p>
-          <p className="text-xs text-muted-foreground">
-            This is an early version, so a few rough edges and unintended bugs may still
-            surface.
+            Your shell, files, git, and AI agents in one window — so you stop switching tools
+            and stay in flow.
           </p>
           <Button
             className="mt-2 rounded-full bg-foreground px-8 text-background hover:bg-foreground/90"
@@ -38,6 +33,9 @@ export default function WelcomeModal(): JSX.Element {
           >
             Start working
           </Button>
+          <p className="text-xs text-muted-foreground">
+            Early version — a few rough edges and unintended bugs may still surface.
+          </p>
         </div>
       </DialogContent>
     </Dialog>
