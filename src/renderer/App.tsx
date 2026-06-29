@@ -6,7 +6,7 @@ import TerminalPane from './components/TerminalPane'
 import RightSidebar from './components/RightSidebar'
 import AgentMenu from './components/AgentMenu'
 import ThemeToggle from './components/ThemeToggle'
-import SettingsMenu from './components/SettingsMenu'
+import EditorMenu from './components/EditorMenu'
 import { useStore } from './store/useStore'
 
 // Terminal: flush with the base, no rounded border or shadow.
@@ -26,7 +26,7 @@ export default function App(): JSX.Element {
           <span className="font-semibold tracking-tight">Ultra</span>
           <span className="text-[11px] text-muted-foreground">agentic terminal</span>
           <div className="ml-auto flex items-center gap-1">
-            <SettingsMenu />
+            <EditorMenu />
             <ThemeToggle />
             <AgentMenu />
           </div>
