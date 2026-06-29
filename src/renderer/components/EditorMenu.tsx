@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Wrench, ChevronDown, Check, Plus } from 'lucide-react'
+import { ChevronDown, Check, Plus } from 'lucide-react'
 import { useStore } from '../store/useStore'
+import { EditorIcon } from '../lib/toolIcons'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -74,7 +75,7 @@ export default function EditorMenu(): JSX.Element {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="sm" className="app-no-drag gap-1.5">
-            <Wrench className="h-4 w-4" />
+            <EditorIcon command={editorCommand} className="h-4 w-4" />
             <span className="max-w-[10rem] truncate">{displayName(editorCommand)}</span>
             <ChevronDown className="h-3.5 w-3.5 opacity-60" />
           </Button>
@@ -83,6 +84,7 @@ export default function EditorMenu(): JSX.Element {
           <DropdownMenuLabel>Edit files with</DropdownMenuLabel>
           {KNOWN.map((e) => (
             <DropdownMenuItem key={e.command} onSelect={() => setEditorCommand(e.command)}>
+              <EditorIcon command={e.command} className="h-4 w-4" />
               {dot(e.command)}
               <span className="flex-1">{e.name}</span>
               <code className="text-[11px] text-muted-foreground">{e.command}</code>
@@ -91,6 +93,7 @@ export default function EditorMenu(): JSX.Element {
           ))}
           {isCustom && (
             <DropdownMenuItem onSelect={() => undefined}>
+              <EditorIcon command={editorCommand} className="h-4 w-4" />
               {dot(editorCommand)}
               <span className="flex-1 truncate">{editorCommand}</span>
               <Check className="h-3.5 w-3.5 text-primary" />

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Bot, ChevronDown, Plus, Trash2 } from 'lucide-react'
+import { AgentIcon } from '../lib/toolIcons'
 import { useStore, type Agent } from '../store/useStore'
 import { Button } from '@/components/ui/button'
 import {
@@ -78,6 +79,7 @@ export default function AgentMenu(): JSX.Element {
                 className="group/item justify-between"
               >
                 <span className="flex items-center gap-2">
+                  <AgentIcon command={a.command} className="h-4 w-4 shrink-0" />
                   <span
                     className={cn(
                       'h-1.5 w-1.5 rounded-full',
