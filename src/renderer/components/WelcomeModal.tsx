@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { useStore } from '../store/useStore'
@@ -5,10 +6,12 @@ import iconUrl from '../assets/icon.png'
 
 export default function WelcomeModal(): JSX.Element {
   const hydrated = useStore((s) => s.hydrated)
-  const onboarded = useStore((s) => s.onboarded)
-  const completeOnboarding = useStore((s) => s.completeOnboarding)
 
-  const open = hydrated && !onboarded
+  // TEMP: show on every launch (dismiss is session-only, not persisted).
+  const [dismissed, setDismissed] = useState(false)
+  const completeOnboarding = (): void => setDismissed(true)
+
+  const open = hydrated && !dismissed
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && completeOnboarding()}>
