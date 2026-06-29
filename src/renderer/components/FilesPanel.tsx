@@ -63,7 +63,7 @@ export default function FilesPanel(): JSX.Element {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="group/section flex h-full flex-col">
       <PaneHeader title="Files">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

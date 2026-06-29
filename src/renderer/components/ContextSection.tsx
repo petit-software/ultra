@@ -25,7 +25,7 @@ export default function ContextSection(): JSX.Element {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="group/section flex h-full flex-col">
       <PaneHeader title="Context">
         <Tooltip>
           <TooltipTrigger asChild>

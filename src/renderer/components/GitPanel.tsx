@@ -185,7 +185,7 @@ export default function GitPanel(): JSX.Element {
   const changes = (status?.files ?? []).filter((f) => isUnstaged(f))
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="group/section flex h-full flex-col">
       <PaneHeader title="Git">
         <Tooltip>
           <TooltipTrigger asChild>

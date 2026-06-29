@@ -17,7 +17,11 @@ export default function PaneHeader({ title, children, className }: Props): JSX.E
       <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
         {title}
       </span>
-      {children && <div className="flex items-center gap-1">{children}</div>}
+      {children && (
+        <div className="flex items-center gap-1 opacity-0 transition group-hover/section:opacity-100">
+          {children}
+        </div>
+      )}
     </div>
   )
 }

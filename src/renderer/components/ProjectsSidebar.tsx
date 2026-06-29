@@ -36,7 +36,7 @@ export default function ProjectsSidebar(): JSX.Element {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="group/section flex h-full flex-col">
       <PaneHeader title="Projects">
         <Tooltip>
           <TooltipTrigger asChild>
