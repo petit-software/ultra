@@ -150,26 +150,26 @@ export default function ContextPanel(): JSX.Element {
           <Plus className="h-3 w-3" />
           Add link
         </button>
-        <div className="flex items-center gap-2">
-          {pinned.length > 0 && (
+        {pinned.length > 0 && (
+          <div className="flex items-center gap-2">
             <span className="text-[11px] text-muted-foreground">{pinned.length} pinned</span>
-          )}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-6 gap-1.5 text-xs"
-                disabled={!activeSessionId || pinned.length === 0}
-                onClick={() => insert(pinned)}
-              >
-                <CornerDownLeft className="h-3 w-3" />
-                Send to agent
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Insert all as @mentions / URLs in the active terminal</TooltipContent>
-          </Tooltip>
-        </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-6 gap-1.5 text-xs"
+                  disabled={!activeSessionId}
+                  onClick={() => insert(pinned)}
+                >
+                  <CornerDownLeft className="h-3 w-3" />
+                  Send to agent
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Insert all as @mentions / URLs in the active terminal</TooltipContent>
+            </Tooltip>
+          </div>
+        )}
       </div>
     </div>
   )
