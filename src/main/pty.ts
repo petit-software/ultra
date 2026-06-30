@@ -21,16 +21,20 @@ export function createPty(
 
   const cwd = opts.cwd && opts.cwd.length > 0 ? opts.cwd : os.homedir()
 
-  // Plain shell, or an agent command run via a login shell so it inherits the
-  // user's PATH/env and gets a real TTY for its TUI. `exec` replaces the shell
-  // so closing the agent ends the session.
+  // Always use a login shell so the PTY rebuilds the user's full PATH/env from
+  // their profile (~/.zprofile etc.). This is critical when Ultra is launched
+  // from the Dock/Finder, where the process inherits only a minimal launchd
+  // PATH and tools like claude/codex (in /opt/homebrew/bin) would be missing.
+  // Agent commands additionally `exec` so closing the agent ends the session.
   const isWin = os.platform() === 'win32'
   const args =
     opts.command && opts.command.trim()
       ? isWin
         ? ['-NoLogo', '-Command', opts.command]
         : ['-l', '-c', `exec ${opts.command}`]
-      : []
+      : isWin
+        ? []
+        : ['-l']
 
   const pty = spawn(shell, args, {
     name: 'xterm-color',
