@@ -9,6 +9,7 @@ export default function TerminalPane(): JSX.Element {
   const sessions = useStore((s) => s.sessions)
   const activeSessionId = useStore((s) => s.activeSessionId)
   const closeSession = useStore((s) => s.closeSession)
+  const busySessions = useStore((s) => s.busySessions)
   const active = activeSessionId ? sessions[activeSessionId] : null
   const ids = Object.keys(sessions)
 
@@ -43,7 +44,9 @@ export default function TerminalPane(): JSX.Element {
             visible={id === activeSessionId}
           />
         ))}
-        {active && !active.command && !active.agentStarted && <AgentBar sessionId={active.id} />}
+        {active && !active.command && !active.agentStarted && !busySessions[active.id] && (
+          <AgentBar sessionId={active.id} />
+        )}
       </div>
     </div>
   )

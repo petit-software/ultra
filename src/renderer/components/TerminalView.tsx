@@ -52,11 +52,16 @@ export default function TerminalView({ sessionId, cwd, visible, command }: Props
     const offExit = window.api.pty.onExit((sid) => {
       if (sid === sessionId) term.write('\r\n\x1b[90m[process exited]\x1b[0m\r\n')
     })
+    const offBusy = window.api.pty.onBusy((sid, busy) => {
+      if (sid === sessionId) useStore.getState().setSessionBusy(sessionId, busy)
+    })
     term.onData((data) => window.api.pty.input(sessionId, data))
 
     return () => {
       offData()
       offExit()
+      offBusy()
+      useStore.getState().setSessionBusy(sessionId, false)
       term.dispose()
       openedRef.current = false
       // PTY itself is killed via store.closeSession, not on unmount-from-hide.

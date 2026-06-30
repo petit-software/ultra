@@ -56,8 +56,11 @@ function applyTheme(theme: ThemeMode): void {
 
 interface AppState extends PersistShape {
   hydrated: boolean
+  /** Session ids where a foreground process (agent/command) is running. Not persisted. */
+  busySessions: Record<string, boolean>
 
   hydrate: () => Promise<void>
+  setSessionBusy: (id: string, busy: boolean) => void
   addProject: () => Promise<void>
   newSession: (projectId: string) => void
   launchAgent: (projectId: string, agent: Agent) => void
@@ -124,6 +127,16 @@ function schedulePersist(s: AppState): void {
 export const useStore = create<AppState>((set, get) => ({
   ...makeDefault(),
   hydrated: false,
+  busySessions: {},
+
+  setSessionBusy: (id, busy) =>
+    set((st) => {
+      if (!!st.busySessions[id] === busy) return st
+      const busySessions = { ...st.busySessions }
+      if (busy) busySessions[id] = true
+      else delete busySessions[id]
+      return { ...st, busySessions }
+    }),
 
   hydrate: async () => {
     const loaded = (await window.api.store.load()) as PersistShape | null

@@ -19,6 +19,11 @@ const api = {
       const h = (_e: IpcRendererEvent, p: { id: string; exitCode: number }) => cb(p.id, p.exitCode)
       ipcRenderer.on('pty:exit', h)
       return () => ipcRenderer.removeListener('pty:exit', h)
+    },
+    onBusy: (cb: (id: string, busy: boolean) => void): Unsubscribe => {
+      const h = (_e: IpcRendererEvent, p: { id: string; busy: boolean }) => cb(p.id, p.busy)
+      ipcRenderer.on('pty:busy', h)
+      return () => ipcRenderer.removeListener('pty:busy', h)
     }
   },
   dialog: {

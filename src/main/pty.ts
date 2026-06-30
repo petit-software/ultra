@@ -3,13 +3,45 @@ import os from 'os'
 import { BrowserWindow } from 'electron'
 
 const shell = os.platform() === 'win32' ? 'powershell.exe' : process.env.SHELL || '/bin/zsh'
+const shellBase = (shell.split(/[/\\]/).pop() || 'zsh').replace(/\.exe$/, '')
 
 interface Session {
   pty: IPty
   cwd: string
+  win: BrowserWindow
+  busy?: boolean
 }
 
 const sessions = new Map<string, Session>()
+
+// "Busy" = a foreground process other than the login shell itself is running
+// (an agent, vim, a long command…). The renderer hides the agent picker while
+// busy. We poll the PTY's foreground process name and emit only on change.
+let pollTimer: ReturnType<typeof setInterval> | null = null
+
+function ensurePoller(): void {
+  if (pollTimer) return
+  pollTimer = setInterval(() => {
+    if (sessions.size === 0) {
+      clearInterval(pollTimer!)
+      pollTimer = null
+      return
+    }
+    for (const [id, s] of sessions) {
+      let proc = ''
+      try {
+        proc = s.pty.process
+      } catch {
+        continue
+      }
+      const busy = !!proc && proc.replace(/^-/, '') !== shellBase
+      if (busy !== s.busy) {
+        s.busy = busy
+        if (!s.win.isDestroyed()) s.win.webContents.send('pty:busy', { id, busy })
+      }
+    }
+  }, 400)
+}
 
 /** Create a PTY for a session id; streams output to the owning window. */
 export function createPty(
@@ -52,7 +84,8 @@ export function createPty(
     sessions.delete(id)
   })
 
-  sessions.set(id, { pty, cwd })
+  sessions.set(id, { pty, cwd, win })
+  ensurePoller()
 }
 
 export function writePty(id: string, data: string): void {
