@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, X, Trash2, Pencil, Check } from 'lucide-react'
+import { Plus, X, Trash2, Pencil, Check, GripVertical } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
@@ -16,9 +16,14 @@ export default function ProjectsSidebar(): JSX.Element {
   const addProject = useStore((s) => s.addProject)
   const removeProject = useStore((s) => s.removeProject)
   const renameSession = useStore((s) => s.renameSession)
+  const reorderProject = useStore((s) => s.reorderProject)
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
+  const [dragId, setDragId] = useState<string | null>(null)
+  const [dragOverId, setDragOverId] = useState<string | null>(null)
+
+  const PROJECT_MIME = 'application/x-ultra-project'
 
   const startEdit = (id: string, title: string): void => {
     setEditingId(id)
@@ -56,8 +61,43 @@ export default function ProjectsSidebar(): JSX.Element {
       <div className="flex-1 overflow-y-auto overflow-x-hidden py-1 pr-1">
         <div>
           {projects.map((p) => (
-            <div key={p.id} className="group/project mb-1">
-              <div className="flex items-center justify-between gap-1 px-3 pb-1 pt-2">
+            <div
+              key={p.id}
+              className={cn(
+                'group/project mb-1 rounded-md',
+                dragOverId === p.id && dragId !== p.id && 'ring-1 ring-primary',
+                dragId === p.id && 'opacity-50'
+              )}
+              onDragOver={(e) => {
+                if (e.dataTransfer.types.includes(PROJECT_MIME)) {
+                  e.preventDefault()
+                  setDragOverId(p.id)
+                }
+              }}
+              onDrop={(e) => {
+                const id = e.dataTransfer.getData(PROJECT_MIME)
+                if (id) {
+                  e.preventDefault()
+                  reorderProject(id, p.id)
+                }
+                setDragId(null)
+                setDragOverId(null)
+              }}
+            >
+              <div
+                className="flex items-center justify-between gap-1 px-3 pb-1 pt-2"
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData(PROJECT_MIME, p.id)
+                  e.dataTransfer.effectAllowed = 'move'
+                  setDragId(p.id)
+                }}
+                onDragEnd={() => {
+                  setDragId(null)
+                  setDragOverId(null)
+                }}
+              >
+                <GripVertical className="h-3.5 w-3.5 shrink-0 cursor-grab text-muted-foreground/50 opacity-0 transition group-hover/project:opacity-100" />
                 <span
                   className="min-w-0 flex-1 truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
                   title={p.path || 'home'}

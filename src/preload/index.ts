@@ -1,8 +1,12 @@
-import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
+import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron'
 
 type Unsubscribe = () => void
 
 const api = {
+  // Electron 32+ removed File.path; this is the supported replacement for
+  // resolving the absolute path of a file dropped from Finder.
+  getPathForFile: (file: File): string => webUtils.getPathForFile(file),
+
   pty: {
     create: (id: string, opts: { cwd?: string; cols?: number; rows?: number; command?: string }) =>
       ipcRenderer.send('pty:create', { id, ...opts }),

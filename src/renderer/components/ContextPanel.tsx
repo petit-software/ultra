@@ -1,10 +1,14 @@
 import { useState } from 'react'
-import { FileText, X, CornerDownLeft } from 'lucide-react'
+import { FileText, Link2, X, Check, CornerDownLeft, Plus } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { basename, relTo } from '../lib/paths'
 import { cn } from '@/lib/utils'
+
+const isUrl = (s: string): boolean => /^https?:\/\//i.test(s)
+const itemLabel = (p: string): string =>
+  isUrl(p) ? p.replace(/^https?:\/\//i, '').replace(/\/+$/, '') : basename(p)
 
 export default function ContextPanel(): JSX.Element {
   const sessions = useStore((s) => s.sessions)
@@ -20,28 +24,49 @@ export default function ContextPanel(): JSX.Element {
   const pinned = project?.contextPaths ?? []
 
   const [over, setOver] = useState(false)
+  const [linkValue, setLinkValue] = useState('')
+  const [addingLink, setAddingLink] = useState(false)
 
   const onDrop = async (e: React.DragEvent): Promise<void> => {
     e.preventDefault()
     setOver(false)
     if (!project) return
-    const paths: string[] = []
+
+    const items: string[] = []
+    // Internal drag from the file tree.
     const internal = e.dataTransfer.getData('application/x-ultra-path')
-    if (internal) paths.push(internal)
+    if (internal) items.push(internal)
+    // Links dragged from a browser.
+    const uri = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain')
+    if (uri) uri.split(/\r?\n/).forEach((u) => isUrl(u.trim()) && items.push(u.trim()))
+    // Files/folders dropped from Finder (Electron 32+: File.path is gone).
     for (const f of Array.from(e.dataTransfer.files)) {
-      const p = (f as File & { path?: string }).path
-      if (p) paths.push(p)
+      const p = window.api.getPathForFile(f)
+      if (p) items.push(p)
     }
-    if (!paths.length) return
+    if (!items.length) return
+
+    const urls = items.filter(isUrl)
+    const fsPaths = items.filter((p) => !isUrl(p))
     // Expand any dropped folders to the files inside them.
-    const files = await window.api.fs.expandToFiles(paths)
-    if (files.length) pinContext(project.id, files)
+    const files = fsPaths.length ? await window.api.fs.expandToFiles(fsPaths) : []
+    const all = [...new Set([...urls, ...files])]
+    if (all.length) pinContext(project.id, all)
   }
 
-  /** Type `@relpath ` into the active terminal so the agent can read the file. */
+  const submitLink = (): void => {
+    let v = linkValue.trim()
+    if (v && !/^https?:\/\//i.test(v)) v = 'https://' + v
+    if (project && isUrl(v)) pinContext(project.id, [v])
+    setLinkValue('')
+    setAddingLink(false)
+  }
+
+  /** Insert pinned items into the active terminal: @relpath for files, raw URL for links. */
   const insert = (paths: string[]): void => {
     if (!activeSessionId || !project) return
-    const text = paths.map((p) => `@${relTo(project.path, p)}`).join(' ') + ' '
+    const text =
+      paths.map((p) => (isUrl(p) ? p : `@${relTo(project.path, p)}`)).join(' ') + ' '
     window.api.pty.input(activeSessionId, text)
   }
 
@@ -58,58 +83,94 @@ export default function ContextPanel(): JSX.Element {
         over ? 'border-primary bg-primary/10' : 'border-transparent'
       )}
     >
-      {pinned.length === 0 ? (
+      {addingLink && (
+        <div className="flex flex-none items-center gap-2 px-3 pb-1 pt-2">
+          <Link2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <input
+            autoFocus
+            value={linkValue}
+            onChange={(e) => setLinkValue(e.target.value)}
+            onBlur={() => (linkValue.trim() ? submitLink() : setAddingLink(false))}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') submitLink()
+              else if (e.key === 'Escape') {
+                setLinkValue('')
+                setAddingLink(false)
+              }
+            }}
+            placeholder="https://…"
+            className="min-w-0 flex-1 bg-transparent p-0 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+          />
+        </div>
+      )}
+
+      {pinned.length === 0 && !addingLink ? (
         <div className="p-4 text-xs text-muted-foreground">
           {project
-            ? 'Drag files here from the tree or Finder. Pinned files can be sent into the agent terminal as @mentions.'
+            ? 'Drag files, folders, or links here from the tree, Finder, or your browser. Pinned items can be sent into the agent terminal as @mentions (files) or URLs (links).'
             : 'Open a project to pin context.'}
         </div>
       ) : (
-        <>
-          <ul className="min-h-0 flex-1 overflow-auto px-2 py-2">
-            {pinned.map((p) => (
-              <li
-                key={p}
-                onClick={() => insert([p])}
-                className="group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-sm hover:bg-secondary/60"
-                title={`Insert @${project ? relTo(project.path, p) : p}`}
-              >
+        <ul className="min-h-0 flex-1 overflow-auto px-2 py-2">
+          {pinned.map((p) => (
+            <li
+              key={p}
+              onClick={() => insert([p])}
+              className="group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-sm hover:bg-secondary/60"
+              title={isUrl(p) ? `Insert ${p}` : `Insert @${project ? relTo(project.path, p) : p}`}
+            >
+              {isUrl(p) ? (
+                <Link2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              ) : (
                 <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                <span className="flex-1 truncate">{basename(p)}</span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    if (project) unpinContext(project.id, p)
-                  }}
-                  className="text-muted-foreground opacity-0 transition hover:text-foreground group-hover:opacity-100"
-                  title="Unpin"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </li>
-            ))}
-          </ul>
-          {/* Send-to-agent bar, pinned to the bottom */}
-          <div className="flex flex-none items-center justify-between border-t border-border px-3 py-1.5">
-            <span className="text-[11px] text-muted-foreground">{pinned.length} pinned</span>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-6 gap-1.5 text-xs"
-                  disabled={!activeSessionId}
-                  onClick={() => insert(pinned)}
-                >
-                  <CornerDownLeft className="h-3 w-3" />
-                  Send to agent
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Insert all as @mentions in the active terminal</TooltipContent>
-            </Tooltip>
-          </div>
-        </>
+              )}
+              <span className="flex-1 truncate">{itemLabel(p)}</span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (project) unpinContext(project.id, p)
+                }}
+                className="text-muted-foreground opacity-0 transition hover:text-foreground group-hover:opacity-100"
+                title="Unpin"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
+
+      {/* Footer: add link + send to agent */}
+      <div className="flex flex-none items-center justify-between gap-2 border-t border-border px-3 py-1.5">
+        <button
+          onClick={() => setAddingLink(true)}
+          className="flex items-center gap-1 text-[11px] text-muted-foreground transition hover:text-foreground"
+          title="Add a link as context"
+        >
+          <Plus className="h-3 w-3" />
+          Add link
+        </button>
+        <div className="flex items-center gap-2">
+          {pinned.length > 0 && (
+            <span className="text-[11px] text-muted-foreground">{pinned.length} pinned</span>
+          )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-6 gap-1.5 text-xs"
+                disabled={!activeSessionId || pinned.length === 0}
+                onClick={() => insert(pinned)}
+              >
+                <CornerDownLeft className="h-3 w-3" />
+                Send to agent
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Insert all as @mentions / URLs in the active terminal</TooltipContent>
+          </Tooltip>
+        </div>
+      </div>
     </div>
   )
 }
