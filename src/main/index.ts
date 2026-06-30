@@ -1,4 +1,14 @@
-import { app, shell, BrowserWindow, ipcMain, dialog, nativeTheme, nativeImage } from 'electron'
+import {
+  app,
+  shell,
+  BrowserWindow,
+  ipcMain,
+  dialog,
+  nativeTheme,
+  nativeImage,
+  Menu,
+  type MenuItemConstructorOptions
+} from 'electron'
 import { join } from 'path'
 import { createPty, writePty, resizePty, killPty, killAllPty } from './pty'
 import { loadWorkspace, saveWorkspace } from './store'
@@ -28,6 +38,47 @@ function applyDockIcon(): void {
     : join(app.getAppPath(), 'build', name)
   const img = nativeImage.createFromPath(path)
   if (!img.isEmpty()) app.dock.setIcon(img)
+}
+
+// Application menu. Owns Cmd+D (new session) / Cmd+W (close session) — the
+// latter replaces the default "Close Window" accelerator. Keeps the standard
+// edit/view roles so terminal copy/paste etc. still work.
+function buildAppMenu(): void {
+  const isMac = process.platform === 'darwin'
+  const send = (cmd: string): void =>
+    BrowserWindow.getFocusedWindow()?.webContents.send('menu:command', cmd)
+
+  const template: MenuItemConstructorOptions[] = [
+    ...(isMac ? [{ role: 'appMenu' as const }] : []),
+    {
+      label: 'Session',
+      submenu: [
+        {
+          label: 'New Session',
+          accelerator: 'CmdOrCtrl+D',
+          click: () => send('new-session')
+        },
+        {
+          label: 'Close Session',
+          accelerator: 'CmdOrCtrl+W',
+          click: () => send('close-session')
+        }
+      ]
+    },
+    { role: 'editMenu' },
+    { role: 'viewMenu' },
+    // Custom Window menu WITHOUT a Cmd+W close item, so Close Session owns it.
+    {
+      label: 'Window',
+      submenu: [
+        { role: 'minimize' },
+        { role: 'zoom' },
+        ...(isMac ? [{ type: 'separator' as const }, { role: 'front' as const }] : [])
+      ]
+    }
+  ]
+
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template))
 }
 
 function createWindow(): void {
@@ -153,6 +204,7 @@ function registerIpc(): void {
 
 app.whenReady().then(() => {
   registerIpc()
+  buildAppMenu()
   applyDockIcon()
   nativeTheme.on('updated', applyDockIcon)
   createWindow()

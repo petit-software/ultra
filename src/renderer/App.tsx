@@ -24,6 +24,15 @@ export default function App(): JSX.Element {
     void hydrate()
   }, [hydrate])
 
+  // Keyboard shortcuts via the app menu: Cmd+D new session, Cmd+W close session.
+  useEffect(() => {
+    return window.api.menu.onCommand((cmd) => {
+      const s = useStore.getState()
+      if (cmd === 'new-session') s.newSessionInActiveProject()
+      else if (cmd === 'close-session') s.closeActiveSession()
+    })
+  }, [])
+
   return (
     <TooltipProvider delayDuration={300}>
       <WelcomeModal />

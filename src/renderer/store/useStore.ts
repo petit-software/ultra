@@ -63,6 +63,8 @@ interface AppState extends PersistShape {
   setSessionBusy: (id: string, busy: boolean) => void
   addProject: () => Promise<void>
   newSession: (projectId: string) => void
+  newSessionInActiveProject: () => void
+  closeActiveSession: () => void
   launchAgent: (projectId: string, agent: Agent) => void
   startAgent: (sessionId: string, agent: Agent) => void
   removeProject: (projectId: string) => void
@@ -213,6 +215,21 @@ export const useStore = create<AppState>((set, get) => ({
       schedulePersist(next)
       return next
     }),
+
+  // Open a new session in the active session's project (Cmd+D), falling back to
+  // the first project when nothing is active.
+  newSessionInActiveProject: () => {
+    const st = get()
+    const active = st.activeSessionId ? st.sessions[st.activeSessionId] : null
+    const projectId = active?.projectId ?? st.projects[0]?.id
+    if (projectId) get().newSession(projectId)
+  },
+
+  // Close the active session (Cmd+W).
+  closeActiveSession: () => {
+    const id = get().activeSessionId
+    if (id) get().closeSession(id)
+  },
 
   launchAgent: (projectId, agent) =>
     set((st) => {

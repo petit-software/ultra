@@ -30,6 +30,13 @@ const api = {
       return () => ipcRenderer.removeListener('pty:busy', h)
     }
   },
+  menu: {
+    onCommand: (cb: (command: string) => void): Unsubscribe => {
+      const h = (_e: IpcRendererEvent, command: string): void => cb(command)
+      ipcRenderer.on('menu:command', h)
+      return () => ipcRenderer.removeListener('menu:command', h)
+    }
+  },
   dialog: {
     pickDirectory: (): Promise<string | null> => ipcRenderer.invoke('dialog:pickDirectory'),
     pickFiles: (): Promise<string[]> => ipcRenderer.invoke('dialog:pickFiles')
