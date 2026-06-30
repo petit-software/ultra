@@ -17,7 +17,11 @@ Gatekeeper prompts. Identity facts:
 - Apple ID: `bartosz.bak@me.com` · Team ID: **`TJ3ALYQV5G`** (team "Bartosz Bak").
 - Signing cert: `Developer ID Application: Bartosz Dariusz Bak (TJ3ALYQV5G)`
   (auto-discovered from the login keychain by electron-builder).
-- Notarization auth: keychain profile **`ultra-notary`** (notarytool).
+- Notarization auth: keychain profile **`ultra-notary`** (notarytool), pinned to
+  the login keychain. The hook passes `keychain:
+  ~/Library/Keychains/login.keychain-db` — WITHOUT this, notarytool intermittently
+  fails with "No Keychain password item found for profile". Override via
+  `NOTARY_KEYCHAIN`. If a build still fails this way, re-store creds (step 2 below).
 - `electron-builder.yml`: `hardenedRuntime: true`, `entitlements`/`entitlementsInherit`
   → `build/entitlements.mac.plist`, `notarize: false` (we notarize via the hook),
   `afterSign: scripts/notarize.cjs`.
@@ -32,8 +36,12 @@ Gatekeeper prompts. Identity facts:
    ```
    xcrun notarytool store-credentials "ultra-notary" \
      --apple-id "bartosz.bak@me.com" --team-id "TJ3ALYQV5G" \
-     --password "<app-specific-password from appleid.apple.com>"
+     --password "<app-specific-password from appleid.apple.com>" \
+     --keychain "$HOME/Library/Keychains/login.keychain-db"
    ```
+   Always pass `--keychain` so the profile lands in (and is read from) the login
+   keychain deterministically. The app-specific password is generated at
+   appleid.apple.com — never commit it.
    The Team ID is the cert's **OU** field, NOT the code in the cert's CN parens.
    Verify: `security find-identity -v -p codesigning | grep "Developer ID"`.
 
@@ -53,7 +61,8 @@ follow `Ultra-<version>-arm64.dmg` / `Ultra-<version>-arm64-mac.zip`.
    dmg is created afterward, so it needs its own ticket):
    ```
    xcrun notarytool submit "release/Ultra-<version>-arm64.dmg" \
-     --keychain-profile "ultra-notary" --wait        # expect: status: Accepted
+     --keychain-profile "ultra-notary" \
+     --keychain "$HOME/Library/Keychains/login.keychain-db" --wait  # status: Accepted
    xcrun stapler staple "release/Ultra-<version>-arm64.dmg"   # expect: worked!
    ```
 
