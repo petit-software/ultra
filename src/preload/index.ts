@@ -31,7 +31,8 @@ const api = {
     }
   },
   dialog: {
-    pickDirectory: (): Promise<string | null> => ipcRenderer.invoke('dialog:pickDirectory')
+    pickDirectory: (): Promise<string | null> => ipcRenderer.invoke('dialog:pickDirectory'),
+    pickFiles: (): Promise<string[]> => ipcRenderer.invoke('dialog:pickFiles')
   },
   store: {
     load: (): Promise<unknown | null> => ipcRenderer.invoke('store:load'),

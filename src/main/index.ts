@@ -84,6 +84,14 @@ function registerIpc(): void {
     return res.canceled || res.filePaths.length === 0 ? null : res.filePaths[0]
   })
 
+  ipcMain.handle('dialog:pickFiles', async (e) => {
+    const win = BrowserWindow.fromWebContents(e.sender)
+    const res = await dialog.showOpenDialog(win!, {
+      properties: ['openFile', 'multiSelections']
+    })
+    return res.canceled ? [] : res.filePaths
+  })
+
   ipcMain.handle('store:load', () => loadWorkspace())
   ipcMain.handle('store:save', (_e, data) => saveWorkspace(data))
 

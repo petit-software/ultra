@@ -1,12 +1,11 @@
 import { useState } from 'react'
-import { FileText, Link2, X, Check, CornerDownLeft, Plus } from 'lucide-react'
+import { FileText, Link2, X, CornerDownLeft } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
-import { basename, relTo } from '../lib/paths'
+import { basename, relTo, isUrl } from '../lib/paths'
 import { cn } from '@/lib/utils'
 
-const isUrl = (s: string): boolean => /^https?:\/\//i.test(s)
 const itemLabel = (p: string): string =>
   isUrl(p) ? p.replace(/^https?:\/\//i, '').replace(/\/+$/, '') : basename(p)
 
@@ -24,8 +23,6 @@ export default function ContextPanel(): JSX.Element {
   const pinned = project?.contextPaths ?? []
 
   const [over, setOver] = useState(false)
-  const [linkValue, setLinkValue] = useState('')
-  const [addingLink, setAddingLink] = useState(false)
 
   const onDrop = async (e: React.DragEvent): Promise<void> => {
     e.preventDefault()
@@ -54,14 +51,6 @@ export default function ContextPanel(): JSX.Element {
     if (all.length) pinContext(project.id, all)
   }
 
-  const submitLink = (): void => {
-    let v = linkValue.trim()
-    if (v && !/^https?:\/\//i.test(v)) v = 'https://' + v
-    if (project && isUrl(v)) pinContext(project.id, [v])
-    setLinkValue('')
-    setAddingLink(false)
-  }
-
   /** Insert pinned items into the active terminal: @relpath for files, raw URL for links. */
   const insert = (paths: string[]): void => {
     if (!activeSessionId || !project) return
@@ -83,31 +72,10 @@ export default function ContextPanel(): JSX.Element {
         over ? 'border-primary bg-primary/10' : 'border-transparent'
       )}
     >
-      {addingLink && (
-        <div className="flex flex-none items-center gap-2 px-3 pb-1 pt-2">
-          <Link2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          <input
-            autoFocus
-            value={linkValue}
-            onChange={(e) => setLinkValue(e.target.value)}
-            onBlur={() => (linkValue.trim() ? submitLink() : setAddingLink(false))}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') submitLink()
-              else if (e.key === 'Escape') {
-                setLinkValue('')
-                setAddingLink(false)
-              }
-            }}
-            placeholder="https://…"
-            className="min-w-0 flex-1 bg-transparent p-0 text-sm text-foreground outline-none placeholder:text-muted-foreground"
-          />
-        </div>
-      )}
-
-      {pinned.length === 0 && !addingLink ? (
+      {pinned.length === 0 ? (
         <div className="p-4 text-xs text-muted-foreground">
           {project
-            ? 'Drag files, folders, or links here from the tree, Finder, or your browser. Pinned items can be sent into the agent terminal as @mentions (files) or URLs (links).'
+            ? 'Add files, folders, or links with the + above, or drag them here from the tree, Finder, or your browser. Pinned items send into the agent terminal as @mentions (files) or URLs (links).'
             : 'Open a project to pin context.'}
         </div>
       ) : (
@@ -140,37 +108,27 @@ export default function ContextPanel(): JSX.Element {
         </ul>
       )}
 
-      {/* Footer: add link + send to agent */}
-      <div className="flex flex-none items-center justify-between gap-2 border-t border-border px-3 py-1.5">
-        <button
-          onClick={() => setAddingLink(true)}
-          className="flex items-center gap-1 text-[11px] text-muted-foreground transition hover:text-foreground"
-          title="Add a link as context"
-        >
-          <Plus className="h-3 w-3" />
-          Add link
-        </button>
-        {pinned.length > 0 && (
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-muted-foreground">{pinned.length} pinned</span>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-6 gap-1.5 text-xs"
-                  disabled={!activeSessionId}
-                  onClick={() => insert(pinned)}
-                >
-                  <CornerDownLeft className="h-3 w-3" />
-                  Send to agent
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Insert all as @mentions / URLs in the active terminal</TooltipContent>
-            </Tooltip>
-          </div>
-        )}
-      </div>
+      {/* Send-to-agent bar, only when something is pinned */}
+      {pinned.length > 0 && (
+        <div className="flex flex-none items-center justify-between border-t border-border px-3 py-1.5">
+          <span className="text-[11px] text-muted-foreground">{pinned.length} pinned</span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-6 gap-1.5 text-xs"
+                disabled={!activeSessionId}
+                onClick={() => insert(pinned)}
+              >
+                <CornerDownLeft className="h-3 w-3" />
+                Send to agent
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Insert all as @mentions / URLs in the active terminal</TooltipContent>
+          </Tooltip>
+        </div>
+      )}
     </div>
   )
 }
