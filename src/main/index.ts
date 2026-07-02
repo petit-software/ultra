@@ -62,7 +62,17 @@ function buildAppMenu(): void {
           label: 'Close Session',
           accelerator: 'CmdOrCtrl+W',
           click: () => send('close-session')
-        }
+        },
+        { type: 'separator' },
+        // Cmd+1..9 jump to the Nth session of the active project.
+        ...Array.from({ length: 9 }, (_, i): MenuItemConstructorOptions => {
+          const n = i + 1
+          return {
+            label: `Session ${n}`,
+            accelerator: `CmdOrCtrl+${n}`,
+            click: () => send(`switch-session-${n}`)
+          }
+        })
       ]
     },
     { role: 'editMenu' },
@@ -82,14 +92,28 @@ function buildAppMenu(): void {
 }
 
 function createWindow(): void {
+  const isMac = process.platform === 'darwin'
+
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 880,
     minWidth: 800,
     minHeight: 500,
     show: false,
-    backgroundColor: '#14161b',
-    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    // On macOS the window is transparent and the renderer draws its own rounded
+    // surface — that's the only way to get a corner radius bigger than the
+    // native one. Traffic lights are inset away from the top edge.
+    ...(isMac
+      ? {
+          transparent: true,
+          backgroundColor: '#00000000',
+          titleBarStyle: 'hidden' as const,
+          trafficLightPosition: { x: 20, y: 18 }
+        }
+      : {
+          backgroundColor: '#14161b',
+          titleBarStyle: 'default' as const
+        }),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -99,6 +123,14 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => mainWindow?.show())
+
+  // The renderer squares its corners while the window fills the screen.
+  const sendFullScreen = (fs: boolean): void => {
+    if (mainWindow && !mainWindow.isDestroyed())
+      mainWindow.webContents.send('window:fullscreen', fs)
+  }
+  mainWindow.on('enter-full-screen', () => sendFullScreen(true))
+  mainWindow.on('leave-full-screen', () => sendFullScreen(false))
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url)

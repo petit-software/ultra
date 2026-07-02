@@ -34,6 +34,25 @@ const DEFAULT_AGENTS: Agent[] = [
 
 export type ThemeMode = 'dark' | 'light'
 
+/** Per-block visibility inside the sidebars. */
+export interface SidebarBlocks {
+  projects: boolean
+  git: boolean
+  files: boolean
+  context: boolean
+  terminal: boolean
+}
+
+export type SidebarBlockKey = keyof SidebarBlocks
+
+const DEFAULT_SIDEBAR_BLOCKS: SidebarBlocks = {
+  projects: true,
+  git: true,
+  files: true,
+  context: true,
+  terminal: false
+}
+
 interface PersistShape {
   projects: Project[]
   sessions: Record<string, Session>
@@ -45,6 +64,7 @@ interface PersistShape {
   editorCommand: string
   leftSidebarVisible: boolean
   rightSidebarVisible: boolean
+  sidebarBlocks: SidebarBlocks
   onboarded: boolean
 }
 
@@ -58,9 +78,12 @@ interface AppState extends PersistShape {
   hydrated: boolean
   /** Session ids where a foreground process (agent/command) is running. Not persisted. */
   busySessions: Record<string, boolean>
+  /** Session ids that produced PTY output recently, i.e. are actively working. Not persisted. */
+  runningSessions: Record<string, boolean>
 
   hydrate: () => Promise<void>
   setSessionBusy: (id: string, busy: boolean) => void
+  setSessionRunning: (id: string, running: boolean) => void
   addProject: () => Promise<void>
   newSession: (projectId: string) => void
   newSessionInActiveProject: () => void
@@ -72,6 +95,8 @@ interface AppState extends PersistShape {
   renameSession: (id: string, title: string) => void
   closeSession: (id: string) => void
   setActiveSession: (id: string) => void
+  /** Switch to the Nth session (1-based) of the active project (Cmd+1..9). */
+  setActiveSessionByIndex: (index: number) => void
   addAgent: (name: string, command: string) => void
   removeAgent: (id: string) => void
   pinContext: (projectId: string, paths: string[]) => void
@@ -80,6 +105,7 @@ interface AppState extends PersistShape {
   setEditorCommand: (command: string) => void
   toggleLeftSidebar: () => void
   toggleRightSidebar: () => void
+  toggleSidebarBlock: (block: SidebarBlockKey) => void
   completeOnboarding: () => void
 }
 
@@ -101,6 +127,7 @@ function makeDefault(): PersistShape {
     editorCommand: 'code',
     leftSidebarVisible: true,
     rightSidebarVisible: true,
+    sidebarBlocks: { ...DEFAULT_SIDEBAR_BLOCKS },
     onboarded: false
   }
 }
@@ -116,6 +143,7 @@ function snapshot(s: AppState): PersistShape {
     editorCommand: s.editorCommand,
     leftSidebarVisible: s.leftSidebarVisible,
     rightSidebarVisible: s.rightSidebarVisible,
+    sidebarBlocks: s.sidebarBlocks,
     onboarded: s.onboarded
   }
 }
@@ -131,6 +159,7 @@ export const useStore = create<AppState>((set, get) => ({
   ...makeDefault(),
   hydrated: false,
   busySessions: {},
+  runningSessions: {},
 
   setSessionBusy: (id, busy) =>
     set((st) => {
@@ -139,6 +168,15 @@ export const useStore = create<AppState>((set, get) => ({
       if (busy) busySessions[id] = true
       else delete busySessions[id]
       return { ...st, busySessions }
+    }),
+
+  setSessionRunning: (id, running) =>
+    set((st) => {
+      if (!!st.runningSessions[id] === running) return st
+      const runningSessions = { ...st.runningSessions }
+      if (running) runningSessions[id] = true
+      else delete runningSessions[id]
+      return { ...st, runningSessions }
     }),
 
   hydrate: async () => {
@@ -161,6 +199,7 @@ export const useStore = create<AppState>((set, get) => ({
         editorCommand,
         leftSidebarVisible: loaded.leftSidebarVisible ?? true,
         rightSidebarVisible: loaded.rightSidebarVisible ?? true,
+        sidebarBlocks: { ...DEFAULT_SIDEBAR_BLOCKS, ...(loaded.sidebarBlocks ?? {}) },
         onboarded: loaded.onboarded ?? false,
         activeSessionId: active,
         hydrated: true
@@ -347,6 +386,16 @@ export const useStore = create<AppState>((set, get) => ({
       return next
     }),
 
+  toggleSidebarBlock: (block) =>
+    set((st) => {
+      const next = {
+        ...st,
+        sidebarBlocks: { ...st.sidebarBlocks, [block]: !st.sidebarBlocks[block] }
+      }
+      schedulePersist(next)
+      return next
+    }),
+
   completeOnboarding: () =>
     set((st) => {
       const next = { ...st, onboarded: true }
@@ -419,7 +468,15 @@ export const useStore = create<AppState>((set, get) => ({
       const next = { ...st, activeSessionId: id }
       schedulePersist(next)
       return next
-    })
+    }),
+
+  setActiveSessionByIndex: (index) => {
+    const st = get()
+    const active = st.activeSessionId ? st.sessions[st.activeSessionId] : null
+    const project = st.projects.find((p) => p.id === active?.projectId) ?? st.projects[0]
+    const sid = project?.sessionIds[index - 1]
+    if (sid && sid !== st.activeSessionId) get().setActiveSession(sid)
+  }
 }))
 
 export { newId }

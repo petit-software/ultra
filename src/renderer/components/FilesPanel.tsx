@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Plus, File as FileIcon, Folder, Check } from 'lucide-react'
+import { Plus, File as FileIcon, Folder, FolderOpen, Check } from 'lucide-react'
 import PaneHeader from './PaneHeader'
 import FileTree from './FileTree'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -69,6 +70,20 @@ export default function FilesPanel(): JSX.Element {
   return (
     <div className="group/section flex h-full flex-col">
       <PaneHeader title="Files">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-5 w-5"
+              disabled={!root}
+              onClick={() => window.api.fs.reveal(root)}
+            >
+              <FolderOpen />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Show in Finder</TooltipContent>
+        </Tooltip>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="h-5 w-5" disabled={!root} title="Add">

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, X, Trash2, Pencil, Check, GripVertical } from 'lucide-react'
+import { Plus, X, Pencil, Check, GripVertical } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 export default function ProjectsSidebar(): JSX.Element {
   const projects = useStore((s) => s.projects)
   const sessions = useStore((s) => s.sessions)
+  const runningSessions = useStore((s) => s.runningSessions)
   const activeSessionId = useStore((s) => s.activeSessionId)
   const setActiveSession = useStore((s) => s.setActiveSession)
   const newSession = useStore((s) => s.newSession)
@@ -126,7 +127,7 @@ export default function ProjectsSidebar(): JSX.Element {
                         className="h-5 w-5 text-muted-foreground transition hover:text-destructive"
                         onClick={() => confirmRemove(p.id, p.name)}
                       >
-                        <Trash2 />
+                        <X />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>Remove project</TooltipContent>
@@ -139,6 +140,7 @@ export default function ProjectsSidebar(): JSX.Element {
                   const s = sessions[sid]
                   if (!s) return null
                   const active = sid === activeSessionId
+                  const running = !!runningSessions[sid]
                   const editing = sid === editingId
                   return (
                     <li
@@ -151,9 +153,14 @@ export default function ProjectsSidebar(): JSX.Element {
                       )}
                     >
                       <span
+                        title={running ? 'Working' : 'Idle'}
                         className={cn(
                           'h-1.5 w-1.5 shrink-0 rounded-full',
-                          active ? 'bg-foreground' : 'bg-muted-foreground/40'
+                          running
+                            ? 'animate-pulse bg-emerald-500'
+                            : active
+                              ? 'bg-foreground'
+                              : 'bg-muted-foreground/40'
                         )}
                       />
 

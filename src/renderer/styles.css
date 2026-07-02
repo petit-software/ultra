@@ -137,6 +137,24 @@
   -webkit-app-region: no-drag;
 }
 
+/* macOS window surface — the BrowserWindow is transparent and #root paints the
+   actual window, so the corner radius is ours (bigger than the native ~10px).
+   A hairline border stands in for the native edge highlight. */
+.mac body {
+  background: transparent;
+}
+.mac #root {
+  border-radius: 16px;
+  overflow: hidden;
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--border) / 0.6);
+}
+/* Fullscreen fills the display — no radius, no border. */
+.mac.fullscreen #root {
+  border-radius: 0;
+  border: none;
+}
+
 /* xterm host — the one piece shadcn/Tailwind can't own (it's a canvas). */
 /* No padding here — the gap lives on the wrapper so FitAddon measures the
    reduced area and rows don't bleed into the padding. */

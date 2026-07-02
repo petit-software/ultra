@@ -1,6 +1,6 @@
 {
   "name": "ultra",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Agentic terminal — Electron + xterm.js with projects and file-tree sidebars",
   "main": "./out/main/index.js",
   "author": "bart",

@@ -37,6 +37,13 @@ const api = {
       return () => ipcRenderer.removeListener('menu:command', h)
     }
   },
+  window: {
+    onFullScreen: (cb: (fullscreen: boolean) => void): Unsubscribe => {
+      const h = (_e: IpcRendererEvent, fs: boolean): void => cb(fs)
+      ipcRenderer.on('window:fullscreen', h)
+      return () => ipcRenderer.removeListener('window:fullscreen', h)
+    }
+  },
   dialog: {
     pickDirectory: (): Promise<string | null> => ipcRenderer.invoke('dialog:pickDirectory'),
     pickFiles: (): Promise<string[]> => ipcRenderer.invoke('dialog:pickFiles')

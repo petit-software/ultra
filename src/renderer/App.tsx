@@ -17,19 +17,25 @@ const GAP = 'w-2 my-1 bg-transparent'
 
 export default function App(): JSX.Element {
   const hydrate = useStore((s) => s.hydrate)
-  const leftVisible = useStore((s) => s.leftSidebarVisible)
-  const rightVisible = useStore((s) => s.rightSidebarVisible)
+  const blocks = useStore((s) => s.sidebarBlocks)
+  // A sidebar with every block toggled off collapses entirely.
+  const leftVisible = useStore((s) => s.leftSidebarVisible) && (blocks.projects || blocks.git)
+  const rightVisible =
+    useStore((s) => s.rightSidebarVisible) && (blocks.files || blocks.context || blocks.terminal)
 
   useEffect(() => {
     void hydrate()
   }, [hydrate])
 
-  // Keyboard shortcuts via the app menu: Cmd+D new session, Cmd+W close session.
+  // Keyboard shortcuts via the app menu: Cmd+D new session, Cmd+W close session,
+  // Cmd+1..9 switch to the Nth session of the active project.
   useEffect(() => {
     return window.api.menu.onCommand((cmd) => {
       const s = useStore.getState()
       if (cmd === 'new-session') s.newSessionInActiveProject()
       else if (cmd === 'close-session') s.closeActiveSession()
+      else if (cmd.startsWith('switch-session-'))
+        s.setActiveSessionByIndex(Number(cmd.slice('switch-session-'.length)))
     })
   }, [])
 
@@ -37,7 +43,8 @@ export default function App(): JSX.Element {
     <TooltipProvider delayDuration={300}>
       <WelcomeModal />
       <div className="flex h-full flex-col bg-background">
-        <header className="app-drag flex h-9 flex-none items-center gap-2 pl-[86px] pr-2">
+        {/* h-12 vertically centers the traffic lights (positioned at y:18 in main). */}
+        <header className="app-drag flex h-12 flex-none items-center gap-2 pl-[92px] pr-2">
           <span className="font-semibold tracking-tight">Ultra</span>
           <div className="ml-auto flex items-center gap-1">
             <ViewMenu />

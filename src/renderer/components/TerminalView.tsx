@@ -11,18 +11,32 @@ interface Props {
   cwd: string
   visible: boolean
   command?: string
+  /** Grab keyboard focus when the view becomes visible (default true). */
+  autoFocus?: boolean
+  /** Render on a transparent background so the parent surface shows through. */
+  transparent?: boolean
 }
 
 /**
  * One xterm + PTY, mounted once for the lifetime of the session.
  * Hidden (not unmounted) when another session is active, so the PTY stays alive.
  */
-export default function TerminalView({ sessionId, cwd, visible, command }: Props): JSX.Element {
+export default function TerminalView({
+  sessionId,
+  cwd,
+  visible,
+  command,
+  autoFocus = true,
+  transparent = false
+}: Props): JSX.Element {
   const hostRef = useRef<HTMLDivElement>(null)
   const fitRef = useRef<FitAddon | null>(null)
   const termRef = useRef<Terminal | null>(null)
   const openedRef = useRef(false)
   const theme = useStore((s) => s.theme)
+
+  const paletteFor = (mode: typeof theme): ReturnType<typeof xtermTheme> =>
+    transparent ? { ...xtermTheme(mode), background: 'rgba(0,0,0,0)' } : xtermTheme(mode)
 
   // Create the terminal + PTY at mount. We deliberately do NOT call term.open()
   // here: opening on a zero-size (display:none) host makes xterm's Viewport throw
@@ -34,7 +48,8 @@ export default function TerminalView({ sessionId, cwd, visible, command }: Props
       fontSize: 13,
       lineHeight: 1.2,
       cursorBlink: true,
-      theme: xtermTheme(useStore.getState().theme),
+      theme: paletteFor(useStore.getState().theme),
+      allowTransparency: transparent,
       allowProposedApi: true
     })
     const fit = new FitAddon()
@@ -46,8 +61,24 @@ export default function TerminalView({ sessionId, cwd, visible, command }: Props
 
     window.api.pty.create(sessionId, { cwd, cols: term.cols, rows: term.rows, command })
 
+    // "Running" = the PTY produced output recently. A foreground-process check
+    // can't tell an agent that is working from one waiting at its prompt, so we
+    // treat a short output silence as idle instead.
+    let silenceTimer: ReturnType<typeof setTimeout> | null = null
+    const markOutput = (): void => {
+      useStore.getState().setSessionRunning(sessionId, true)
+      if (silenceTimer) clearTimeout(silenceTimer)
+      silenceTimer = setTimeout(
+        () => useStore.getState().setSessionRunning(sessionId, false),
+        1500
+      )
+    }
+
     const offData = window.api.pty.onData((sid, data) => {
-      if (sid === sessionId) term.write(data)
+      if (sid === sessionId) {
+        term.write(data)
+        markOutput()
+      }
     })
     const offExit = window.api.pty.onExit((sid) => {
       if (sid === sessionId) term.write('\r\n\x1b[90m[process exited]\x1b[0m\r\n')
@@ -61,7 +92,9 @@ export default function TerminalView({ sessionId, cwd, visible, command }: Props
       offData()
       offExit()
       offBusy()
+      if (silenceTimer) clearTimeout(silenceTimer)
       useStore.getState().setSessionBusy(sessionId, false)
+      useStore.getState().setSessionRunning(sessionId, false)
       term.dispose()
       openedRef.current = false
       // PTY itself is killed via store.closeSession, not on unmount-from-hide.
@@ -71,8 +104,9 @@ export default function TerminalView({ sessionId, cwd, visible, command }: Props
 
   // Live-update the palette when the user toggles light/dark.
   useEffect(() => {
-    if (termRef.current) termRef.current.options.theme = xtermTheme(theme)
-  }, [theme])
+    if (termRef.current) termRef.current.options.theme = paletteFor(theme)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [theme, transparent])
 
   // Open (once) and refit whenever this view is visible — fit needs real layout.
   useEffect(() => {
@@ -88,7 +122,7 @@ export default function TerminalView({ sessionId, cwd, visible, command }: Props
       }
       try {
         fit.fit()
-        term.focus()
+        if (autoFocus) term.focus()
         window.api.pty.resize(sessionId, term.cols, term.rows)
       } catch {
         /* not laid out yet */
@@ -114,7 +148,7 @@ export default function TerminalView({ sessionId, cwd, visible, command }: Props
       cancelAnimationFrame(id)
       ro?.disconnect()
     }
-  }, [visible, sessionId])
+  }, [visible, sessionId, autoFocus])
 
   return (
     <div
