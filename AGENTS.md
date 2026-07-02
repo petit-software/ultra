@@ -96,3 +96,7 @@ Unsigned DMGs trip Gatekeeper ("damaged"); to open one locally:
 
 - Distributed via GitHub releases on `petit-software/ultra`, tag `v<version>`.
 - Re-upload/replace artifacts with `gh release upload <tag> <files> --clobber`.
+- **"Add a release" means the full flow**: bump the version in `package.json`,
+  commit + push, create the `v<version>` GitHub release with notes describing
+  what changed, AND build + attach the signed/notarized DMG (runbook above).
+  A release without the DMG artifact is incomplete.
