@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, File as FileIcon, Folder, FolderOpen, Check } from 'lucide-react'
+import { Plus, File as FileIcon, Folder, Eye, Check } from 'lucide-react'
 import PaneHeader from './PaneHeader'
 import FileTree from './FileTree'
 import { Button } from '@/components/ui/button'
@@ -79,7 +79,7 @@ export default function FilesPanel(): JSX.Element {
               disabled={!root}
               onClick={() => window.api.fs.reveal(root)}
             >
-              <FolderOpen />
+              <Eye />
             </Button>
           </TooltipTrigger>
           <TooltipContent>Show in Finder</TooltipContent>
