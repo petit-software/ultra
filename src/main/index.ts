@@ -28,15 +28,27 @@ import * as git from './git-service'
 import { openInEditor } from './editor'
 
 let mainWindow: BrowserWindow | null = null
+let selectedDockIconDataUrl: string | null = null
 
-/** Always use the black Ultra icon in the macOS Dock. */
-function applyDockIcon(): void {
-  if (process.platform !== 'darwin' || !app.dock) return
+function loadDefaultDockIcon(): Electron.NativeImage {
   const name = 'icon-dark.png'
   const path = app.isPackaged
     ? join(process.resourcesPath, name)
     : join(app.getAppPath(), 'build', name)
-  const img = nativeImage.createFromPath(path)
+  return nativeImage.createFromPath(path)
+}
+
+/** Use the selected Ultra icon in the macOS Dock, falling back to the bundled mark. */
+function applyDockIcon(dataUrl?: unknown): void {
+  if (process.platform !== 'darwin' || !app.dock) return
+
+  if (dataUrl !== undefined) selectedDockIconDataUrl = typeof dataUrl === 'string' ? dataUrl : null
+
+  const customImg =
+    typeof selectedDockIconDataUrl === 'string' && selectedDockIconDataUrl.startsWith('data:image/')
+      ? nativeImage.createFromDataURL(selectedDockIconDataUrl)
+      : null
+  const img = customImg && !customImg.isEmpty() ? customImg : loadDefaultDockIcon()
   if (!img.isEmpty()) app.dock.setIcon(img)
 }
 
@@ -232,13 +244,17 @@ function registerIpc(): void {
   ipcMain.on('theme:setNative', (_e, mode: 'dark' | 'light') => {
     nativeTheme.themeSource = mode === 'dark' ? 'dark' : 'light'
   })
+
+  ipcMain.on('app:setDockIcon', (_e, dataUrl: string | null) => {
+    applyDockIcon(typeof dataUrl === 'string' ? dataUrl : null)
+  })
 }
 
 app.whenReady().then(() => {
   registerIpc()
   buildAppMenu()
   applyDockIcon()
-  nativeTheme.on('updated', applyDockIcon)
+  nativeTheme.on('updated', () => applyDockIcon())
   createWindow()
 
   app.on('activate', () => {

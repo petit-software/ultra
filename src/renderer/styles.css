@@ -100,6 +100,15 @@
   background: transparent;
 }
 
+.project-session-rail-top {
+  -webkit-mask-image: linear-gradient(to bottom, #000 0 calc(100% - 6px), transparent calc(100% - 6px) 100%);
+  mask-image: linear-gradient(to bottom, #000 0 calc(100% - 6px), transparent calc(100% - 6px) 100%);
+}
+.project-session-rail-bottom {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0 6px, #000 6px 100%);
+  mask-image: linear-gradient(to bottom, transparent 0 6px, #000 6px 100%);
+}
+
 /* Modal enter/exit — slide up from below into the centered position (and back),
    keeping the dialog horizontally + vertically centered the whole time. */
 @keyframes ultra-dialog-in {
@@ -129,6 +138,78 @@
   animation: ultra-dialog-out 150ms ease-in forwards;
 }
 
+@keyframes ultra-sidebar-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes ultra-sidebar-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes ultra-intro-overlay {
+  0%,
+  58% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+}
+@keyframes ultra-intro-mark {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.ultra-intro-overlay {
+  animation: ultra-intro-overlay 950ms cubic-bezier(0.19, 1, 0.22, 1) forwards;
+  will-change: opacity, transform;
+}
+.ultra-intro-icon,
+.ultra-intro-name {
+  animation: ultra-intro-mark 280ms cubic-bezier(0.19, 1, 0.22, 1) both;
+  will-change: opacity, transform;
+}
+.ultra-intro-name {
+  animation-delay: 70ms;
+}
+.ultra-intro .ultra-sidebar-left {
+  animation: ultra-sidebar-in-left 360ms 360ms cubic-bezier(0.19, 1, 0.22, 1) both;
+  will-change: opacity, transform;
+}
+.ultra-intro .ultra-sidebar-right {
+  animation: ultra-sidebar-in-right 360ms 420ms cubic-bezier(0.19, 1, 0.22, 1) both;
+  will-change: opacity, transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ultra-intro-overlay,
+  .ultra-intro-icon,
+  .ultra-intro-name,
+  .ultra-intro .ultra-sidebar-left,
+  .ultra-intro .ultra-sidebar-right {
+    animation: none;
+  }
+}
+
 /* Region used by the frameless titlebar for window dragging. */
 .app-drag {
   -webkit-app-region: drag;
@@ -153,6 +234,9 @@
 .mac.fullscreen #root {
   border-radius: 0;
   border: none;
+}
+.mac.fullscreen .ultra-app-header {
+  padding-left: 0.5rem;
 }
 
 /* xterm host — the one piece shadcn/Tailwind can't own (it's a canvas). */

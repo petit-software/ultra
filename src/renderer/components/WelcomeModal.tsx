@@ -1,12 +1,14 @@
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { useStore } from '../store/useStore'
-import iconUrl from '../assets/icon.png'
+import { appIconById } from '@/lib/appIcons'
 
 export default function WelcomeModal(): JSX.Element {
   const hydrated = useStore((s) => s.hydrated)
   const onboarded = useStore((s) => s.onboarded)
+  const selectedAppIconId = useStore((s) => s.selectedAppIconId)
   const completeOnboarding = useStore((s) => s.completeOnboarding)
+  const appIcon = appIconById(selectedAppIconId)
 
   // Only on a first run — persisted so it doesn't show again.
   const open = hydrated && !onboarded
@@ -15,7 +17,7 @@ export default function WelcomeModal(): JSX.Element {
     <Dialog open={open} onOpenChange={(o) => !o && completeOnboarding()}>
       <DialogContent className="max-w-md rounded-[24px] text-center">
         <div className="flex flex-col items-center gap-4 px-2 py-4">
-          <img src={iconUrl} alt="Ultra" className="h-20 w-20 rounded-2xl shadow-sm" />
+          <img src={appIcon.url} alt="Ultra" className="h-20 w-20 rounded-2xl shadow-sm" />
           <DialogTitle className="text-lg font-semibold leading-snug">
             Welcome to Ultra,
             <br />

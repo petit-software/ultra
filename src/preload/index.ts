@@ -104,6 +104,9 @@ const api = {
   },
   theme: {
     setNative: (mode: 'dark' | 'light') => ipcRenderer.send('theme:setNative', mode)
+  },
+  app: {
+    setDockIcon: (dataUrl: string | null) => ipcRenderer.send('app:setDockIcon', dataUrl)
   }
 }
 

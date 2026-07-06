@@ -17,22 +17,38 @@ Gatekeeper prompts. Identity facts:
 - Apple ID: `bartosz.bak@me.com` · Team ID: **`TJ3ALYQV5G`** (team "Bartosz Bak").
 - Signing cert: `Developer ID Application: Bartosz Dariusz Bak (TJ3ALYQV5G)`
   (auto-discovered from the login keychain by electron-builder).
-- Notarization auth: keychain profile **`ultra-notary`** (notarytool), pinned to
-  the login keychain. The hook passes `keychain:
-  ~/Library/Keychains/login.keychain-db` — WITHOUT this, notarytool intermittently
-  fails with "No Keychain password item found for profile". Override via
-  `NOTARY_KEYCHAIN`. If a build still fails this way, re-store creds (step 2 below).
+- Notarization auth: prefer App Store Connect API-key env vars
+  `NOTARY_API_KEY`, `NOTARY_API_KEY_ID`, and `NOTARY_API_ISSUER` so no
+  app-specific password is needed. Fallback is keychain profile
+  **`ultra-notary`** (notarytool), pinned to the login keychain. The hook passes
+  `keychain: ~/Library/Keychains/login.keychain-db` for fallback keychain auth —
+  WITHOUT this, notarytool intermittently fails with "No Keychain password item
+  found for profile". Override via `NOTARY_KEYCHAIN`.
 - `electron-builder.yml`: `hardenedRuntime: true`, `entitlements`/`entitlementsInherit`
   → `build/entitlements.mac.plist`, `notarize: false` (we notarize via the hook),
   `afterSign: scripts/notarize.cjs`.
-- `scripts/notarize.cjs` runs after signing: notarizes the **.app** via the
-  `ultra-notary` profile, then staples it. Honors `SKIP_NOTARIZE=1`.
+- `scripts/notarize.cjs` runs after signing: notarizes the **.app** via ASC API
+  key env vars when present, otherwise via the `ultra-notary` profile, then
+  staples it. Honors `SKIP_NOTARIZE=1`.
 
 ### One-time machine setup (already done; redo only on a new machine)
 
 1. Install the **Developer ID Application** cert (Xcode → Settings → Accounts →
    team → Manage Certificates → `+` → Developer ID Application).
-2. Store notarization creds in the keychain:
+2. For passwordless notarization, make an App Store Connect API key available
+   and export these env vars before release builds:
+   ```
+   export NOTARY_API_KEY="$HOME/.appstoreconnect/private_keys/AuthKey_<key-id>.p8"
+   export NOTARY_API_KEY_ID="<key-id>"
+   export NOTARY_API_ISSUER="<issuer-uuid>"
+   ```
+   Verify:
+   ```
+   xcrun notarytool history \
+     --key "$NOTARY_API_KEY" --key-id "$NOTARY_API_KEY_ID" \
+     --issuer "$NOTARY_API_ISSUER"
+   ```
+3. Fallback only: store notarization creds in the keychain:
    ```
    xcrun notarytool store-credentials "ultra-notary" \
      --apple-id "bartosz.bak@me.com" --team-id "TJ3ALYQV5G" \
@@ -58,7 +74,14 @@ follow `Ultra-<version>-arm64.dmg` / `Ultra-<version>-arm64-mac.zip`.
    `The staple and validate action worked!`, then the dmg/zip build lines.
 
 2. **Notarize + staple the DMG file itself** (the hook only does the .app; the
-   dmg is created afterward, so it needs its own ticket):
+   dmg is created afterward, so it needs its own ticket). With ASC API-key auth:
+   ```
+   xcrun notarytool submit "release/Ultra-<version>-arm64.dmg" \
+     --key "$NOTARY_API_KEY" --key-id "$NOTARY_API_KEY_ID" \
+     --issuer "$NOTARY_API_ISSUER" --wait  # status: Accepted
+   xcrun stapler staple "release/Ultra-<version>-arm64.dmg"   # expect: worked!
+   ```
+   Fallback keychain-profile auth:
    ```
    xcrun notarytool submit "release/Ultra-<version>-arm64.dmg" \
      --keychain-profile "ultra-notary" \

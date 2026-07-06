@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { applyDockIconById, DEFAULT_APP_ICON_ID } from '@/lib/appIcons'
 
 export interface Session {
   id: string
@@ -25,12 +26,26 @@ export interface Agent {
   id: string
   name: string
   command: string
+  installCommand?: string
 }
 
 const DEFAULT_AGENTS: Agent[] = [
   { id: 'claude', name: 'Claude Code', command: 'claude' },
-  { id: 'codex', name: 'Codex', command: 'codex' }
+  { id: 'codex', name: 'Codex', command: 'codex' },
+  {
+    id: 'gemini',
+    name: 'Gemini',
+    command: 'gemini',
+    installCommand: 'npm install -g @google/gemini-cli'
+  },
+  {
+    id: 'grok',
+    name: 'Grok',
+    command: 'grok',
+    installCommand: 'curl -fsSL https://x.ai/cli/install.sh | bash'
+  }
 ]
+const DEFAULT_AGENT_BY_ID = new Map(DEFAULT_AGENTS.map((agent) => [agent.id, agent]))
 
 export type ThemeMode = 'dark' | 'light'
 
@@ -66,6 +81,7 @@ interface PersistShape {
   rightSidebarVisible: boolean
   sidebarBlocks: SidebarBlocks
   onboarded: boolean
+  selectedAppIconId: string
 }
 
 function applyTheme(theme: ThemeMode): void {
@@ -106,6 +122,7 @@ interface AppState extends PersistShape {
   toggleLeftSidebar: () => void
   toggleRightSidebar: () => void
   toggleSidebarBlock: (block: SidebarBlockKey) => void
+  setSelectedAppIcon: (id: string) => void
   completeOnboarding: () => void
 }
 
@@ -128,7 +145,8 @@ function makeDefault(): PersistShape {
     leftSidebarVisible: true,
     rightSidebarVisible: true,
     sidebarBlocks: { ...DEFAULT_SIDEBAR_BLOCKS },
-    onboarded: false
+    onboarded: false,
+    selectedAppIconId: DEFAULT_APP_ICON_ID
   }
 }
 
@@ -144,7 +162,33 @@ function snapshot(s: AppState): PersistShape {
     leftSidebarVisible: s.leftSidebarVisible,
     rightSidebarVisible: s.rightSidebarVisible,
     sidebarBlocks: s.sidebarBlocks,
-    onboarded: s.onboarded
+    onboarded: s.onboarded,
+    selectedAppIconId: s.selectedAppIconId
+  }
+}
+
+function mergeDefaultAgents(agents: Agent[]): Agent[] {
+  const existingIds = new Set(agents.map((agent) => agent.id))
+  return [
+    ...agents.map((agent) => {
+      const defaultAgent = DEFAULT_AGENT_BY_ID.get(agent.id)
+      return defaultAgent
+        ? { ...agent, installCommand: agent.installCommand ?? defaultAgent.installCommand }
+        : agent
+    }),
+    ...DEFAULT_AGENTS.filter((agent) => !existingIds.has(agent.id))
+  ]
+}
+
+async function agentCommandOrInstaller(agent: Agent): Promise<{
+  command: string
+  available: boolean
+}> {
+  if (!agent.installCommand) return { command: agent.command, available: true }
+  const available = await window.api.agent.probe(agent.command)
+  return {
+    command: available ? agent.command : agent.installCommand,
+    available
   }
 }
 
@@ -187,10 +231,14 @@ export const useStore = create<AppState>((set, get) => ({
           ? loaded.activeSessionId
           : (Object.keys(loaded.sessions)[0] ?? null)
       const agents =
-        Array.isArray(loaded.agents) && loaded.agents.length > 0 ? loaded.agents : DEFAULT_AGENTS
+        Array.isArray(loaded.agents) && loaded.agents.length > 0
+          ? mergeDefaultAgents(loaded.agents)
+          : DEFAULT_AGENTS
       const theme: ThemeMode = loaded.theme === 'light' ? 'light' : 'dark'
       applyTheme(theme)
       const editorCommand = loaded.editorCommand || 'code'
+      const selectedAppIconId = loaded.selectedAppIconId ?? DEFAULT_APP_ICON_ID
+      void applyDockIconById(selectedAppIconId)
       set({
         ...loaded,
         agents,
@@ -201,11 +249,13 @@ export const useStore = create<AppState>((set, get) => ({
         rightSidebarVisible: loaded.rightSidebarVisible ?? true,
         sidebarBlocks: { ...DEFAULT_SIDEBAR_BLOCKS, ...(loaded.sidebarBlocks ?? {}) },
         onboarded: loaded.onboarded ?? false,
+        selectedAppIconId,
         activeSessionId: active,
         hydrated: true
       })
     } else {
       applyTheme(get().theme)
+      void applyDockIconById(get().selectedAppIconId)
       set({ hydrated: true })
     }
   },
@@ -270,48 +320,60 @@ export const useStore = create<AppState>((set, get) => ({
     if (id) get().closeSession(id)
   },
 
-  launchAgent: (projectId, agent) =>
-    set((st) => {
-      const project = st.projects.find((p) => p.id === projectId)
-      if (!project) return st
-      const session: Session = {
-        id: newId('sess'),
-        title: agent.name,
-        cwd: project.path,
-        projectId,
-        command: agent.command,
-        agentName: agent.name
-      }
-      const next: AppState = {
-        ...st,
-        projects: st.projects.map((p) =>
-          p.id === projectId ? { ...p, sessionIds: [...p.sessionIds, session.id] } : p
-        ),
-        sessions: { ...st.sessions, [session.id]: session },
-        activeSessionId: session.id,
-        recentAgentIds: [agent.id, ...st.recentAgentIds.filter((id) => id !== agent.id)]
-      }
-      schedulePersist(next)
-      return next
-    }),
+  launchAgent: (projectId, agent) => {
+    void (async () => {
+      const resolved = await agentCommandOrInstaller(agent)
+      set((st) => {
+        const project = st.projects.find((p) => p.id === projectId)
+        if (!project) return st
+        const session: Session = {
+          id: newId('sess'),
+          title: resolved.available ? agent.name : `Install ${agent.name}`,
+          cwd: project.path,
+          projectId,
+          command: resolved.command,
+          agentName: resolved.available ? agent.name : undefined
+        }
+        const next: AppState = {
+          ...st,
+          projects: st.projects.map((p) =>
+            p.id === projectId ? { ...p, sessionIds: [...p.sessionIds, session.id] } : p
+          ),
+          sessions: { ...st.sessions, [session.id]: session },
+          activeSessionId: session.id,
+          recentAgentIds: [agent.id, ...st.recentAgentIds.filter((id) => id !== agent.id)]
+        }
+        schedulePersist(next)
+        return next
+      })
+    })()
+  },
 
-  startAgent: (sessionId, agent) =>
-    set((st) => {
-      const session = st.sessions[sessionId]
-      if (!session) return st
-      // Run the agent in the shell the user already opened.
-      window.api.pty.input(sessionId, agent.command + '\r')
-      const next: AppState = {
-        ...st,
-        sessions: {
-          ...st.sessions,
-          [sessionId]: { ...session, agentStarted: true, agentName: agent.name }
-        },
-        recentAgentIds: [agent.id, ...st.recentAgentIds.filter((id) => id !== agent.id)]
-      }
-      schedulePersist(next)
-      return next
-    }),
+  startAgent: (sessionId, agent) => {
+    void (async () => {
+      const resolved = await agentCommandOrInstaller(agent)
+      set((st) => {
+        const session = st.sessions[sessionId]
+        if (!session) return st
+        // Run the agent, or its installer, in the shell the user already opened.
+        window.api.pty.input(sessionId, resolved.command + '\r')
+        const next: AppState = {
+          ...st,
+          sessions: {
+            ...st.sessions,
+            [sessionId]: {
+              ...session,
+              agentStarted: resolved.available,
+              agentName: resolved.available ? agent.name : session.agentName
+            }
+          },
+          recentAgentIds: [agent.id, ...st.recentAgentIds.filter((id) => id !== agent.id)]
+        }
+        schedulePersist(next)
+        return next
+      })
+    })()
+  },
 
   addAgent: (name, command) =>
     set((st) => {
@@ -392,6 +454,14 @@ export const useStore = create<AppState>((set, get) => ({
         ...st,
         sidebarBlocks: { ...st.sidebarBlocks, [block]: !st.sidebarBlocks[block] }
       }
+      schedulePersist(next)
+      return next
+    }),
+
+  setSelectedAppIcon: (id) =>
+    set((st) => {
+      void applyDockIconById(id)
+      const next = { ...st, selectedAppIconId: id }
       schedulePersist(next)
       return next
     }),

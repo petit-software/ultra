@@ -1,7 +1,7 @@
-import { Fragment } from 'react'
 import { useStore } from '../store/useStore'
 import type { Agent } from '../store/useStore'
 import { AgentIcon } from '../lib/toolIcons'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 /**
  * Floating quick-launch bar shown at the bottom of a plain shell. Lists the
@@ -24,19 +24,24 @@ export default function AgentBar({ sessionId }: { sessionId: string }): JSX.Elem
 
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex justify-center">
-      <div className="pointer-events-auto flex items-center rounded-2xl border border-border bg-popover/90 p-1 shadow-lg backdrop-blur [corner-shape:squircle]">
-        {ordered.map((agent, i) => (
-          <Fragment key={agent.id}>
-            {i > 0 && <span aria-hidden className="mx-1 h-4 w-px bg-border" />}
-            <button
-              onClick={() => startAgent(sessionId, agent)}
-              title={`Run ${agent.command}`}
-              className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-secondary hover:text-foreground [corner-shape:squircle]"
-            >
-              <AgentIcon command={agent.command} className="h-3.5 w-3.5" />
+      <div className="pointer-events-auto flex items-center gap-1 rounded-2xl border border-border bg-popover/90 p-1 shadow-lg backdrop-blur [corner-shape:squircle]">
+        {ordered.map((agent) => (
+          <Tooltip key={agent.id}>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => startAgent(sessionId, agent)}
+                title={`Run ${agent.command}`}
+                className="flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition hover:bg-secondary hover:text-foreground [corner-shape:squircle]"
+                aria-label={`Run ${agent.name}`}
+              >
+                <AgentIcon command={agent.command} className="h-4 w-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
               {agent.name}
-            </button>
-          </Fragment>
+              <span className="ml-1 text-muted-foreground">({agent.command})</span>
+            </TooltipContent>
+          </Tooltip>
         ))}
       </div>
     </div>
