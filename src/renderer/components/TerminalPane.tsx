@@ -1,7 +1,6 @@
 import { X } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import TerminalView from './TerminalView'
-import AgentBar from './AgentBar'
 import PaneHeader from './PaneHeader'
 import ShellStatusMark from './ShellStatusMark'
 import { Button } from '@/components/ui/button'
@@ -17,16 +16,22 @@ export default function TerminalPane({ introActive = false }: Props): JSX.Elemen
   const projects = useStore((s) => s.projects)
   const activeSessionId = useStore((s) => s.activeSessionId)
   const leftSidebarVisible = useStore((s) => s.leftSidebarVisible)
+  const rightSidebarVisible = useStore((s) => s.rightSidebarVisible)
+  const sidebarLayout = useStore((s) => s.sidebarLayout)
   const blocks = useStore((s) => s.sidebarBlocks)
   const runningSessions = useStore((s) => s.runningSessions)
   const selectedAppIconId = useStore((s) => s.selectedAppIconId)
   const setActiveSession = useStore((s) => s.setActiveSession)
   const closeSession = useStore((s) => s.closeSession)
-  const busySessions = useStore((s) => s.busySessions)
   const active = activeSessionId ? sessions[activeSessionId] : null
   const activeProject = active ? projects.find((p) => p.id === active.projectId) : null
   const projectSessionIds = activeProject?.sessionIds.filter((id) => sessions[id]) ?? []
-  const projectsVisible = leftSidebarVisible && blocks.projects
+  // The header falls back to tabs only when the Projects panel isn't on screen —
+  // wherever the user has docked it.
+  const projectsSideVisible = sidebarLayout.left.includes('projects')
+    ? leftSidebarVisible
+    : rightSidebarVisible
+  const projectsVisible = projectsSideVisible && blocks.projects
   const showHeaderTabs = !projectsVisible && projectSessionIds.length > 1
   const appIcon = appIconById(selectedAppIconId)
   const ids = Object.keys(sessions)
@@ -94,9 +99,6 @@ export default function TerminalPane({ introActive = false }: Props): JSX.Elemen
             visible={id === activeSessionId}
           />
         ))}
-        {active && !active.command && !active.agentStarted && !busySessions[active.id] && (
-          <AgentBar sessionId={active.id} />
-        )}
       </div>
 
       {introActive && (

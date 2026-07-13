@@ -8,8 +8,16 @@ const api = {
   getPathForFile: (file: File): string => webUtils.getPathForFile(file),
 
   pty: {
-    create: (id: string, opts: { cwd?: string; cols?: number; rows?: number; command?: string }) =>
-      ipcRenderer.send('pty:create', { id, ...opts }),
+    create: (
+      id: string,
+      opts: {
+        cwd?: string
+        cols?: number
+        rows?: number
+        command?: string
+        minimalPrompt?: boolean
+      }
+    ) => ipcRenderer.send('pty:create', { id, ...opts }),
     input: (id: string, data: string) => ipcRenderer.send('pty:input', { id, data }),
     resize: (id: string, cols: number, rows: number) =>
       ipcRenderer.send('pty:resize', { id, cols, rows }),

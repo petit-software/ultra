@@ -15,6 +15,10 @@ interface Props {
   autoFocus?: boolean
   /** Render on a transparent background so the parent surface shows through. */
   transparent?: boolean
+  /** xterm font size in points (default 13). */
+  fontSize?: number
+  /** Use a stripped-down shell prompt with no path (sidebar scratch terminal). */
+  minimalPrompt?: boolean
 }
 
 /**
@@ -27,7 +31,9 @@ export default function TerminalView({
   visible,
   command,
   autoFocus = true,
-  transparent = false
+  transparent = false,
+  fontSize = 13,
+  minimalPrompt = false
 }: Props): JSX.Element {
   const hostRef = useRef<HTMLDivElement>(null)
   const fitRef = useRef<FitAddon | null>(null)
@@ -45,7 +51,7 @@ export default function TerminalView({
   useEffect(() => {
     const term = new Terminal({
       fontFamily: 'Menlo, "SF Mono", "JetBrains Mono", monospace',
-      fontSize: 13,
+      fontSize,
       lineHeight: 1.2,
       cursorBlink: true,
       theme: paletteFor(useStore.getState().theme),
@@ -59,7 +65,13 @@ export default function TerminalView({
     termRef.current = term
     fitRef.current = fit
 
-    window.api.pty.create(sessionId, { cwd, cols: term.cols, rows: term.rows, command })
+    window.api.pty.create(sessionId, {
+      cwd,
+      cols: term.cols,
+      rows: term.rows,
+      command,
+      minimalPrompt
+    })
 
     // "Running" = the PTY produced output recently. A foreground-process check
     // can't tell an agent that is working from one waiting at its prompt, so we

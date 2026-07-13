@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { X, Save, RotateCcw } from 'lucide-react'
+import { X, Check, RotateCcw, ArrowUpRight } from 'lucide-react'
 import PaneHeader from './PaneHeader'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { useStore } from '../store/useStore'
-import { EditorIcon } from '../lib/toolIcons'
 
 type Loaded =
   | { kind: 'text'; content: string }
@@ -115,7 +114,7 @@ export default function EditorPanel(): JSX.Element {
                   disabled={!dirty || saving}
                   onClick={() => void save()}
                 >
-                  <Save />
+                  <Check />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Save (⌘S)</TooltipContent>
@@ -128,7 +127,7 @@ export default function EditorPanel(): JSX.Element {
                   className="h-5 w-5"
                   onClick={() => void window.api.editor.open(editorCommand, activeFile.path)}
                 >
-                  <EditorIcon command={editorCommand} className="h-3.5 w-3.5" />
+                  <ArrowUpRight className="h-3.5 w-3.5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Open in external editor</TooltipContent>

@@ -164,9 +164,9 @@ function createWindow(): void {
 }
 
 function registerIpc(): void {
-  ipcMain.on('pty:create', (e, { id, cwd, cols, rows, command }) => {
+  ipcMain.on('pty:create', (e, { id, cwd, cols, rows, command, minimalPrompt }) => {
     const win = BrowserWindow.fromWebContents(e.sender)
-    if (win) createPty(win, id, { cwd, cols, rows, command })
+    if (win) createPty(win, id, { cwd, cols, rows, command, minimalPrompt })
   })
   ipcMain.on('pty:input', (_e, { id, data }) => writePty(id, data))
   ipcMain.on('pty:resize', (_e, { id, cols, rows }) => resizePty(id, cols, rows))

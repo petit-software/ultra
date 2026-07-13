@@ -1,9 +1,34 @@
 import { spawn, type IPty } from 'node-pty'
 import os from 'os'
+import fs from 'fs'
+import path from 'path'
 import { BrowserWindow } from 'electron'
 
 const shell = os.platform() === 'win32' ? 'powershell.exe' : process.env.SHELL || '/bin/zsh'
 const shellBase = (shell.split(/[/\\]/).pop() || 'zsh').replace(/\.exe$/, '')
+
+// A throwaway ZDOTDIR whose startup files source the user's real zsh config
+// (so PATH etc. stay intact) and then force a minimal prompt with no path — used
+// by the sidebar scratch terminal. Built once per app run and reused.
+let minimalZdotdir: string | null = null
+function minimalPromptZdotdir(): string {
+  if (minimalZdotdir) return minimalZdotdir
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ultra-zdotdir-'))
+  const sourceReal = (file: string): string =>
+    `[[ -r "\${ULTRA_REAL_ZDOTDIR:-$HOME}/${file}" ]] && source "\${ULTRA_REAL_ZDOTDIR:-$HOME}/${file}"\n`
+  fs.writeFileSync(path.join(dir, '.zshenv'), sourceReal('.zshenv'))
+  fs.writeFileSync(path.join(dir, '.zprofile'), sourceReal('.zprofile'))
+  fs.writeFileSync(path.join(dir, '.zlogin'), sourceReal('.zlogin'))
+  fs.writeFileSync(
+    path.join(dir, '.zshrc'),
+    sourceReal('.zshrc') +
+      '\n# Ultra sidebar terminal: minimal prompt, no working-directory path.\n' +
+      "PROMPT='%F{244}❯%f '\nRPROMPT=''\n"
+  )
+  minimalZdotdir = dir
+  process.on('exit', () => fs.rmSync(dir, { recursive: true, force: true }))
+  return dir
+}
 
 interface Session {
   pty: IPty
@@ -16,8 +41,8 @@ interface Session {
 const sessions = new Map<string, Session>()
 
 // "Busy" = a foreground process other than the login shell itself is running
-// (an agent, vim, a long command…). The renderer hides the agent picker while
-// busy. We poll the PTY's foreground process name and emit only on change.
+// (an agent, vim, a long command…). We poll the PTY's foreground process name
+// and emit only on change.
 let pollTimer: ReturnType<typeof setInterval> | null = null
 
 function ensurePoller(): void {
@@ -50,7 +75,14 @@ function ensurePoller(): void {
 export function createPty(
   win: BrowserWindow,
   id: string,
-  opts: { cwd?: string; cols?: number; rows?: number; command?: string } = {}
+  opts: {
+    cwd?: string
+    cols?: number
+    rows?: number
+    command?: string
+    /** Use a stripped-down prompt with no path (sidebar scratch terminal). */
+    minimalPrompt?: boolean
+  } = {}
 ): void {
   if (sessions.has(id)) return
 
@@ -71,12 +103,19 @@ export function createPty(
         ? []
         : ['-l']
 
+  const env: Record<string, string> = { ...process.env, TERM: 'xterm-256color' }
+  // A path-less prompt is only wired up for zsh; other shells keep their default.
+  if (opts.minimalPrompt && !isWin && shellBase === 'zsh') {
+    env.ULTRA_REAL_ZDOTDIR = process.env.ZDOTDIR || os.homedir()
+    env.ZDOTDIR = minimalPromptZdotdir()
+  }
+
   const pty = spawn(shell, args, {
     name: 'xterm-color',
     cols: opts.cols ?? 80,
     rows: opts.rows ?? 24,
     cwd,
-    env: { ...process.env, TERM: 'xterm-256color' } as Record<string, string>
+    env
   })
 
   pty.onData((data) => {

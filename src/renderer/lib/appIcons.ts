@@ -1,5 +1,6 @@
 import icon1Url from '../assets/app-icons/icon-1.png'
 import icon2Url from '../assets/app-icons/icon-2.png'
+import icon3Url from '../assets/app-icons/icon-3.png'
 
 export interface AppIconOption {
   id: string
@@ -8,12 +9,13 @@ export interface AppIconOption {
 }
 
 export const APP_ICONS: AppIconOption[] = [
-  { id: 'icon-1', label: 'Icon 1', url: icon1Url },
-  { id: 'icon-2', label: 'Icon 2', url: icon2Url }
+  { id: 'icon-1', label: 'Default', url: icon1Url },
+  { id: 'icon-2', label: 'Working 1', url: icon2Url },
+  { id: 'icon-3', label: 'Working 2', url: icon3Url }
 ]
 
 export const DEFAULT_APP_ICON_ID = 'icon-1'
-export const WORKING_APP_ICON_IDS = ['icon-1', 'icon-2']
+export const WORKING_APP_ICON_IDS = ['icon-2', 'icon-3']
 export const WORKING_DOCK_ICON_INTERVAL_MS = 500
 
 export function appIconById(id?: string): AppIconOption {

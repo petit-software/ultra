@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import LeftSidebar from './components/LeftSidebar'
+import Sidebar from './components/Sidebar'
 import TerminalPane from './components/TerminalPane'
-import RightSidebar from './components/RightSidebar'
 import AgentMenu from './components/AgentMenu'
 import ThemeToggle from './components/ThemeToggle'
 import EditorMenu from './components/EditorMenu'
@@ -16,6 +15,52 @@ import { applyDockIconById, DEFAULT_APP_ICON_ID, startDockIconBlinker } from '@/
 // Terminal: flush with the base, no rounded border or shadow.
 const TERM = 'bg-background'
 const GAP = 'w-2 my-1 bg-transparent'
+const SIDEBAR_DEFAULT_SIZE = 22
+const SIDEBAR_MIN_SIZE = 12
+const SIDEBAR_MAX_SIZE = 36
+const LAYOUT_AUTO_SAVE_ID = 'ultra-layout'
+const LAYOUT_STORAGE_KEY = `react-resizable-panels:${LAYOUT_AUTO_SAVE_ID}`
+const HORIZONTAL_LAYOUT_PANEL_KEY = 'center,left,right'
+const OLD_UNBALANCED_LAYOUT = [18, 54, 28]
+const BALANCED_LAYOUT = [SIDEBAR_DEFAULT_SIZE, 100 - SIDEBAR_DEFAULT_SIZE * 2, SIDEBAR_DEFAULT_SIZE]
+
+function isSameLayout(layout: unknown, expected: number[]): layout is number[] {
+  return (
+    Array.isArray(layout) &&
+    layout.length === expected.length &&
+    layout.every((value, index) => typeof value === 'number' && Math.abs(value - expected[index]) < 0.1)
+  )
+}
+
+function migrateSavedSidebarLayout(value: string): string {
+  try {
+    const parsed = JSON.parse(value) as Record<string, { layout?: unknown }>
+    const savedLayout = parsed[HORIZONTAL_LAYOUT_PANEL_KEY]
+
+    if (isSameLayout(savedLayout?.layout, OLD_UNBALANCED_LAYOUT)) {
+      parsed[HORIZONTAL_LAYOUT_PANEL_KEY] = {
+        ...savedLayout,
+        layout: BALANCED_LAYOUT
+      }
+      return JSON.stringify(parsed)
+    }
+  } catch {
+    return value
+  }
+
+  return value
+}
+
+const layoutStorage = {
+  getItem(name: string): string | null {
+    const value = localStorage.getItem(name)
+    if (name === LAYOUT_STORAGE_KEY && value) return migrateSavedSidebarLayout(value)
+    return value
+  },
+  setItem(name: string, value: string): void {
+    localStorage.setItem(name, value)
+  }
+}
 
 function commandName(command: string): string {
   return command.trim().split(/\s+/)[0]?.split('/').pop()?.replace(/^-/, '') ?? ''
@@ -24,16 +69,16 @@ function commandName(command: string): string {
 export default function App(): JSX.Element {
   const hydrate = useStore((s) => s.hydrate)
   const blocks = useStore((s) => s.sidebarBlocks)
+  const layout = useStore((s) => s.sidebarLayout)
   const [introActive, setIntroActive] = useState(true)
   const sessions = useStore((s) => s.sessions)
   const agents = useStore((s) => s.agents)
   const busySessions = useStore((s) => s.busySessions)
   const sessionProcesses = useStore((s) => s.sessionProcesses)
   const runningSessions = useStore((s) => s.runningSessions)
-  // A sidebar with every block toggled off collapses entirely.
-  const leftVisible = useStore((s) => s.leftSidebarVisible) && (blocks.projects || blocks.git)
-  const rightVisible =
-    useStore((s) => s.rightSidebarVisible) && (blocks.files || blocks.context || blocks.terminal)
+  // A sidebar with every one of its panels toggled off collapses entirely.
+  const leftVisible = useStore((s) => s.leftSidebarVisible) && layout.left.some((k) => blocks[k])
+  const rightVisible = useStore((s) => s.rightSidebarVisible) && layout.right.some((k) => blocks[k])
   const agentProcessNames = new Set(agents.map((agent) => commandName(agent.command)))
   const agentWorking = Object.entries(sessions).some(([id, session]) => {
     const agentSession = session.agentStarted || !!session.agentName
@@ -104,25 +149,32 @@ export default function App(): JSX.Element {
         <ResizablePanelGroup
           direction="horizontal"
           className="min-h-0 flex-1 p-2 pt-0"
-          autoSaveId="ultra-layout"
+          autoSaveId={LAYOUT_AUTO_SAVE_ID}
+          storage={layoutStorage}
         >
           {leftVisible && (
             <>
               <ResizablePanel
                 id="left"
                 order={1}
-                defaultSize={18}
-                minSize={12}
-                maxSize={32}
+                defaultSize={SIDEBAR_DEFAULT_SIZE}
+                minSize={SIDEBAR_MIN_SIZE}
+                maxSize={SIDEBAR_MAX_SIZE}
                 className="ultra-sidebar-panel ultra-sidebar-left"
               >
-                <LeftSidebar />
+                <Sidebar side="left" />
               </ResizablePanel>
               <ResizableHandle className={GAP} />
             </>
           )}
 
-          <ResizablePanel id="center" order={2} defaultSize={54} minSize={30} className={TERM}>
+          <ResizablePanel
+            id="center"
+            order={2}
+            defaultSize={100 - SIDEBAR_DEFAULT_SIZE * 2}
+            minSize={30}
+            className={TERM}
+          >
             <TerminalPane introActive={introActive} />
           </ResizablePanel>
 
@@ -132,12 +184,12 @@ export default function App(): JSX.Element {
               <ResizablePanel
                 id="right"
                 order={3}
-                defaultSize={28}
-                minSize={16}
-                maxSize={40}
+                defaultSize={SIDEBAR_DEFAULT_SIZE}
+                minSize={SIDEBAR_MIN_SIZE}
+                maxSize={SIDEBAR_MAX_SIZE}
                 className="ultra-sidebar-panel ultra-sidebar-right"
               >
-                <RightSidebar />
+                <Sidebar side="right" />
               </ResizablePanel>
             </>
           )}

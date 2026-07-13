@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Plus, FileText, Folder, Link2 } from 'lucide-react'
+import { Plus, FileText, Folder, Link2, Forward } from 'lucide-react'
 import PaneHeader from './PaneHeader'
 import ContextPanel from './ContextPanel'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -10,7 +11,7 @@ import {
   DropdownMenuItem
 } from '@/components/ui/dropdown-menu'
 import { useStore } from '../store/useStore'
-import { isUrl } from '../lib/paths'
+import { isUrl, relTo } from '../lib/paths'
 
 export default function ContextSection(): JSX.Element {
   const sessions = useStore((s) => s.sessions)
@@ -22,6 +23,7 @@ export default function ContextSection(): JSX.Element {
   const project = activeSession
     ? projects.find((p) => p.id === activeSession.projectId)
     : projects[0]
+  const pinned = project?.contextPaths ?? []
 
   const [addingLink, setAddingLink] = useState(false)
   const [linkValue, setLinkValue] = useState('')
@@ -48,9 +50,41 @@ export default function ContextSection(): JSX.Element {
     setAddingLink(false)
   }
 
+  /** Insert pinned items into the active terminal: @relpath for files, raw URL for links. */
+  const insert = (paths: string[]): void => {
+    if (!activeSessionId || !project) return
+    const text =
+      paths.map((p) => (isUrl(p) ? p : `@${relTo(project.path, p)}`)).join(' ') + ' '
+    window.api.pty.input(activeSessionId, text)
+  }
+
   return (
     <div className="group/section flex h-full flex-col">
-      <PaneHeader title="Context">
+      <PaneHeader
+        title="Context"
+        titleContent={
+          pinned.length > 0 ? (
+            <span className="text-[11px] tabular-nums text-muted-foreground">{pinned.length}</span>
+          ) : null
+        }
+      >
+        {pinned.length > 0 && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-5 w-5"
+                disabled={!activeSessionId}
+                onClick={() => insert(pinned)}
+                title="Send to agent"
+              >
+                <Forward className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Insert all as @mentions / URLs in the active terminal</TooltipContent>
+          </Tooltip>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="h-5 w-5" disabled={!project} title="Add">

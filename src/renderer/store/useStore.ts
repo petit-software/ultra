@@ -66,6 +66,15 @@ export interface ActiveFile {
 }
 
 export type SidebarBlockKey = keyof SidebarBlocks
+/** A panel is any block that can be placed inside a sidebar. */
+export type PanelKey = SidebarBlockKey
+export type SidebarId = 'left' | 'right'
+
+/** Which panels live in each sidebar, in top-to-bottom order. Fully user-arranged. */
+export interface SidebarLayout {
+  left: PanelKey[]
+  right: PanelKey[]
+}
 
 const DEFAULT_SIDEBAR_BLOCKS: SidebarBlocks = {
   projects: true,
@@ -74,6 +83,41 @@ const DEFAULT_SIDEBAR_BLOCKS: SidebarBlocks = {
   editor: false,
   context: true,
   terminal: false
+}
+
+const DEFAULT_SIDEBAR_LAYOUT: SidebarLayout = {
+  left: ['projects', 'git'],
+  right: ['files', 'editor', 'context', 'terminal']
+}
+
+const ALL_PANEL_KEYS = Object.keys(DEFAULT_SIDEBAR_BLOCKS) as PanelKey[]
+
+/**
+ * Coerce a persisted (possibly stale or corrupt) layout into a valid one: every
+ * panel key present exactly once, unknown keys dropped, and any panel missing
+ * from the saved layout re-added to whichever sidebar it defaults to.
+ */
+function normalizeLayout(layout?: Partial<SidebarLayout> | null): SidebarLayout {
+  const valid = new Set<PanelKey>(ALL_PANEL_KEYS)
+  const seen = new Set<PanelKey>()
+  const clean = (keys: unknown): PanelKey[] =>
+    (Array.isArray(keys) ? keys : []).filter((k): k is PanelKey => {
+      if (!valid.has(k as PanelKey) || seen.has(k as PanelKey)) return false
+      seen.add(k as PanelKey)
+      return true
+    })
+  const left = clean(layout?.left)
+  const right = clean(layout?.right)
+  for (const key of ALL_PANEL_KEYS) {
+    if (seen.has(key)) continue
+    ;(DEFAULT_SIDEBAR_LAYOUT.left.includes(key) ? left : right).push(key)
+  }
+  return { left, right }
+}
+
+/** Which sidebar currently holds a given panel. */
+function sidebarOf(layout: SidebarLayout, key: PanelKey): SidebarId {
+  return layout.left.includes(key) ? 'left' : 'right'
 }
 
 interface PersistShape {
@@ -88,6 +132,7 @@ interface PersistShape {
   leftSidebarVisible: boolean
   rightSidebarVisible: boolean
   sidebarBlocks: SidebarBlocks
+  sidebarLayout: SidebarLayout
   onboarded: boolean
   selectedAppIconId: string
 }
@@ -108,6 +153,8 @@ interface AppState extends PersistShape {
   sessionProcesses: Record<string, string>
   /** Session ids that produced PTY output recently, i.e. are actively working. Not persisted. */
   runningSessions: Record<string, boolean>
+  /** Panel key currently being dragged between/within sidebars, or null. Not persisted. */
+  draggingPanel: PanelKey | null
 
   hydrate: () => Promise<void>
   setSessionBusy: (id: string, busy: boolean, processName?: string) => void
@@ -134,6 +181,14 @@ interface AppState extends PersistShape {
   toggleLeftSidebar: () => void
   toggleRightSidebar: () => void
   toggleSidebarBlock: (block: SidebarBlockKey) => void
+  /**
+   * Move a panel to `side`, inserting it directly before `beforeKey` (or at the
+   * end of that sidebar when `beforeKey` is null). Removes it from its previous
+   * sidebar. Used by drag-and-drop panel rearranging.
+   */
+  movePanel: (key: PanelKey, side: SidebarId, beforeKey: PanelKey | null) => void
+  /** Mark the panel being dragged so both sidebars can render drop affordances. */
+  setDraggingPanel: (key: PanelKey | null) => void
   /** Open a file in the in-app editor panel, revealing the panel if hidden. */
   openFile: (file: ActiveFile) => void
   closeFile: () => void
@@ -160,6 +215,7 @@ function makeDefault(): PersistShape {
     leftSidebarVisible: true,
     rightSidebarVisible: true,
     sidebarBlocks: { ...DEFAULT_SIDEBAR_BLOCKS },
+    sidebarLayout: normalizeLayout(DEFAULT_SIDEBAR_LAYOUT),
     onboarded: false,
     selectedAppIconId: DEFAULT_APP_ICON_ID
   }
@@ -177,6 +233,7 @@ function snapshot(s: AppState): PersistShape {
     leftSidebarVisible: s.leftSidebarVisible,
     rightSidebarVisible: s.rightSidebarVisible,
     sidebarBlocks: s.sidebarBlocks,
+    sidebarLayout: s.sidebarLayout,
     onboarded: s.onboarded,
     selectedAppIconId: s.selectedAppIconId
   }
@@ -221,6 +278,7 @@ export const useStore = create<AppState>((set, get) => ({
   busySessions: {},
   sessionProcesses: {},
   runningSessions: {},
+  draggingPanel: null,
 
   setSessionBusy: (id, busy, processName = '') =>
     set((st) => {
@@ -269,6 +327,7 @@ export const useStore = create<AppState>((set, get) => ({
         leftSidebarVisible: loaded.leftSidebarVisible ?? true,
         rightSidebarVisible: loaded.rightSidebarVisible ?? true,
         sidebarBlocks: { ...DEFAULT_SIDEBAR_BLOCKS, ...(loaded.sidebarBlocks ?? {}) },
+        sidebarLayout: normalizeLayout(loaded.sidebarLayout),
         onboarded: loaded.onboarded ?? false,
         selectedAppIconId,
         activeSessionId: active,
@@ -479,12 +538,30 @@ export const useStore = create<AppState>((set, get) => ({
       return next
     }),
 
+  movePanel: (key, side, beforeKey) =>
+    set((st) => {
+      const left = st.sidebarLayout.left.filter((k) => k !== key)
+      const right = st.sidebarLayout.right.filter((k) => k !== key)
+      const target = side === 'left' ? left : right
+      const at = beforeKey ? target.indexOf(beforeKey) : -1
+      target.splice(at < 0 ? target.length : at, 0, key)
+      const next = { ...st, sidebarLayout: { left, right } }
+      schedulePersist(next)
+      return next
+    }),
+
+  setDraggingPanel: (key) =>
+    set((st) => (st.draggingPanel === key ? st : { ...st, draggingPanel: key })),
+
   openFile: (file) =>
     set((st) => {
+      // Reveal whichever sidebar the editor panel currently lives in.
+      const editorSide = sidebarOf(st.sidebarLayout, 'editor')
       const next = {
         ...st,
         activeFile: file,
-        rightSidebarVisible: true,
+        leftSidebarVisible: editorSide === 'left' ? true : st.leftSidebarVisible,
+        rightSidebarVisible: editorSide === 'right' ? true : st.rightSidebarVisible,
         sidebarBlocks: { ...st.sidebarBlocks, editor: true }
       }
       schedulePersist(next)
@@ -584,4 +661,4 @@ export const useStore = create<AppState>((set, get) => ({
   }
 }))
 
-export { newId }
+export { newId, sidebarOf, ALL_PANEL_KEYS }

@@ -69,6 +69,12 @@
   }
 }
 
+/* Squircle (superellipse) corners on sidebar panel blocks, paired with their
+   rounded-xl radius so the top and bottom borders curve smoothly. */
+.ultra-panel {
+  corner-shape: superellipse(1.25);
+}
+
 /* Custom scrollbars — thin, rounded, and only visible while hovering the area. */
 * {
   scrollbar-width: thin;

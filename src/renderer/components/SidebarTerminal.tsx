@@ -63,6 +63,8 @@ export default function SidebarTerminal(): JSX.Element {
             visible={id === activeProject?.id}
             autoFocus={false}
             transparent
+            fontSize={11}
+            minimalPrompt
           />
         ))}
         {!activeProject && (

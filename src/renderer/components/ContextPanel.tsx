@@ -1,8 +1,6 @@
 import { useState } from 'react'
-import { FileText, Link2, X, CornerDownLeft } from 'lucide-react'
+import { FileText, Link2, X } from 'lucide-react'
 import { useStore } from '../store/useStore'
-import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { basename, relTo, isUrl } from '../lib/paths'
 import { cn } from '@/lib/utils'
 
@@ -106,28 +104,6 @@ export default function ContextPanel(): JSX.Element {
             </li>
           ))}
         </ul>
-      )}
-
-      {/* Send-to-agent bar, only when something is pinned */}
-      {pinned.length > 0 && (
-        <div className="flex flex-none items-center justify-between border-t border-border px-3 py-1.5">
-          <span className="text-[11px] text-muted-foreground">{pinned.length} pinned</span>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-6 gap-1.5 text-xs"
-                disabled={!activeSessionId}
-                onClick={() => insert(pinned)}
-              >
-                <CornerDownLeft className="h-3 w-3" />
-                Send to agent
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Insert all as @mentions / URLs in the active terminal</TooltipContent>
-          </Tooltip>
-        </div>
       )}
     </div>
   )
