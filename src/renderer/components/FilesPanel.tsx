@@ -10,18 +10,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem
 } from '@/components/ui/dropdown-menu'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogClose
-} from '@/components/ui/dialog'
-import { X } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import { relTo } from '../lib/paths'
-import { EditorIcon } from '../lib/toolIcons'
 import type { DirEntry } from '../types'
 
 export default function FilesPanel(): JSX.Element {
@@ -29,6 +19,7 @@ export default function FilesPanel(): JSX.Element {
   const projects = useStore((s) => s.projects)
   const activeSessionId = useStore((s) => s.activeSessionId)
   const editorCommand = useStore((s) => s.editorCommand)
+  const openFile = useStore((s) => s.openFile)
 
   const activeSession = activeSessionId ? sessions[activeSessionId] : null
   const project = activeSession
@@ -36,18 +27,8 @@ export default function FilesPanel(): JSX.Element {
     : null
   const root = project?.path || ''
 
-  const [preview, setPreview] = useState<{ name: string; path: string; body: string } | null>(null)
   const [creating, setCreating] = useState<'file' | 'dir' | null>(null)
   const [newName, setNewName] = useState('')
-
-  const openFile = async (entry: DirEntry): Promise<void> => {
-    const res = await window.api.fs.readFile(entry.path)
-    setPreview({
-      name: entry.name,
-      path: entry.path,
-      body: res.tooLarge ? '[binary or file too large to preview]' : res.content
-    })
-  }
 
   const sendToAgent = (entry: DirEntry): void => {
     if (!activeSessionId) return
@@ -149,7 +130,7 @@ export default function FilesPanel(): JSX.Element {
             )}
             <FileTree
               root={root}
-              onOpenFile={(e) => void openFile(e)}
+              onOpenFile={(e) => openFile({ path: e.path, name: e.name })}
               onSend={sendToAgent}
               onEdit={(e) => void window.api.editor.open(editorCommand, e.path)}
             />
@@ -161,38 +142,6 @@ export default function FilesPanel(): JSX.Element {
           </div>
         )}
       </div>
-
-      <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
-        <DialogContent hideClose>
-          <DialogHeader>
-            <div className="flex items-center justify-between gap-2">
-              <DialogTitle className="truncate">{preview?.name}</DialogTitle>
-              <div className="flex shrink-0 items-center gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="gap-1.5"
-                  onClick={() => {
-                    if (preview) void window.api.editor.open(editorCommand, preview.path)
-                  }}
-                >
-                  <EditorIcon command={editorCommand} className="h-4 w-4" />
-                  Edit
-                </Button>
-                <DialogClose className="rounded-sm text-muted-foreground opacity-70 transition hover:opacity-100 focus:outline-none">
-                  <X className="h-4 w-4" />
-                  <span className="sr-only">Close</span>
-                </DialogClose>
-              </div>
-            </div>
-          </DialogHeader>
-          <ScrollArea className="min-h-0 flex-1">
-            <pre className="whitespace-pre-wrap break-words p-1 font-mono text-xs leading-relaxed text-foreground">
-              {preview?.body}
-            </pre>
-          </ScrollArea>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

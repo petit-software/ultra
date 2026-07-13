@@ -54,8 +54,15 @@ export interface SidebarBlocks {
   projects: boolean
   git: boolean
   files: boolean
+  editor: boolean
   context: boolean
   terminal: boolean
+}
+
+/** A file currently open in the in-app editor panel. Not persisted. */
+export interface ActiveFile {
+  path: string
+  name: string
 }
 
 export type SidebarBlockKey = keyof SidebarBlocks
@@ -64,6 +71,7 @@ const DEFAULT_SIDEBAR_BLOCKS: SidebarBlocks = {
   projects: true,
   git: true,
   files: true,
+  editor: false,
   context: true,
   terminal: false
 }
@@ -92,6 +100,8 @@ function applyTheme(theme: ThemeMode): void {
 
 interface AppState extends PersistShape {
   hydrated: boolean
+  /** File open in the in-app editor panel, or null. Not persisted. */
+  activeFile: ActiveFile | null
   /** Session ids where a foreground process (agent/command) is running. Not persisted. */
   busySessions: Record<string, boolean>
   /** Foreground process name per session. Not persisted. */
@@ -124,6 +134,9 @@ interface AppState extends PersistShape {
   toggleLeftSidebar: () => void
   toggleRightSidebar: () => void
   toggleSidebarBlock: (block: SidebarBlockKey) => void
+  /** Open a file in the in-app editor panel, revealing the panel if hidden. */
+  openFile: (file: ActiveFile) => void
+  closeFile: () => void
   setSelectedAppIcon: (id: string) => void
   completeOnboarding: () => void
 }
@@ -204,6 +217,7 @@ function schedulePersist(s: AppState): void {
 export const useStore = create<AppState>((set, get) => ({
   ...makeDefault(),
   hydrated: false,
+  activeFile: null,
   busySessions: {},
   sessionProcesses: {},
   runningSessions: {},
@@ -464,6 +478,20 @@ export const useStore = create<AppState>((set, get) => ({
       schedulePersist(next)
       return next
     }),
+
+  openFile: (file) =>
+    set((st) => {
+      const next = {
+        ...st,
+        activeFile: file,
+        rightSidebarVisible: true,
+        sidebarBlocks: { ...st.sidebarBlocks, editor: true }
+      }
+      schedulePersist(next)
+      return next
+    }),
+
+  closeFile: () => set({ activeFile: null }),
 
   setSelectedAppIcon: (id) =>
     set((st) => {

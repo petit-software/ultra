@@ -5,6 +5,7 @@ import {
   Folders,
   GitBranch,
   Files,
+  FileCode,
   Paperclip,
   SquareTerminal
 } from 'lucide-react'
@@ -24,6 +25,7 @@ const BLOCKS: { key: SidebarBlockKey; label: string; icon: JSX.Element }[] = [
   { key: 'projects', label: 'Projects', icon: <Folders className="h-4 w-4" /> },
   { key: 'git', label: 'Git', icon: <GitBranch className="h-4 w-4" /> },
   { key: 'files', label: 'Files', icon: <Files className="h-4 w-4" /> },
+  { key: 'editor', label: 'Editor', icon: <FileCode className="h-4 w-4" /> },
   { key: 'context', label: 'Context', icon: <Paperclip className="h-4 w-4" /> },
   { key: 'terminal', label: 'Terminal', icon: <SquareTerminal className="h-4 w-4" /> }
 ]

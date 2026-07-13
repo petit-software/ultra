@@ -83,6 +83,16 @@ export async function expandToFiles(paths: string[], cap = 500): Promise<string[
   return [...new Set(out)]
 }
 
+/** Overwrite a file's contents with UTF-8 text. */
+export async function writeFile(path: string, content: string): Promise<boolean> {
+  try {
+    await fs.writeFile(path, content, 'utf8')
+    return true
+  } catch {
+    return false
+  }
+}
+
 /** Create an empty file (fails if it already exists). */
 export async function createFile(path: string): Promise<boolean> {
   try {

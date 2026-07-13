@@ -61,6 +61,8 @@ const api = {
       path: string
     ): Promise<{ content: string; truncated: boolean; tooLarge: boolean }> =>
       ipcRenderer.invoke('fs:readFile', path),
+    writeFile: (path: string, content: string): Promise<boolean> =>
+      ipcRenderer.invoke('fs:writeFile', path, content),
     watch: (root: string) => ipcRenderer.send('fs:watch', root),
     unwatch: (root: string) => ipcRenderer.send('fs:unwatch', root),
     reveal: (path: string) => ipcRenderer.send('fs:reveal', path),

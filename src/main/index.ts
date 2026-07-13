@@ -15,6 +15,7 @@ import { loadWorkspace, saveWorkspace } from './store'
 import {
   listDir,
   readFilePreview,
+  writeFile,
   expandToFiles,
   createFile,
   createDir,
@@ -192,6 +193,7 @@ function registerIpc(): void {
 
   ipcMain.handle('fs:listDir', (_e, dir: string) => listDir(dir))
   ipcMain.handle('fs:readFile', (_e, path: string) => readFilePreview(path))
+  ipcMain.handle('fs:writeFile', (_e, path: string, content: string) => writeFile(path, content))
   ipcMain.handle('fs:expandToFiles', (_e, paths: string[]) => expandToFiles(paths))
   ipcMain.handle('fs:createFile', (_e, path: string) => createFile(path))
   ipcMain.handle('fs:createDir', (_e, path: string) => createDir(path))

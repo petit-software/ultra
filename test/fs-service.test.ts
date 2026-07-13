@@ -2,7 +2,14 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { promises as fs } from 'fs'
 import { join } from 'path'
 import os from 'os'
-import { createFile, createDir, rename, expandToFiles, listDir } from '../src/main/fs-service'
+import {
+  createFile,
+  createDir,
+  rename,
+  expandToFiles,
+  listDir,
+  writeFile
+} from '../src/main/fs-service'
 
 let dir = ''
 
@@ -31,6 +38,21 @@ describe('createFile', () => {
     await fs.writeFile(p, 'keep')
     expect(await createFile(p)).toBe(false)
     expect(await fs.readFile(p, 'utf8')).toBe('keep')
+  })
+})
+
+describe('writeFile', () => {
+  it('overwrites an existing file with new contents', async () => {
+    const p = join(dir, 'note.txt')
+    await fs.writeFile(p, 'old')
+    expect(await writeFile(p, 'new')).toBe(true)
+    expect(await fs.readFile(p, 'utf8')).toBe('new')
+  })
+
+  it('returns false when the path is not writable', async () => {
+    const p = join(dir, 'nope/deep/x.txt')
+    expect(await writeFile(p, 'x')).toBe(false)
+    expect(await exists(p)).toBe(false)
   })
 })
 
