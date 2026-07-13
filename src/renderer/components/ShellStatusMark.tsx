@@ -7,16 +7,21 @@ interface Props {
 }
 
 export default function ShellStatusMark({ active, running, className }: Props): JSX.Element {
+  const showSparkle = active || running
+
   return (
     <span
       title={running ? 'Working' : 'Idle'}
       className={cn('relative z-10 flex h-2 w-2 shrink-0 items-center justify-center', className)}
     >
-      {active ? (
+      {showSparkle ? (
         <svg
           viewBox="0 0 255 253"
           fill="none"
-          className="h-2.5 w-2.5 shrink-0 text-current"
+          className={cn(
+            'h-2.5 w-2.5 shrink-0 text-current',
+            running && 'ultra-working-sparkle'
+          )}
           aria-hidden="true"
         >
           <path

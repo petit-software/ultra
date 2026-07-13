@@ -109,6 +109,26 @@
   mask-image: linear-gradient(to bottom, transparent 0 6px, #000 6px 100%);
 }
 
+@keyframes ultra-working-sparkle {
+  0%,
+  18% {
+    transform: rotate(0deg);
+  }
+  39%,
+  58% {
+    transform: rotate(180deg);
+  }
+  79%,
+  100% {
+    transform: rotate(360deg);
+  }
+}
+.ultra-working-sparkle {
+  animation: ultra-working-sparkle 1.9s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
 /* Modal enter/exit — slide up from below into the centered position (and back),
    keeping the dialog horizontally + vertically centered the whole time. */
 @keyframes ultra-dialog-in {
@@ -205,7 +225,8 @@
   .ultra-intro-icon,
   .ultra-intro-name,
   .ultra-intro .ultra-sidebar-left,
-  .ultra-intro .ultra-sidebar-right {
+  .ultra-intro .ultra-sidebar-right,
+  .ultra-working-sparkle {
     animation: none;
   }
 }
