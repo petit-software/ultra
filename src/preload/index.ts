@@ -24,8 +24,11 @@ const api = {
       ipcRenderer.on('pty:exit', h)
       return () => ipcRenderer.removeListener('pty:exit', h)
     },
-    onBusy: (cb: (id: string, busy: boolean) => void): Unsubscribe => {
-      const h = (_e: IpcRendererEvent, p: { id: string; busy: boolean }) => cb(p.id, p.busy)
+    onBusy: (cb: (id: string, busy: boolean, processName: string) => void): Unsubscribe => {
+      const h = (
+        _e: IpcRendererEvent,
+        p: { id: string; busy: boolean; processName?: string }
+      ) => cb(p.id, p.busy, p.processName ?? '')
       ipcRenderer.on('pty:busy', h)
       return () => ipcRenderer.removeListener('pty:busy', h)
     }

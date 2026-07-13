@@ -10,6 +10,7 @@ interface Session {
   cwd: string
   win: BrowserWindow
   busy?: boolean
+  process?: string
 }
 
 const sessions = new Map<string, Session>()
@@ -34,10 +35,12 @@ function ensurePoller(): void {
       } catch {
         continue
       }
-      const busy = !!proc && proc.replace(/^-/, '') !== shellBase
-      if (busy !== s.busy) {
+      const processName = proc.replace(/^-/, '')
+      const busy = !!processName && processName !== shellBase
+      if (busy !== s.busy || processName !== s.process) {
         s.busy = busy
-        if (!s.win.isDestroyed()) s.win.webContents.send('pty:busy', { id, busy })
+        s.process = processName
+        if (!s.win.isDestroyed()) s.win.webContents.send('pty:busy', { id, busy, processName })
       }
     }
   }, 400)

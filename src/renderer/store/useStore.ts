@@ -94,11 +94,13 @@ interface AppState extends PersistShape {
   hydrated: boolean
   /** Session ids where a foreground process (agent/command) is running. Not persisted. */
   busySessions: Record<string, boolean>
+  /** Foreground process name per session. Not persisted. */
+  sessionProcesses: Record<string, string>
   /** Session ids that produced PTY output recently, i.e. are actively working. Not persisted. */
   runningSessions: Record<string, boolean>
 
   hydrate: () => Promise<void>
-  setSessionBusy: (id: string, busy: boolean) => void
+  setSessionBusy: (id: string, busy: boolean, processName?: string) => void
   setSessionRunning: (id: string, running: boolean) => void
   addProject: () => Promise<void>
   newSession: (projectId: string) => void
@@ -203,15 +205,20 @@ export const useStore = create<AppState>((set, get) => ({
   ...makeDefault(),
   hydrated: false,
   busySessions: {},
+  sessionProcesses: {},
   runningSessions: {},
 
-  setSessionBusy: (id, busy) =>
+  setSessionBusy: (id, busy, processName = '') =>
     set((st) => {
-      if (!!st.busySessions[id] === busy) return st
+      if (!!st.busySessions[id] === busy && (st.sessionProcesses[id] ?? '') === processName)
+        return st
       const busySessions = { ...st.busySessions }
+      const sessionProcesses = { ...st.sessionProcesses }
       if (busy) busySessions[id] = true
       else delete busySessions[id]
-      return { ...st, busySessions }
+      if (processName) sessionProcesses[id] = processName
+      else delete sessionProcesses[id]
+      return { ...st, busySessions, sessionProcesses }
     }),
 
   setSessionRunning: (id, running) =>
@@ -237,7 +244,7 @@ export const useStore = create<AppState>((set, get) => ({
       const theme: ThemeMode = loaded.theme === 'light' ? 'light' : 'dark'
       applyTheme(theme)
       const editorCommand = loaded.editorCommand || 'code'
-      const selectedAppIconId = loaded.selectedAppIconId ?? DEFAULT_APP_ICON_ID
+      const selectedAppIconId = DEFAULT_APP_ICON_ID
       void applyDockIconById(selectedAppIconId)
       set({
         ...loaded,
