@@ -31,12 +31,33 @@ import { openInEditor } from './editor'
 let mainWindow: BrowserWindow | null = null
 let selectedDockIconDataUrl: string | null = null
 
+// Keep in sync with DOCK_ICON_SCALE in renderer/lib/appIcons.ts: macOS dock
+// icons carry a transparent inset, but our icon PNGs are full-bleed. Without
+// this the launch icon looks oversized until the renderer applies its own.
+const DOCK_ICON_CANVAS_SIZE = 1024
+const DOCK_ICON_SCALE = 0.82
+
+function insetDockIcon(img: Electron.NativeImage): Electron.NativeImage {
+  if (img.isEmpty()) return img
+  const drawSize = Math.round(DOCK_ICON_CANVAS_SIZE * DOCK_ICON_SCALE)
+  const offset = Math.round((DOCK_ICON_CANVAS_SIZE - drawSize) / 2)
+  const src = img.resize({ width: drawSize, height: drawSize }).toBitmap()
+  const out = Buffer.alloc(DOCK_ICON_CANVAS_SIZE * DOCK_ICON_CANVAS_SIZE * 4)
+  for (let y = 0; y < drawSize; y++) {
+    src.copy(out, ((y + offset) * DOCK_ICON_CANVAS_SIZE + offset) * 4, y * drawSize * 4, (y + 1) * drawSize * 4)
+  }
+  return nativeImage.createFromBitmap(out, {
+    width: DOCK_ICON_CANVAS_SIZE,
+    height: DOCK_ICON_CANVAS_SIZE
+  })
+}
+
 function loadDefaultDockIcon(): Electron.NativeImage {
   const name = nativeTheme.shouldUseDarkColors ? 'icon-dark.png' : 'icon-light.png'
   const path = app.isPackaged
     ? join(process.resourcesPath, name)
     : join(app.getAppPath(), 'build', name)
-  return nativeImage.createFromPath(path)
+  return insetDockIcon(nativeImage.createFromPath(path))
 }
 
 /** Use the selected Ultra icon in the macOS Dock, falling back to the bundled mark. */

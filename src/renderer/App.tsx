@@ -62,8 +62,11 @@ const layoutStorage = {
   }
 }
 
+// Native agent builds can report their process name with an .exe suffix even
+// on macOS (e.g. the Bun-compiled `claude` binary shows up as `claude.exe`).
 function commandName(command: string): string {
-  return command.trim().split(/\s+/)[0]?.split('/').pop()?.replace(/^-/, '') ?? ''
+  const base = command.trim().split(/\s+/)[0]?.split('/').pop()?.replace(/^-/, '') ?? ''
+  return base.replace(/\.exe$/i, '')
 }
 
 export default function App(): JSX.Element {
