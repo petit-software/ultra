@@ -32,7 +32,7 @@ let mainWindow: BrowserWindow | null = null
 let selectedDockIconDataUrl: string | null = null
 
 function loadDefaultDockIcon(): Electron.NativeImage {
-  const name = 'icon-dark.png'
+  const name = nativeTheme.shouldUseDarkColors ? 'icon-dark.png' : 'icon-light.png'
   const path = app.isPackaged
     ? join(process.resourcesPath, name)
     : join(app.getAppPath(), 'build', name)

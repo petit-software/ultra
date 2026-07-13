@@ -66,13 +66,31 @@ function dockIconDataUrlForId(id?: string): Promise<string> {
   return promise
 }
 
-export async function applyDockIconById(id?: string): Promise<void> {
-  try {
-    window.api.app.setDockIcon(await dockIconDataUrlForId(id))
-  } catch {
-    window.api.app.setDockIcon(null)
+type DockIconDataUrlResolver = (id?: string) => Promise<string>
+type DockIconSender = (dataUrl: string | null) => void
+
+/** Ignore an older async conversion if a newer icon request has superseded it. */
+export function createLatestDockIconApplier(
+  resolveDataUrl: DockIconDataUrlResolver,
+  sendDockIcon: DockIconSender
+): (id?: string) => Promise<void> {
+  let latestRequest = 0
+
+  return async (id?: string): Promise<void> => {
+    const request = ++latestRequest
+    try {
+      const dataUrl = await resolveDataUrl(id)
+      if (request === latestRequest) sendDockIcon(dataUrl)
+    } catch {
+      if (request === latestRequest) sendDockIcon(null)
+    }
   }
 }
+
+export const applyDockIconById = createLatestDockIconApplier(
+  dockIconDataUrlForId,
+  (dataUrl) => window.api.app.setDockIcon(dataUrl)
+)
 
 interface DockIconBlinkerOptions {
   idleIconId?: string
@@ -80,6 +98,8 @@ interface DockIconBlinkerOptions {
   intervalMs?: number
   reduceMotion?: boolean
   onIconChange?: (id: string) => void
+  applyIcon?: (id?: string) => Promise<void>
+  prepareIcons?: (ids: string[]) => Promise<void>
 }
 
 export function startDockIconBlinker({
@@ -87,7 +107,11 @@ export function startDockIconBlinker({
   workingIconIds = WORKING_APP_ICON_IDS,
   intervalMs = WORKING_DOCK_ICON_INTERVAL_MS,
   reduceMotion = false,
-  onIconChange
+  onIconChange,
+  applyIcon = applyDockIconById,
+  prepareIcons = async (ids) => {
+    await Promise.all(ids.map((id) => dockIconDataUrlForId(id)))
+  }
 }: DockIconBlinkerOptions = {}): () => void {
   let stopped = false
   let timer: number | null = null
@@ -96,7 +120,7 @@ export function startDockIconBlinker({
 
   const reset = (): void => {
     onIconChange?.(idleIconId)
-    void applyDockIconById(idleIconId)
+    void applyIcon(idleIconId)
   }
 
   const showNext = (): void => {
@@ -105,15 +129,13 @@ export function startDockIconBlinker({
     frame += 1
 
     onIconChange?.(iconId)
-    void applyDockIconById(iconId).finally(() => {
+    void applyIcon(iconId).finally(() => {
       if (stopped || reduceMotion || sequence.length < 2) return
       timer = window.setTimeout(showNext, intervalMs)
     })
   }
 
-  void Promise.all([idleIconId, ...sequence].map((id) => dockIconDataUrlForId(id))).finally(
-    showNext
-  )
+  void prepareIcons([idleIconId, ...sequence]).then(showNext, showNext)
 
   return () => {
     stopped = true

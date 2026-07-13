@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { applyDockIconById, DEFAULT_APP_ICON_ID } from '@/lib/appIcons'
+import { appIconById, applyDockIconById, DEFAULT_APP_ICON_ID } from '@/lib/appIcons'
 
 export interface Session {
   id: string
@@ -316,7 +316,7 @@ export const useStore = create<AppState>((set, get) => ({
       const theme: ThemeMode = loaded.theme === 'light' ? 'light' : 'dark'
       applyTheme(theme)
       const editorCommand = loaded.editorCommand || 'code'
-      const selectedAppIconId = DEFAULT_APP_ICON_ID
+      const selectedAppIconId = appIconById(loaded.selectedAppIconId).id
       void applyDockIconById(selectedAppIconId)
       set({
         ...loaded,

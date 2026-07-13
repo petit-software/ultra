@@ -10,7 +10,7 @@ import ViewMenu from './components/ViewMenu'
 import WelcomeModal from './components/WelcomeModal'
 import { useStore } from './store/useStore'
 import { cn } from '@/lib/utils'
-import { applyDockIconById, DEFAULT_APP_ICON_ID, startDockIconBlinker } from '@/lib/appIcons'
+import { applyDockIconById, startDockIconBlinker } from '@/lib/appIcons'
 
 // Terminal: flush with the base, no rounded border or shadow.
 const TERM = 'bg-background'
@@ -73,9 +73,9 @@ export default function App(): JSX.Element {
   const [introActive, setIntroActive] = useState(true)
   const sessions = useStore((s) => s.sessions)
   const agents = useStore((s) => s.agents)
-  const busySessions = useStore((s) => s.busySessions)
   const sessionProcesses = useStore((s) => s.sessionProcesses)
   const runningSessions = useStore((s) => s.runningSessions)
+  const selectedAppIconId = useStore((s) => s.selectedAppIconId)
   // A sidebar with every one of its panels toggled off collapses entirely.
   const leftVisible = useStore((s) => s.leftSidebarVisible) && layout.left.some((k) => blocks[k])
   const rightVisible = useStore((s) => s.rightSidebarVisible) && layout.right.some((k) => blocks[k])
@@ -83,7 +83,7 @@ export default function App(): JSX.Element {
   const agentWorking = Object.entries(sessions).some(([id, session]) => {
     const agentSession = session.agentStarted || !!session.agentName
     const foregroundAgent = agentProcessNames.has(commandName(sessionProcesses[id] ?? ''))
-    return (agentSession || foregroundAgent) && (!!busySessions[id] || !!runningSessions[id])
+    return (agentSession || foregroundAgent) && !!runningSessions[id]
   })
 
   useEffect(() => {
@@ -92,13 +92,13 @@ export default function App(): JSX.Element {
 
   useEffect(() => {
     if (!agentWorking) {
-      void applyDockIconById(DEFAULT_APP_ICON_ID)
+      void applyDockIconById(selectedAppIconId)
       return
     }
 
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    return startDockIconBlinker({ reduceMotion })
-  }, [agentWorking])
+    return startDockIconBlinker({ idleIconId: selectedAppIconId, reduceMotion })
+  }, [agentWorking, selectedAppIconId])
 
   useEffect(() => {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
