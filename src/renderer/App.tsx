@@ -8,7 +8,7 @@ import ThemeToggle from './components/ThemeToggle'
 import EditorMenu from './components/EditorMenu'
 import ViewMenu from './components/ViewMenu'
 import WelcomeModal from './components/WelcomeModal'
-import { useStore } from './store/useStore'
+import { useStore, LAYOUT_AUTO_SAVE_ID, LAYOUT_STORAGE_KEY } from './store/useStore'
 import { cn } from '@/lib/utils'
 import { applyDockIconById, startDockIconBlinker } from '@/lib/appIcons'
 
@@ -18,8 +18,6 @@ const GAP = 'w-2 my-1 bg-transparent'
 const SIDEBAR_DEFAULT_SIZE = 22
 const SIDEBAR_MIN_SIZE = 12
 const SIDEBAR_MAX_SIZE = 36
-const LAYOUT_AUTO_SAVE_ID = 'ultra-layout'
-const LAYOUT_STORAGE_KEY = `react-resizable-panels:${LAYOUT_AUTO_SAVE_ID}`
 const HORIZONTAL_LAYOUT_PANEL_KEY = 'center,left,right'
 const OLD_UNBALANCED_LAYOUT = [18, 54, 28]
 const BALANCED_LAYOUT = [SIDEBAR_DEFAULT_SIZE, 100 - SIDEBAR_DEFAULT_SIZE * 2, SIDEBAR_DEFAULT_SIZE]
@@ -79,6 +77,7 @@ export default function App(): JSX.Element {
   const sessionProcesses = useStore((s) => s.sessionProcesses)
   const runningSessions = useStore((s) => s.runningSessions)
   const selectedAppIconId = useStore((s) => s.selectedAppIconId)
+  const panelLayoutResetCount = useStore((s) => s.panelLayoutResetCount)
   // A sidebar with every one of its panels toggled off collapses entirely.
   const leftVisible = useStore((s) => s.leftSidebarVisible) && layout.left.some((k) => blocks[k])
   const rightVisible = useStore((s) => s.rightSidebarVisible) && layout.right.some((k) => blocks[k])
@@ -150,6 +149,7 @@ export default function App(): JSX.Element {
         </header>
 
         <ResizablePanelGroup
+          key={panelLayoutResetCount}
           direction="horizontal"
           className="min-h-0 flex-1 p-2 pt-0"
           autoSaveId={LAYOUT_AUTO_SAVE_ID}

@@ -7,7 +7,8 @@ import {
   Files,
   FileCode,
   Paperclip,
-  SquareTerminal
+  SquareTerminal,
+  RotateCcw
 } from 'lucide-react'
 import { HiMiniViewColumns } from 'react-icons/hi2'
 import { useStore, type SidebarBlockKey } from '../store/useStore'
@@ -37,6 +38,7 @@ export default function ViewMenu(): JSX.Element {
   const toggleLeft = useStore((s) => s.toggleLeftSidebar)
   const toggleRight = useStore((s) => s.toggleRightSidebar)
   const toggleBlock = useStore((s) => s.toggleSidebarBlock)
+  const resetPanelLayout = useStore((s) => s.resetPanelLayout)
 
   return (
     <DropdownMenu>
@@ -88,6 +90,12 @@ export default function ViewMenu(): JSX.Element {
             {blocks[key] && <Check className="h-3.5 w-3.5 text-primary" />}
           </DropdownMenuItem>
         ))}
+
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={() => resetPanelLayout()}>
+          <RotateCcw className="h-4 w-4" />
+          <span className="flex-1">Reset panels</span>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

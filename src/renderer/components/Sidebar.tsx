@@ -5,7 +5,7 @@ import { PANEL_REGISTRY } from './panelRegistry'
 import { PanelDndContext, PANEL_DND_MIME } from './panelDnd'
 import { cn } from '@/lib/utils'
 
-const SECTION = 'ultra-panel overflow-hidden rounded-xl bg-card'
+const SECTION = 'ultra-panel overflow-hidden rounded-xl border border-border bg-transparent'
 const HANDLE = 'mx-1 bg-transparent data-[panel-group-direction=vertical]:h-2'
 
 interface Props {

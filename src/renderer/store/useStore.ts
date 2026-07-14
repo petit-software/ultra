@@ -92,6 +92,10 @@ const DEFAULT_SIDEBAR_LAYOUT: SidebarLayout = {
 
 const ALL_PANEL_KEYS = Object.keys(DEFAULT_SIDEBAR_BLOCKS) as PanelKey[]
 
+/** autoSaveId for the root ResizablePanelGroup; widths persist under this key. */
+export const LAYOUT_AUTO_SAVE_ID = 'ultra-layout'
+export const LAYOUT_STORAGE_KEY = `react-resizable-panels:${LAYOUT_AUTO_SAVE_ID}`
+
 /**
  * Coerce a persisted (possibly stale or corrupt) layout into a valid one: every
  * panel key present exactly once, unknown keys dropped, and any panel missing
@@ -155,6 +159,8 @@ interface AppState extends PersistShape {
   runningSessions: Record<string, boolean>
   /** Panel key currently being dragged between/within sidebars, or null. Not persisted. */
   draggingPanel: PanelKey | null
+  /** Bumped on every panel reset so the layout group remounts with default widths. Not persisted. */
+  panelLayoutResetCount: number
 
   hydrate: () => Promise<void>
   setSessionBusy: (id: string, busy: boolean, processName?: string) => void
@@ -187,6 +193,8 @@ interface AppState extends PersistShape {
    * sidebar. Used by drag-and-drop panel rearranging.
    */
   movePanel: (key: PanelKey, side: SidebarId, beforeKey: PanelKey | null) => void
+  /** Restore both sidebars to default widths, panel arrangement, and visibility. */
+  resetPanelLayout: () => void
   /** Mark the panel being dragged so both sidebars can render drop affordances. */
   setDraggingPanel: (key: PanelKey | null) => void
   /** Open a file in the in-app editor panel, revealing the panel if hidden. */
@@ -279,6 +287,7 @@ export const useStore = create<AppState>((set, get) => ({
   sessionProcesses: {},
   runningSessions: {},
   draggingPanel: null,
+  panelLayoutResetCount: 0,
 
   setSessionBusy: (id, busy, processName = '') =>
     set((st) => {
@@ -546,6 +555,22 @@ export const useStore = create<AppState>((set, get) => ({
       const at = beforeKey ? target.indexOf(beforeKey) : -1
       target.splice(at < 0 ? target.length : at, 0, key)
       const next = { ...st, sidebarLayout: { left, right } }
+      schedulePersist(next)
+      return next
+    }),
+
+  resetPanelLayout: () =>
+    set((st) => {
+      // Drop the saved widths so the remounted panel group starts from defaults.
+      localStorage.removeItem(LAYOUT_STORAGE_KEY)
+      const next = {
+        ...st,
+        leftSidebarVisible: true,
+        rightSidebarVisible: true,
+        sidebarBlocks: { ...DEFAULT_SIDEBAR_BLOCKS },
+        sidebarLayout: normalizeLayout(DEFAULT_SIDEBAR_LAYOUT),
+        panelLayoutResetCount: st.panelLayoutResetCount + 1
+      }
       schedulePersist(next)
       return next
     }),
