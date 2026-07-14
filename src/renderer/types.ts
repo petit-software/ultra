@@ -4,10 +4,17 @@ export interface DirEntry {
   isDir: boolean
 }
 
+export interface GitFileStats {
+  added: number | null
+  removed: number | null
+}
+
 export interface GitFile {
   path: string
   x: string
   y: string
+  stagedStats?: GitFileStats
+  worktreeStats?: GitFileStats
 }
 
 export interface GitStatus {

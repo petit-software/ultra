@@ -35,23 +35,14 @@ const isStaged = (f: GitFile): boolean => f.x !== ' ' && f.x !== '?'
 const isUnstaged = (f: GitFile): boolean => f.y !== ' '
 const isUntracked = (f: GitFile): boolean => f.x === '?' && f.y === '?'
 
-function badge(code: string): string {
-  switch (code) {
-    case 'M':
-      return 'M'
-    case 'A':
-      return 'A'
-    case 'D':
-      return 'D'
-    case 'R':
-      return 'R'
-    case 'C':
-      return 'C'
-    case '?':
-      return 'U'
-    default:
-      return code.trim() || '•'
-  }
+const STATUS_META: Record<string, { label: string; color: string }> = {
+  M: { label: 'Modified', color: 'text-amber-500' },
+  A: { label: 'New', color: 'text-emerald-500' },
+  '?': { label: 'New', color: 'text-emerald-500' },
+  D: { label: 'Deleted', color: 'text-red-500' },
+  R: { label: 'Renamed', color: 'text-primary' },
+  C: { label: 'Copied', color: 'text-primary' },
+  U: { label: 'Conflict', color: 'text-red-500' }
 }
 
 function DiffView({ text }: { text: string }): JSX.Element {
@@ -372,6 +363,7 @@ export default function GitPanel(): JSX.Element {
             <FileRow
               key={'s' + f.path}
               file={f}
+              staged
               onOpen={() => void openDiff(f, true)}
               actions={
                 <button
@@ -405,6 +397,7 @@ export default function GitPanel(): JSX.Element {
             <FileRow
               key={'c' + f.path}
               file={f}
+              staged={false}
               onOpen={() => void openDiff(f, false)}
               actions={
                 <>
@@ -540,30 +533,40 @@ function Section({
 
 function FileRow({
   file,
+  staged,
   onOpen,
   actions
 }: {
   file: GitFile
+  staged: boolean
   onOpen: () => void
   actions: React.ReactNode
 }): JSX.Element {
-  const code = isStaged(file) ? file.x : file.y
-  const color =
-    code === 'M' ? 'text-amber-500' : code === '?' ? 'text-emerald-500' : code === 'D' ? 'text-red-500' : 'text-primary'
+  const code = staged ? file.x : file.y
+  const meta = STATUS_META[code] ?? { label: 'Changed', color: 'text-primary' }
+  const stats = staged ? file.stagedStats : file.worktreeStats
+  const added = stats?.added ?? 0
+  const removed = stats?.removed ?? 0
   return (
     <li
       onClick={onOpen}
-      className="group/grow flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-sm hover:bg-secondary/60"
+      className="group/grow cursor-pointer rounded-md px-2 py-1 hover:bg-secondary/60"
       title={file.path}
     >
-      <span className="min-w-0 flex-1 truncate">{base(file.path)}</span>
-      <span
-        className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover/grow:opacity-100"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {actions}
-      </span>
-      <span className={cn('w-3 shrink-0 text-center font-mono text-xs', color)}>{badge(code)}</span>
+      <div className="flex items-center gap-2">
+        <span className="min-w-0 flex-1 truncate text-sm">{base(file.path)}</span>
+        <span
+          className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover/grow:opacity-100"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {actions}
+        </span>
+      </div>
+      <div className="flex items-center gap-2 text-[10px] leading-4">
+        <span className={cn('font-medium', meta.color)}>{meta.label}</span>
+        {added > 0 && <span className="font-mono text-emerald-500">+{added}</span>}
+        {removed > 0 && <span className="font-mono text-red-500">−{removed}</span>}
+      </div>
     </li>
   )
 }

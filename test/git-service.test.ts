@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseStatus } from '../src/main/git-service'
+import { parseNumstat, parseStatus } from '../src/main/git-service'
 
 // Build the NUL-separated `git status --porcelain=v1 -b -z` payload.
 const z = (...entries: string[]): string => entries.map((e) => e + '\0').join('')
@@ -49,5 +49,34 @@ describe('parseStatus', () => {
   it('handles paths containing spaces', () => {
     const s = parseStatus(z('## main', ' M my file.ts'))
     expect(s.files).toEqual([{ path: 'my file.ts', x: ' ', y: 'M' }])
+  })
+})
+
+describe('parseNumstat', () => {
+  it('reads added/removed counts per file', () => {
+    const m = parseNumstat(z('12\t4\ta.ts', '0\t7\tb.ts'))
+    expect(m.get('a.ts')).toEqual({ added: 12, removed: 4 })
+    expect(m.get('b.ts')).toEqual({ added: 0, removed: 7 })
+  })
+
+  it('keeps binary file counts as null', () => {
+    const m = parseNumstat(z('-\t-\timg.png'))
+    expect(m.get('img.png')).toEqual({ added: null, removed: null })
+  })
+
+  it('handles empty output', () => {
+    expect(parseNumstat('').size).toBe(0)
+  })
+
+  it('uses the post-image path of a rename entry', () => {
+    const m = parseNumstat(z('3\t1\t', 'old.ts', 'new.ts', '5\t0\tafter.ts'))
+    expect(m.get('new.ts')).toEqual({ added: 3, removed: 1 })
+    expect(m.get('after.ts')).toEqual({ added: 5, removed: 0 })
+    expect(m.has('old.ts')).toBe(false)
+  })
+
+  it('handles paths containing spaces', () => {
+    const m = parseNumstat(z('1\t2\tmy file.ts'))
+    expect(m.get('my file.ts')).toEqual({ added: 1, removed: 2 })
   })
 })

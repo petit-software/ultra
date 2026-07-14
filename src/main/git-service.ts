@@ -1,12 +1,23 @@
 import { execFile } from 'child_process'
 import os from 'os'
 
+export interface GitFileStats {
+  /** lines added, or null when git reports none (binary file) */
+  added: number | null
+  /** lines removed, or null when git reports none (binary file) */
+  removed: number | null
+}
+
 export interface GitFile {
   path: string
   /** index (staged) status code, e.g. M A D R C, or ' ' / '?' */
   x: string
   /** worktree (unstaged) status code */
   y: string
+  /** line stats for the staged (index) side, when available */
+  stagedStats?: GitFileStats
+  /** line stats for the unstaged (worktree) side, when available */
+  worktreeStats?: GitFileStats
 }
 
 export interface GitStatus {
@@ -83,6 +94,36 @@ export function parseStatus(stdout: string): Omit<GitStatus, 'isRepo'> {
   return { branch, ahead, behind, hasUpstream, files }
 }
 
+/**
+ * Parse the NUL-separated output of `git diff --numstat -z` into a
+ * path → stats map. Binary files report '-' counts, kept as null.
+ * Pure (no I/O) so it can be unit-tested directly.
+ */
+export function parseNumstat(stdout: string): Map<string, GitFileStats> {
+  const map = new Map<string, GitFileStats>()
+  const tokens = stdout.split('\0')
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i]
+    if (!t) continue
+    const m = t.match(/^(-|\d+)\t(-|\d+)\t([\s\S]*)$/)
+    if (!m) continue
+    const added = m[1] === '-' ? null : parseInt(m[1], 10)
+    const removed = m[2] === '-' ? null : parseInt(m[2], 10)
+    let path = m[3]
+    if (!path) {
+      // Rename/copy: the pre- and post-image paths follow as NUL tokens.
+      path = tokens[i + 2] ?? ''
+      i += 2
+    }
+    if (path) map.set(path, { added, removed })
+  }
+  return map
+}
+
+// Untracked files aren't covered by `git diff`; cap how many get a
+// per-file no-index line count so huge untracked sets stay cheap.
+const UNTRACKED_STATS_LIMIT = 50
+
 export async function getStatus(cwd: string): Promise<GitStatus> {
   const empty: GitStatus = {
     isRepo: false,
@@ -98,7 +139,42 @@ export async function getStatus(cwd: string): Promise<GitStatus> {
   if (!inside.ok || inside.stdout.trim() !== 'true') return empty
 
   const res = await run(cwd, ['status', '--porcelain=v1', '-b', '-z'])
-  return { isRepo: true, ...parseStatus(res.stdout) }
+  const parsed = parseStatus(res.stdout)
+
+  const [worktreeRes, stagedRes] = await Promise.all([
+    run(cwd, ['diff', '--numstat', '-z']),
+    run(cwd, ['diff', '--staged', '--numstat', '-z'])
+  ])
+  const worktree = parseNumstat(worktreeRes.stdout)
+  const staged = parseNumstat(stagedRes.stdout)
+
+  const untracked = parsed.files
+    .filter((f) => f.x === '?' && f.y === '?')
+    .slice(0, UNTRACKED_STATS_LIMIT)
+  await Promise.all(
+    untracked.map(async (f) => {
+      const r = await run(cwd, [
+        'diff',
+        '--no-index',
+        '--numstat',
+        '-z',
+        '--',
+        '/dev/null',
+        f.path
+      ])
+      const stats = parseNumstat(r.stdout).values().next().value
+      if (stats) worktree.set(f.path, stats)
+    })
+  )
+
+  for (const f of parsed.files) {
+    const w = worktree.get(f.path)
+    const s = staged.get(f.path)
+    if (w) f.worktreeStats = w
+    if (s) f.stagedStats = s
+  }
+
+  return { isRepo: true, ...parsed }
 }
 
 export const init = (cwd: string): Promise<{ ok: boolean; stderr: string }> =>
