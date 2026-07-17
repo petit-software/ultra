@@ -119,7 +119,11 @@ const api = {
     setNative: (mode: 'dark' | 'light') => ipcRenderer.send('theme:setNative', mode)
   },
   app: {
-    setDockIcon: (dataUrl: string | null) => ipcRenderer.send('app:setDockIcon', dataUrl)
+    setDockIcon: (dataUrl: string | null) => ipcRenderer.send('app:setDockIcon', dataUrl),
+    setTrayFrames: (payload: { idle: string; frames: string[]; intervalMs: number }) =>
+      ipcRenderer.send('app:setTrayFrames', payload),
+    setTrayState: (state: { working: boolean; animate: boolean }) =>
+      ipcRenderer.send('app:setTrayState', state)
   }
 }
 

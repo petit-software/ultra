@@ -66,13 +66,10 @@ function dockIconDataUrlForId(id?: string): Promise<string> {
   return promise
 }
 
-type DockIconDataUrlResolver = (id?: string) => Promise<string>
-type DockIconSender = (dataUrl: string | null) => void
-
 /** Ignore an older async conversion if a newer icon request has superseded it. */
-export function createLatestDockIconApplier(
-  resolveDataUrl: DockIconDataUrlResolver,
-  sendDockIcon: DockIconSender
+export function createLatestDockIconApplier<T>(
+  resolveDataUrl: (id?: string) => Promise<T>,
+  sendDockIcon: (value: T | null) => void
 ): (id?: string) => Promise<void> {
   let latestRequest = 0
 

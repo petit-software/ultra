@@ -11,6 +11,7 @@ import WelcomeModal from './components/WelcomeModal'
 import { useStore, LAYOUT_AUTO_SAVE_ID, LAYOUT_STORAGE_KEY } from './store/useStore'
 import { cn } from '@/lib/utils'
 import { applyDockIconById, startDockIconBlinker } from '@/lib/appIcons'
+import { syncTrayState } from '@/lib/trayIcon'
 
 // Terminal: flush with the base, no rounded border or shadow.
 const TERM = 'bg-background'
@@ -101,6 +102,14 @@ export default function App(): JSX.Element {
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     return startDockIconBlinker({ idleIconId: selectedAppIconId, reduceMotion })
   }, [agentWorking, selectedAppIconId])
+
+  // Menu bar sparkle mirrors the Dock: static while idle, coin-spinning around
+  // the vertical axis while an agent is working. Main owns the spin timer, so
+  // it keeps running while this window is hidden.
+  useEffect(() => {
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    void syncTrayState(agentWorking, !reduceMotion)
+  }, [agentWorking])
 
   useEffect(() => {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches

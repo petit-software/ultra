@@ -7,6 +7,7 @@ import {
   nativeTheme,
   nativeImage,
   Menu,
+  Tray,
   type MenuItemConstructorOptions
 } from 'electron'
 import { join } from 'path'
@@ -72,6 +73,95 @@ function applyDockIcon(dataUrl?: unknown): void {
       : null
   const img = customImg && !customImg.isEmpty() ? customImg : loadDefaultDockIcon()
   if (!img.isEmpty()) app.dock.setIcon(img)
+}
+
+// Menu bar sparkle. The renderer renders the spin frames of the Ultra sparkle
+// (the same mark shown next to shell names) once; the animation timer lives
+// HERE because renderer timers are throttled while the window is hidden —
+// precisely when the menu bar indicator matters. Works even with no window.
+let tray: Tray | null = null
+let trayIdleImage: Electron.NativeImage | null = null
+let trayFrameImages: Electron.NativeImage[] = []
+let trayIntervalMs = 75
+let trayWorking = false
+let trayAnimate = true
+let trayTimer: NodeJS.Timeout | null = null
+let trayFrame = 0
+
+// Renderer frames arrive at 2x (36px) for an 18pt menu bar icon.
+const TRAY_ICON_SIZE = 18
+
+function trayImageFromDataUrl(dataUrl: unknown): Electron.NativeImage | null {
+  if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/')) return null
+  const full = nativeImage.createFromDataURL(dataUrl)
+  if (full.isEmpty()) return null
+  const img = nativeImage.createEmpty()
+  img.addRepresentation({
+    scaleFactor: 1,
+    buffer: full.resize({ width: TRAY_ICON_SIZE, height: TRAY_ICON_SIZE }).toPNG()
+  })
+  img.addRepresentation({ scaleFactor: 2, buffer: full.toPNG() })
+  // Template image: macOS tints it to match the menu bar in light and dark mode.
+  img.setTemplateImage(true)
+  return img
+}
+
+function stopTrayTimer(): void {
+  if (trayTimer) {
+    clearInterval(trayTimer)
+    trayTimer = null
+  }
+}
+
+function applyTrayState(): void {
+  if (!tray || !trayIdleImage) return
+  tray.setToolTip(trayWorking ? 'Ultra — agent working' : 'Ultra')
+  stopTrayTimer()
+
+  if (!trayWorking || trayFrameImages.length === 0) {
+    tray.setImage(trayIdleImage)
+    return
+  }
+  trayFrame = 0
+  tray.setImage(trayFrameImages[0])
+  if (!trayAnimate || trayFrameImages.length < 2) return
+  trayTimer = setInterval(() => {
+    if (!tray) return
+    trayFrame = (trayFrame + 1) % trayFrameImages.length
+    tray.setImage(trayFrameImages[trayFrame])
+  }, trayIntervalMs)
+}
+
+/** Cache the renderer's frame set and create the tray on first delivery. */
+function setTrayFrames(payload: unknown): void {
+  if (process.platform !== 'darwin') return
+  const { idle, frames, intervalMs } = (payload ?? {}) as {
+    idle?: unknown
+    frames?: unknown
+    intervalMs?: unknown
+  }
+  const idleImage = trayImageFromDataUrl(idle)
+  if (!idleImage || !Array.isArray(frames)) return
+
+  trayIdleImage = idleImage
+  trayFrameImages = frames
+    .map((frame) => trayImageFromDataUrl(frame))
+    .filter((img): img is Electron.NativeImage => img !== null)
+  if (typeof intervalMs === 'number' && intervalMs >= 16) trayIntervalMs = intervalMs
+
+  if (!tray) {
+    tray = new Tray(idleImage)
+    tray.on('click', () => {
+      const win = BrowserWindow.getAllWindows()[0]
+      if (win) {
+        win.show()
+        win.focus()
+      } else {
+        createWindow()
+      }
+    })
+  }
+  applyTrayState()
 }
 
 // Application menu. Owns Cmd+D (new session) / Cmd+W (close session) — the
@@ -152,7 +242,10 @@ function createWindow(): void {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false // node-pty data flows through main; renderer stays sandboxed-by-API
+      sandbox: false, // node-pty data flows through main; renderer stays sandboxed-by-API
+      // The Dock working animation is timed in the renderer; Chromium throttles
+      // (and eventually freezes) hidden-window timers, which froze it mid-spin.
+      backgroundThrottling: false
     }
   })
 
@@ -271,6 +364,13 @@ function registerIpc(): void {
   ipcMain.on('app:setDockIcon', (_e, dataUrl: string | null) => {
     applyDockIcon(typeof dataUrl === 'string' ? dataUrl : null)
   })
+
+  ipcMain.on('app:setTrayFrames', (_e, payload: unknown) => setTrayFrames(payload))
+  ipcMain.on('app:setTrayState', (_e, state: { working?: boolean; animate?: boolean }) => {
+    trayWorking = state?.working === true
+    trayAnimate = state?.animate !== false
+    applyTrayState()
+  })
 }
 
 app.whenReady().then(() => {
@@ -292,6 +392,7 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', () => {
+  stopTrayTimer()
   killAllPty()
   unwatchAll()
 })
