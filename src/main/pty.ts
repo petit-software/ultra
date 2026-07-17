@@ -1,8 +1,10 @@
 import { spawn, type IPty } from 'node-pty'
+import { execFile } from 'child_process'
 import os from 'os'
 import fs from 'fs'
 import path from 'path'
 import { BrowserWindow } from 'electron'
+import { foregroundCommandFromPs, foregroundLabel, isGenericInterpreter } from './process-name'
 
 const shell = os.platform() === 'win32' ? 'powershell.exe' : process.env.SHELL || '/bin/zsh'
 const shellBase = (shell.split(/[/\\]/).pop() || 'zsh').replace(/\.exe$/, '')
@@ -36,6 +38,8 @@ interface Session {
   win: BrowserWindow
   busy?: boolean
   process?: string
+  /** Raw name from the pty, before any interpreter→script resolution. */
+  raw?: string
 }
 
 const sessions = new Map<string, Session>()
@@ -62,13 +66,36 @@ function ensurePoller(): void {
       }
       const processName = proc.replace(/^-/, '')
       const busy = !!processName && processName !== shellBase
-      if (busy !== s.busy || processName !== s.process) {
+      if (busy !== s.busy || processName !== s.raw) {
         s.busy = busy
+        s.raw = processName
         s.process = processName
         if (!s.win.isDestroyed()) s.win.webContents.send('pty:busy', { id, busy, processName })
+        // Node-based agent CLIs (gemini, dev claude, …) report the interpreter
+        // as their process name; resolve the real command for agent detection.
+        if (busy && process.platform !== 'win32' && isGenericInterpreter(processName))
+          resolveInterpreterLabel(id, s, processName)
       }
     }
   }, 400)
+}
+
+/** Upgrade a generic interpreter name to the script it runs, via ps. */
+function resolveInterpreterLabel(id: string, s: Session, raw: string): void {
+  const ptsName = (s.pty as unknown as { ptsName?: string }).ptsName
+  if (typeof ptsName !== 'string' || !ptsName) return
+
+  execFile('ps', ['-t', ptsName.replace(/^\/dev\//, ''), '-o', 'stat=,command='], (err, stdout) => {
+    // Only apply if the session is still busy on the same raw process.
+    if (err || !s.busy || s.raw !== raw) return
+    const command = foregroundCommandFromPs(String(stdout), shellBase)
+    if (!command) return
+    const label = foregroundLabel(command, raw)
+    if (label === s.process) return
+    s.process = label
+    if (!s.win.isDestroyed())
+      s.win.webContents.send('pty:busy', { id, busy: true, processName: label })
+  })
 }
 
 /** Create a PTY for a session id; streams output to the owning window. */
