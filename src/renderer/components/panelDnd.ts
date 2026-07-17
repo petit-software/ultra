@@ -18,3 +18,19 @@ export interface PanelDrag {
 export const PanelDndContext = createContext<PanelDrag | null>(null)
 
 export const usePanelDrag = (): PanelDrag | null => useContext(PanelDndContext)
+
+/**
+ * Replace the browser's default drag ghost (a snapshot of the tiny grip icon)
+ * with a small pill naming the panel being dragged. The element must be in the
+ * document when setDragImage snapshots it, so it is parked offscreen and
+ * removed on the next frame.
+ */
+export function setPanelDragImage(e: React.DragEvent, label: string): void {
+  const ghost = document.createElement('div')
+  ghost.textContent = label
+  ghost.className =
+    'fixed top-0 left-[-9999px] rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground shadow-lg'
+  document.body.appendChild(ghost)
+  e.dataTransfer.setDragImage(ghost, 16, 14)
+  requestAnimationFrame(() => ghost.remove())
+}

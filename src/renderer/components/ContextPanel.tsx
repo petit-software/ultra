@@ -22,6 +22,14 @@ export default function ContextPanel(): JSX.Element {
 
   const [over, setOver] = useState(false)
 
+  // Only react to payloads this panel can pin: Finder files, file-tree paths,
+  // or links/text. Internal UI drags (panels, project rows) declare only their
+  // own MIME, so they fall through to the sidebar's panel drop handling.
+  const canAccept = (e: React.DragEvent): boolean =>
+    ['Files', 'application/x-ultra-path', 'text/uri-list', 'text/plain'].some((t) =>
+      e.dataTransfer.types.includes(t)
+    )
+
   const onDrop = async (e: React.DragEvent): Promise<void> => {
     e.preventDefault()
     setOver(false)
@@ -60,11 +68,15 @@ export default function ContextPanel(): JSX.Element {
   return (
     <div
       onDragOver={(e) => {
+        if (!canAccept(e)) return
         e.preventDefault()
         setOver(true)
       }}
       onDragLeave={() => setOver(false)}
-      onDrop={(e) => void onDrop(e)}
+      onDrop={(e) => {
+        if (!canAccept(e)) return
+        void onDrop(e)
+      }}
       className={cn(
         'flex min-h-0 flex-1 flex-col border-2 border-dashed transition-colors',
         over ? 'border-primary bg-primary/10' : 'border-transparent'

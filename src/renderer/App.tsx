@@ -79,9 +79,15 @@ export default function App(): JSX.Element {
   const runningSessions = useStore((s) => s.runningSessions)
   const selectedAppIconId = useStore((s) => s.selectedAppIconId)
   const panelLayoutResetCount = useStore((s) => s.panelLayoutResetCount)
-  // A sidebar with every one of its panels toggled off collapses entirely.
-  const leftVisible = useStore((s) => s.leftSidebarVisible) && layout.left.some((k) => blocks[k])
-  const rightVisible = useStore((s) => s.rightSidebarVisible) && layout.right.some((k) => blocks[k])
+  // A sidebar with every one of its panels toggled off collapses entirely —
+  // except while a panel is being dragged, so it can reappear as a drop target.
+  const draggingPanel = useStore((s) => s.draggingPanel)
+  const leftVisible =
+    useStore((s) => s.leftSidebarVisible) &&
+    (draggingPanel !== null || layout.left.some((k) => blocks[k]))
+  const rightVisible =
+    useStore((s) => s.rightSidebarVisible) &&
+    (draggingPanel !== null || layout.right.some((k) => blocks[k]))
   const agentProcessNames = new Set(agents.map((agent) => commandName(agent.command)))
   const agentWorking = Object.entries(sessions).some(([id, session]) => {
     const agentSession = session.agentStarted || !!session.agentName
