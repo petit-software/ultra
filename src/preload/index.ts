@@ -119,6 +119,8 @@ const api = {
     setNative: (mode: 'dark' | 'light') => ipcRenderer.send('theme:setNative', mode)
   },
   app: {
+    openExternal: (url: string) => ipcRenderer.send('app:openExternal', url),
+    setConfirmClose: (enabled: boolean) => ipcRenderer.send('app:setConfirmClose', enabled),
     setDockIcon: (dataUrl: string | null) => ipcRenderer.send('app:setDockIcon', dataUrl),
     setTrayFrames: (payload: { idle: string; frames: string[]; intervalMs: number }) =>
       ipcRenderer.send('app:setTrayFrames', payload),

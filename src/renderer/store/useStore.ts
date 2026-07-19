@@ -139,6 +139,8 @@ interface PersistShape {
   sidebarLayout: SidebarLayout
   onboarded: boolean
   selectedAppIconId: string
+  /** Ask "Are you sure you want to close Ultra?" before closing/quitting. */
+  confirmOnClose: boolean
 }
 
 function applyTheme(theme: ThemeMode): void {
@@ -202,6 +204,7 @@ interface AppState extends PersistShape {
   closeFile: () => void
   setSelectedAppIcon: (id: string) => void
   completeOnboarding: () => void
+  toggleConfirmOnClose: () => void
 }
 
 let counter = 0
@@ -225,7 +228,8 @@ function makeDefault(): PersistShape {
     sidebarBlocks: { ...DEFAULT_SIDEBAR_BLOCKS },
     sidebarLayout: normalizeLayout(DEFAULT_SIDEBAR_LAYOUT),
     onboarded: false,
-    selectedAppIconId: DEFAULT_APP_ICON_ID
+    selectedAppIconId: DEFAULT_APP_ICON_ID,
+    confirmOnClose: true
   }
 }
 
@@ -243,7 +247,8 @@ function snapshot(s: AppState): PersistShape {
     sidebarBlocks: s.sidebarBlocks,
     sidebarLayout: s.sidebarLayout,
     onboarded: s.onboarded,
-    selectedAppIconId: s.selectedAppIconId
+    selectedAppIconId: s.selectedAppIconId,
+    confirmOnClose: s.confirmOnClose
   }
 }
 
@@ -327,6 +332,8 @@ export const useStore = create<AppState>((set, get) => ({
       const editorCommand = loaded.editorCommand || 'code'
       const selectedAppIconId = appIconById(loaded.selectedAppIconId).id
       void applyDockIconById(selectedAppIconId)
+      const confirmOnClose = loaded.confirmOnClose ?? true
+      window.api.app.setConfirmClose(confirmOnClose)
       set({
         ...loaded,
         agents,
@@ -339,12 +346,14 @@ export const useStore = create<AppState>((set, get) => ({
         sidebarLayout: normalizeLayout(loaded.sidebarLayout),
         onboarded: loaded.onboarded ?? false,
         selectedAppIconId,
+        confirmOnClose,
         activeSessionId: active,
         hydrated: true
       })
     } else {
       applyTheme(get().theme)
       void applyDockIconById(get().selectedAppIconId)
+      window.api.app.setConfirmClose(get().confirmOnClose)
       set({ hydrated: true })
     }
   },
@@ -606,6 +615,15 @@ export const useStore = create<AppState>((set, get) => ({
   completeOnboarding: () =>
     set((st) => {
       const next = { ...st, onboarded: true }
+      schedulePersist(next)
+      return next
+    }),
+
+  toggleConfirmOnClose: () =>
+    set((st) => {
+      const confirmOnClose = !st.confirmOnClose
+      window.api.app.setConfirmClose(confirmOnClose)
+      const next = { ...st, confirmOnClose }
       schedulePersist(next)
       return next
     }),

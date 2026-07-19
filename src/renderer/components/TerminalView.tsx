@@ -60,7 +60,9 @@ export default function TerminalView({
     })
     const fit = new FitAddon()
     term.loadAddon(fit)
-    term.loadAddon(new WebLinksAddon())
+    // Default handler opens links via window.open(), which our window-open
+    // policy denies — send the URL straight to the OS browser instead.
+    term.loadAddon(new WebLinksAddon((_event, uri) => window.api.app.openExternal(uri)))
     term.loadAddon(new SearchAddon())
     termRef.current = term
     fitRef.current = fit

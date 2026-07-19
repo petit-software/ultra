@@ -8,7 +8,8 @@ import {
   FileCode,
   Paperclip,
   SquareTerminal,
-  RotateCcw
+  RotateCcw,
+  ShieldQuestion
 } from 'lucide-react'
 import { HiMiniViewColumns } from 'react-icons/hi2'
 import { useStore, type SidebarBlockKey } from '../store/useStore'
@@ -39,6 +40,8 @@ export default function ViewMenu(): JSX.Element {
   const toggleRight = useStore((s) => s.toggleRightSidebar)
   const toggleBlock = useStore((s) => s.toggleSidebarBlock)
   const resetPanelLayout = useStore((s) => s.resetPanelLayout)
+  const confirmOnClose = useStore((s) => s.confirmOnClose)
+  const toggleConfirmOnClose = useStore((s) => s.toggleConfirmOnClose)
 
   return (
     <DropdownMenu>
@@ -95,6 +98,18 @@ export default function ViewMenu(): JSX.Element {
         <DropdownMenuItem onSelect={() => resetPanelLayout()}>
           <RotateCcw className="h-4 w-4" />
           <span className="flex-1">Reset panels</span>
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onSelect={(e) => {
+            e.preventDefault()
+            toggleConfirmOnClose()
+          }}
+        >
+          <ShieldQuestion className="h-4 w-4" />
+          <span className="flex-1">Ask before closing Ultra</span>
+          {confirmOnClose && <Check className="h-3.5 w-3.5 text-primary" />}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

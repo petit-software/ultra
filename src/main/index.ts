@@ -32,6 +32,18 @@ import { openInEditor } from './editor'
 let mainWindow: BrowserWindow | null = null
 let selectedDockIconDataUrl: string | null = null
 
+// "Are you sure you want to close Ultra?" guard. The renderer pushes the
+// persisted preference here on hydrate/toggle; default matches the store's.
+let confirmOnClose = true
+let isQuitting = false
+
+/** Only ever hand real web URLs to the OS; anything else (about:blank from
+ *  xterm's default link handler, file:, etc.) would make macOS show a
+ *  "no application can open this" alert. */
+function openExternalUrl(url: unknown): void {
+  if (typeof url === 'string' && /^https?:\/\//i.test(url)) void shell.openExternal(url)
+}
+
 // Keep in sync with DOCK_ICON_SCALE in renderer/lib/appIcons.ts: macOS dock
 // icons carry a transparent inset, but our icon PNGs are full-bleed. Without
 // this the launch icon looks oversized until the renderer applies its own.
@@ -251,6 +263,33 @@ function createWindow(): void {
 
   mainWindow.on('ready-to-show', () => mainWindow?.show())
 
+  // Optional close guard: intercept the red button / Cmd+W-on-window / Cmd+Q
+  // and ask before tearing down sessions. `closeConfirmed` lets the confirmed
+  // close proceed without re-prompting.
+  let closeConfirmed = false
+  mainWindow.on('close', (e) => {
+    if (!confirmOnClose || closeConfirmed || !mainWindow) return
+    e.preventDefault()
+    const wasQuitting = isQuitting
+    const choice = dialog.showMessageBoxSync(mainWindow, {
+      type: 'warning',
+      buttons: ['Cancel', 'Close Ultra'],
+      defaultId: 0,
+      cancelId: 0,
+      message: 'Are you sure you want to close Ultra?',
+      detail: 'All terminal sessions and running agents will be terminated.'
+    })
+    if (choice === 1) {
+      closeConfirmed = true
+      // preventDefault aborted the in-flight quit, so restart it; a plain
+      // window close just closes the window.
+      if (wasQuitting) app.quit()
+      else mainWindow.destroy()
+    } else {
+      isQuitting = false
+    }
+  })
+
   // The renderer squares its corners while the window fills the screen.
   const sendFullScreen = (fs: boolean): void => {
     if (mainWindow && !mainWindow.isDestroyed())
@@ -260,7 +299,7 @@ function createWindow(): void {
   mainWindow.on('leave-full-screen', () => sendFullScreen(false))
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url)
+    openExternalUrl(url)
     return { action: 'deny' }
   })
 
@@ -365,6 +404,11 @@ function registerIpc(): void {
     applyDockIcon(typeof dataUrl === 'string' ? dataUrl : null)
   })
 
+  ipcMain.on('app:openExternal', (_e, url: unknown) => openExternalUrl(url))
+  ipcMain.on('app:setConfirmClose', (_e, enabled: unknown) => {
+    confirmOnClose = enabled !== false
+  })
+
   ipcMain.on('app:setTrayFrames', (_e, payload: unknown) => setTrayFrames(payload))
   ipcMain.on('app:setTrayState', (_e, state: { working?: boolean; animate?: boolean }) => {
     trayWorking = state?.working === true
@@ -391,7 +435,15 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
 })
 
+// Mark quits so the window close guard can distinguish Cmd+Q from a plain
+// window close. Cleanup lives in will-quit, which only fires once every
+// window agreed to close — before-quit would kill the PTYs even when the
+// user cancels the confirmation dialog.
 app.on('before-quit', () => {
+  isQuitting = true
+})
+
+app.on('will-quit', () => {
   stopTrayTimer()
   killAllPty()
   unwatchAll()
