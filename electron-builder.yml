@@ -4,6 +4,15 @@ directories:
   buildResources: build
   output: release
 
+# Auto-updates (electron-updater): clients fetch latest-mac.yml + the zip from
+# the latest GitHub release of this (public) repo. Building with this config
+# present also generates release/latest-mac.yml, which must be uploaded to the
+# release alongside the artifacts.
+publish:
+  - provider: github
+    owner: petit-software
+    repo: ultra
+
 # Only-negative globs keep electron-builder's default include (**/*) and its
 # production-dependency pruning, while dropping source/config we don't ship.
 files:

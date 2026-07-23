@@ -118,6 +118,11 @@ const api = {
   theme: {
     setNative: (mode: 'dark' | 'light') => ipcRenderer.send('theme:setNative', mode)
   },
+  updates: {
+    /** Manual update check; result dialogs are shown by the main process. */
+    check: () => ipcRenderer.send('updates:check'),
+    version: (): Promise<string> => ipcRenderer.invoke('app:getVersion')
+  },
   app: {
     openExternal: (url: string) => ipcRenderer.send('app:openExternal', url),
     setConfirmClose: (enabled: boolean) => ipcRenderer.send('app:setConfirmClose', enabled),

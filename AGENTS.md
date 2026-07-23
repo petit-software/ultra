@@ -104,8 +104,16 @@ follow `Ultra-<version>-arm64.dmg` / `Ultra-<version>-arm64-mac.zip`.
    git tag -f <tag> && git push -f origin <tag>
    gh release upload <tag> \
      "release/Ultra-<version>-arm64.dmg" \
-     "release/Ultra-<version>-arm64-mac.zip" --clobber
+     "release/Ultra-<version>-arm64-mac.zip" \
+     "release/latest-mac.yml" --clobber
    ```
+   `latest-mac.yml` is REQUIRED — installed apps auto-update via
+   electron-updater, which reads that manifest from the latest GitHub release
+   and installs from the **zip** (so the zip must always be uploaded too).
+   The manifest's dmg sha512 goes stale when the DMG is stapled after the
+   build — harmless, the updater only verifies the zip. The release must be
+   published (not draft) for clients to see it, and versions must never be
+   reused or decreased.
 
 ### Unsigned local build (no cert / quick iteration)
 

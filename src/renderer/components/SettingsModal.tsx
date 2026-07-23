@@ -46,6 +46,11 @@ export default function SettingsModal(): JSX.Element {
   const [available, setAvailable] = useState<Record<string, boolean>>({})
   const isCustom = !KNOWN_EDITORS.some((e) => e.command === editorCommand)
   const [custom, setCustom] = useState(isCustom ? editorCommand : '')
+  const [version, setVersion] = useState('')
+
+  useEffect(() => {
+    if (open) void window.api.updates.version().then(setVersion)
+  }, [open])
 
   // Probe known editors (plus the active one if custom) when the modal opens.
   useEffect(() => {
@@ -167,6 +172,18 @@ export default function SettingsModal(): JSX.Element {
                   Use
                 </Button>
                 {isCustom && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <SectionLabel>Updates</SectionLabel>
+              <div className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm">
+                <span className="flex-1 text-muted-foreground">
+                  Ultra {version || '…'}
+                </span>
+                <Button size="sm" variant="outline" onClick={() => window.api.updates.check()}>
+                  Check for updates
+                </Button>
               </div>
             </div>
 

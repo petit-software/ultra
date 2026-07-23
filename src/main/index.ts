@@ -28,6 +28,7 @@ import {
 import { probeCommand } from './agents'
 import * as git from './git-service'
 import { openInEditor } from './editor'
+import { initUpdater, checkForUpdatesManually, isQuittingForUpdate } from './updater'
 
 let mainWindow: BrowserWindow | null = null
 let selectedDockIconDataUrl: string | null = null
@@ -184,8 +185,29 @@ function buildAppMenu(): void {
   const send = (cmd: string): void =>
     BrowserWindow.getFocusedWindow()?.webContents.send('menu:command', cmd)
 
+  // Standard app menu plus "Check for Updates…" right under About, the
+  // conventional macOS spot (same placement Sparkle apps use).
+  const appMenu: MenuItemConstructorOptions = {
+    role: 'appMenu',
+    submenu: [
+      { role: 'about' },
+      {
+        label: 'Check for Updates…',
+        click: () => void checkForUpdatesManually(BrowserWindow.getFocusedWindow() ?? undefined)
+      },
+      { type: 'separator' },
+      { role: 'services' },
+      { type: 'separator' },
+      { role: 'hide' },
+      { role: 'hideOthers' },
+      { role: 'unhide' },
+      { type: 'separator' },
+      { role: 'quit' }
+    ]
+  }
+
   const template: MenuItemConstructorOptions[] = [
-    ...(isMac ? [{ role: 'appMenu' as const }] : []),
+    ...(isMac ? [appMenu] : []),
     {
       label: 'Session',
       submenu: [
@@ -269,6 +291,8 @@ function createWindow(): void {
   // close proceed without re-prompting.
   let closeConfirmed = false
   mainWindow.on('close', (e) => {
+    // Never block the updater's restart-to-install with a confirmation.
+    if (isQuittingForUpdate()) return
     if (!confirmOnClose || closeConfirmed || !mainWindow) return
     e.preventDefault()
     const wasQuitting = isQuitting
@@ -410,6 +434,12 @@ function registerIpc(): void {
     confirmOnClose = enabled !== false
   })
 
+  ipcMain.handle('app:getVersion', () => app.getVersion())
+  ipcMain.on('updates:check', (e) => {
+    const win = BrowserWindow.fromWebContents(e.sender)
+    void checkForUpdatesManually(win ?? undefined)
+  })
+
   ipcMain.on('app:setTrayFrames', (_e, payload: unknown) => setTrayFrames(payload))
   ipcMain.on('app:setTrayState', (_e, state: { working?: boolean; animate?: boolean }) => {
     trayWorking = state?.working === true
@@ -424,6 +454,7 @@ app.whenReady().then(() => {
   applyDockIcon()
   nativeTheme.on('updated', () => applyDockIcon())
   createWindow()
+  initUpdater()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
