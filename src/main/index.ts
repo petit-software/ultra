@@ -200,13 +200,13 @@ function buildAppMenu(): void {
           click: () => send('close-session')
         },
         { type: 'separator' },
-        // Cmd+1..9 jump to the Nth session of the active project.
+        // Cmd+1..9 jump to the Nth project tab.
         ...Array.from({ length: 9 }, (_, i): MenuItemConstructorOptions => {
           const n = i + 1
           return {
-            label: `Session ${n}`,
+            label: `Project ${n}`,
             accelerator: `CmdOrCtrl+${n}`,
-            click: () => send(`switch-session-${n}`)
+            click: () => send(`switch-project-${n}`)
           }
         })
       ]
@@ -236,13 +236,14 @@ function createWindow(): void {
     minWidth: 800,
     minHeight: 500,
     show: false,
-    // On macOS the window is transparent and the renderer draws its own rounded
-    // surface — that's the only way to get a corner radius bigger than the
-    // native one. Traffic lights are inset away from the top edge.
+    // On macOS the window uses native vibrancy: the system blurs whatever is
+    // behind the window and the renderer paints a translucent surface over it.
+    // Traffic lights are inset away from the top edge.
     ...(isMac
       ? {
-          transparent: true,
           backgroundColor: '#00000000',
+          vibrancy: 'under-window' as const,
+          visualEffectState: 'followWindow' as const,
           titleBarStyle: 'hidden' as const,
           trafficLightPosition: { x: 20, y: 18 }
         }

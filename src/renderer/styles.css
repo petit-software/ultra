@@ -164,26 +164,6 @@
   animation: ultra-dialog-out 150ms ease-in forwards;
 }
 
-@keyframes ultra-sidebar-in-left {
-  from {
-    opacity: 0;
-    transform: translateX(-24px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-@keyframes ultra-sidebar-in-right {
-  from {
-    opacity: 0;
-    transform: translateX(24px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
 @keyframes ultra-intro-overlay {
   0%,
   58% {
@@ -217,21 +197,11 @@
 .ultra-intro-name {
   animation-delay: 70ms;
 }
-.ultra-intro .ultra-sidebar-left {
-  animation: ultra-sidebar-in-left 360ms 360ms cubic-bezier(0.19, 1, 0.22, 1) both;
-  will-change: opacity, transform;
-}
-.ultra-intro .ultra-sidebar-right {
-  animation: ultra-sidebar-in-right 360ms 420ms cubic-bezier(0.19, 1, 0.22, 1) both;
-  will-change: opacity, transform;
-}
 
 @media (prefers-reduced-motion: reduce) {
   .ultra-intro-overlay,
   .ultra-intro-icon,
   .ultra-intro-name,
-  .ultra-intro .ultra-sidebar-left,
-  .ultra-intro .ultra-sidebar-right,
   .ultra-working-sparkle {
     animation: none;
   }
@@ -245,22 +215,15 @@
   -webkit-app-region: no-drag;
 }
 
-/* macOS window surface — the BrowserWindow is transparent and #root paints the
-   actual window, so the corner radius is ours (bigger than the native ~10px).
-   A hairline border stands in for the native edge highlight. */
+/* macOS window surface — the window carries native vibrancy (blur of whatever
+   is behind it), and #root paints a translucent wash over that material so the
+   app keeps its theme color while the desktop shows through, frosted. Corner
+   rounding and the edge highlight are the native window's. */
 .mac body {
   background: transparent;
 }
 .mac #root {
-  border-radius: 16px;
-  overflow: hidden;
-  background: hsl(var(--background));
-  border: 1px solid hsl(var(--border) / 0.6);
-}
-/* Fullscreen fills the display — no radius, no border. */
-.mac.fullscreen #root {
-  border-radius: 0;
-  border: none;
+  background: hsl(var(--background) / 0.75);
 }
 .mac.fullscreen .ultra-app-header {
   padding-left: 0.5rem;

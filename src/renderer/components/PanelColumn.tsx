@@ -1,43 +1,44 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable'
-import { useStore, type SidebarId } from '../store/useStore'
-import { PANEL_REGISTRY } from './panelRegistry'
+import { useStore, isSplitPanel } from '../store/useStore'
+import { panelMeta } from './panelRegistry'
 import { PanelDndContext, PANEL_DND_MIME, setPanelDragImage } from './panelDnd'
 import { cn } from '@/lib/utils'
 
 const SECTION = 'ultra-panel overflow-hidden rounded-xl border border-border bg-transparent'
-const HANDLE = 'mx-1 bg-transparent data-[panel-group-direction=vertical]:h-2'
+const HANDLE = 'mx-1 bg-transparent data-[panel-group-direction=vertical]:h-3'
 
 interface Props {
-  side: SidebarId
+  /** Index into the store's panelColumns. */
+  index: number
 }
 
 /**
- * A sidebar whose panels are arranged entirely by the user. Panels can be
- * dragged to reorder within the sidebar or moved across to the other sidebar;
- * the arrangement lives in the store and is persisted.
+ * One column of panels, arranged entirely by the user. Panels can be dragged
+ * to reorder within the column, into another column, or into a gap between
+ * columns (which creates a new column); the arrangement lives in the store.
  *
- * While any panel is held, every viable drop target tints gray (in both
- * sidebars — `draggingPanel` is global), and the half of the hovered panel
- * where the drop would land fills in with a stronger tint plus an accent line
- * at the exact insertion edge. `hover` tracks the panel under the cursor and
- * the slot (0..visible.length) a drop would insert into.
+ * While any panel is held, every viable drop target tints gray (in every
+ * column — `draggingPanel` is global), and the half of the hovered panel
+ * where the drop would land fills in with a stronger tint. `hover` tracks the
+ * panel under the cursor and the slot (0..visible.length) a drop inserts into.
  */
-export default function Sidebar({ side }: Props): JSX.Element {
-  const layout = useStore((s) => s.sidebarLayout[side])
+export default function PanelColumn({ index }: Props): JSX.Element {
+  const column = useStore((s) => s.panelColumns[index])
   const blocks = useStore((s) => s.sidebarBlocks)
   const dragging = useStore((s) => s.draggingPanel)
   const movePanel = useStore((s) => s.movePanel)
   const setDraggingPanel = useStore((s) => s.setDraggingPanel)
 
-  const visible = layout.filter((key) => blocks[key])
+  // Split panels have no visibility toggle — they exist until closed.
+  const visible = (column ?? []).filter((key) => isSplitPanel(key) || blocks[key])
   const [hover, setHover] = useState<{ index: number; slot: number } | null>(null)
   // Set on dragend so the deferred dragstart callback below can tell whether
   // the drag was aborted before it ever got going.
   const dragEnded = useRef(false)
 
-  // The drag can end anywhere (drop in the other sidebar, Escape) without this
-  // sidebar seeing dragend, so clear any lingering highlight off the store flag.
+  // The drag can end anywhere (drop in another column, Escape) without this
+  // column seeing dragend, so clear any lingering highlight off the store flag.
   useEffect(() => {
     if (!dragging) setHover(null)
   }, [dragging])
@@ -49,15 +50,15 @@ export default function Sidebar({ side }: Props): JSX.Element {
 
   // Insert before this panel when the cursor is in its top half, after it in the
   // bottom half — so a panel can be dropped into any slot, including the end.
-  const slotForPointer = (e: React.DragEvent, index: number): number => {
+  const slotForPointer = (e: React.DragEvent, idx: number): number => {
     const rect = e.currentTarget.getBoundingClientRect()
-    return e.clientY < rect.top + rect.height / 2 ? index : index + 1
+    return e.clientY < rect.top + rect.height / 2 ? idx : idx + 1
   }
 
   const commitDrop = (slot: number): void => {
     if (dragging) {
       const beforeKey = slot < visible.length ? visible[slot] : null
-      movePanel(dragging, side, beforeKey)
+      movePanel(dragging, index, beforeKey)
     }
     setHover(null)
     setDraggingPanel(null)
@@ -66,14 +67,13 @@ export default function Sidebar({ side }: Props): JSX.Element {
   return (
     <ResizablePanelGroup
       direction="vertical"
-      autoSaveId={`ultra-${side}`}
+      autoSaveId={`ultra-col-${index}`}
       onDragOver={(e) => {
-        // Group-level fallback so the gaps between panels (resize handles) and
-        // an empty sidebar also accept the drop instead of flashing not-allowed.
+        // Group-level fallback so the gaps between panels (resize handles)
+        // also accept the drop instead of flashing not-allowed.
         if (!isPanelDrag(e)) return
         e.preventDefault()
         e.dataTransfer.dropEffect = 'move'
-        if (!visible.length) setHover((h) => h ?? { index: 0, slot: 0 })
       }}
       onDrop={(e) => {
         if (!isPanelDrag(e)) return
@@ -86,24 +86,14 @@ export default function Sidebar({ side }: Props): JSX.Element {
         if (!group.contains(e.relatedTarget as Node | null)) setHover(null)
       }}
     >
-      {visible.length === 0 && (
-        <ResizablePanel
-          id={`${side}-empty-drop`}
-          order={0}
-          defaultSize={100}
-          className={cn(SECTION, 'border-transparent')}
-        >
-          <EmptyDropTarget active={hover !== null} />
-        </ResizablePanel>
-      )}
-      {visible.map((key, index) => {
-        const meta = PANEL_REGISTRY[key]
+      {visible.map((key, idx) => {
+        const meta = panelMeta(key)
         return (
           <Fragment key={key}>
-            {index > 0 && <ResizableHandle className={HANDLE} />}
+            {idx > 0 && <ResizableHandle className={HANDLE} />}
             <ResizablePanel
               id={key}
-              order={index}
+              order={idx}
               defaultSize={meta.defaultSize}
               minSize={meta.minSize}
               className={cn(
@@ -121,7 +111,7 @@ export default function Sidebar({ side }: Props): JSX.Element {
                     setPanelDragImage(e, meta.label)
                     // Chromium aborts a drag whose source shifts while dragstart
                     // is still dispatching — and flipping the store into drag
-                    // mode mounts any collapsed sidebar, which does exactly
+                    // mode mounts the drop affordances, which does exactly
                     // that. Let the drag actually begin before showing targets.
                     dragEnded.current = false
                     setTimeout(() => {
@@ -141,20 +131,20 @@ export default function Sidebar({ side }: Props): JSX.Element {
                     if (!isPanelDrag(e)) return
                     e.preventDefault()
                     e.dataTransfer.dropEffect = 'move'
-                    const slot = slotForPointer(e, index)
-                    setHover((h) => (h?.index === index && h.slot === slot ? h : { index, slot }))
+                    const slot = slotForPointer(e, idx)
+                    setHover((h) => (h?.index === idx && h.slot === slot ? h : { index: idx, slot }))
                   }}
                   onDrop={(e) => {
                     if (!isPanelDrag(e)) return
                     e.preventDefault()
                     e.stopPropagation()
-                    commitDrop(slotForPointer(e, index))
+                    commitDrop(slotForPointer(e, idx))
                   }}
                 >
                   {meta.render()}
                   <DropZone
                     visible={dragging !== null}
-                    active={hover?.index === index}
+                    active={hover?.index === idx}
                     icon={meta.icon}
                     label={meta.label}
                   />
@@ -165,29 +155,6 @@ export default function Sidebar({ side }: Props): JSX.Element {
         )
       })}
     </ResizablePanelGroup>
-  )
-}
-
-/**
- * Full-height drop target shown in a sidebar that has no visible panels. The
- * sidebar itself only renders in this state while a drag is active (App keeps
- * empty sidebars collapsed otherwise), so this is always a live target.
- */
-function EmptyDropTarget({ active }: { active: boolean }): JSX.Element {
-  return (
-    <div className="relative h-full">
-      <div className="absolute inset-0 bg-background" />
-      <div className="absolute inset-0 bg-muted/50" />
-      <div
-        className={cn(
-          'absolute inset-0 bg-foreground/10 transition-opacity duration-100',
-          active ? 'opacity-100' : 'opacity-0'
-        )}
-      />
-      <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/50">
-        <span className="text-xs font-semibold uppercase tracking-wider">Drop panel here</span>
-      </div>
-    </div>
   )
 }
 

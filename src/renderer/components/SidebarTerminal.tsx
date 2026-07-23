@@ -53,7 +53,7 @@ export default function SidebarTerminal(): JSX.Element {
 
   return (
     <div className="group/section flex h-full flex-col">
-      <PaneHeader title="Terminal" />
+      <PaneHeader title="Termini" />
       <div className="relative min-h-0 flex-1">
         {mountedIds.map((id) => (
           <TerminalView

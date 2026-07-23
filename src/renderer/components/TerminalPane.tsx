@@ -1,43 +1,45 @@
-import { X } from 'lucide-react'
+import { useRef } from 'react'
+import { X, Plus } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import TerminalView from './TerminalView'
 import PaneHeader from './PaneHeader'
 import ShellStatusMark from './ShellStatusMark'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
-import { appIconById } from '@/lib/appIcons'
 
-interface Props {
-  introActive?: boolean
-}
-
-export default function TerminalPane({ introActive = false }: Props): JSX.Element {
+export default function TerminalPane(): JSX.Element {
   const sessions = useStore((s) => s.sessions)
   const projects = useStore((s) => s.projects)
   const activeSessionId = useStore((s) => s.activeSessionId)
-  const leftSidebarVisible = useStore((s) => s.leftSidebarVisible)
-  const rightSidebarVisible = useStore((s) => s.rightSidebarVisible)
-  const sidebarLayout = useStore((s) => s.sidebarLayout)
-  const blocks = useStore((s) => s.sidebarBlocks)
+  const splitPanes = useStore((s) => s.splitPanes)
   const runningSessions = useStore((s) => s.runningSessions)
-  const selectedAppIconId = useStore((s) => s.selectedAppIconId)
   const setActiveSession = useStore((s) => s.setActiveSession)
   const closeSession = useStore((s) => s.closeSession)
+  const newSession = useStore((s) => s.newSession)
   const active = activeSessionId ? sessions[activeSessionId] : null
   const activeProject = active ? projects.find((p) => p.id === active.projectId) : null
   const projectSessionIds = activeProject?.sessionIds.filter((id) => sessions[id]) ?? []
-  // The header falls back to tabs only when the Projects panel isn't on screen —
-  // wherever the user has docked it.
-  const projectsSideVisible = sidebarLayout.left.includes('projects')
-    ? leftSidebarVisible
-    : rightSidebarVisible
-  const projectsVisible = projectsSideVisible && blocks.projects
-  const showHeaderTabs = !projectsVisible && projectSessionIds.length > 1
-  const appIcon = appIconById(selectedAppIconId)
+  // Projects live as tabs in the app bar, so the pane header always shows the
+  // active project's session tabs once there is more than one.
+  const showHeaderTabs = projectSessionIds.length > 1
   const ids = Object.keys(sessions)
 
+  // Sessions that live in split panes render there, not here.
+  const pinned = new Set(Object.values(splitPanes).flat())
+  const stackIds = ids.filter((id) => !pinned.has(id))
+  // When the active session belongs to a split panel, keep showing whatever
+  // non-pinned session this pane showed last instead of jumping around.
+  const lastMainId = useRef<string | null>(null)
+  if (activeSessionId && !pinned.has(activeSessionId) && sessions[activeSessionId])
+    lastMainId.current = activeSessionId
+  const mainVisibleId =
+    lastMainId.current && sessions[lastMainId.current] && !pinned.has(lastMainId.current)
+      ? lastMainId.current
+      : (stackIds[0] ?? null)
+
   return (
-    <div className="group/section relative flex h-full flex-col bg-background">
+    <div className="group/section relative flex h-full flex-col">
       <PaneHeader
         title={showHeaderTabs ? 'shells' : (active?.title ?? 'terminal')}
         titleContent={
@@ -71,7 +73,23 @@ export default function TerminalPane({ introActive = false }: Props): JSX.Elemen
           ) : null
         }
       >
-        {active && (
+        {activeProject && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-5 w-5"
+                onClick={() => newSession(activeProject.id)}
+              >
+                <Plus />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>New session</TooltipContent>
+          </Tooltip>
+        )}
+        {/* The last remaining session can't be closed — no X for it. */}
+        {active && ids.length > 1 && (
           <Button
             variant="ghost"
             size="icon"
@@ -87,32 +105,20 @@ export default function TerminalPane({ introActive = false }: Props): JSX.Elemen
       <div className="relative min-h-0 flex-1">
         {ids.length === 0 && (
           <div className="p-4 text-sm text-muted-foreground">
-            No active session. Create one from the Projects sidebar.
+            No active session. Open a project from the top bar.
           </div>
         )}
-        {ids.map((id) => (
+        {stackIds.map((id) => (
           <TerminalView
             key={id}
             sessionId={id}
             cwd={sessions[id].cwd}
             command={sessions[id].command}
-            visible={id === activeSessionId}
+            visible={id === mainVisibleId}
+            transparent
           />
         ))}
       </div>
-
-      {introActive && (
-        <div className="ultra-intro-overlay absolute inset-0 z-20 flex flex-col items-center justify-center bg-background">
-          <img
-            src={appIcon.url}
-            alt="Ultra"
-            className="ultra-intro-icon h-20 w-20 rounded-[22px]"
-          />
-          <div className="ultra-intro-name mt-3 text-sm font-semibold tracking-wide text-foreground">
-            Ultra
-          </div>
-        </div>
-      )}
     </div>
   )
 }

@@ -1,65 +1,20 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import Sidebar from './components/Sidebar'
-import TerminalPane from './components/TerminalPane'
-import AgentMenu from './components/AgentMenu'
-import ThemeToggle from './components/ThemeToggle'
-import EditorMenu from './components/EditorMenu'
+import PanelColumn from './components/PanelColumn'
+import ProjectTabs from './components/ProjectTabs'
 import ViewMenu from './components/ViewMenu'
+import SettingsModal from './components/SettingsModal'
 import WelcomeModal from './components/WelcomeModal'
-import { useStore, LAYOUT_AUTO_SAVE_ID, LAYOUT_STORAGE_KEY } from './store/useStore'
+import { useStore, isSplitPanel } from './store/useStore'
+import { PANEL_DND_MIME } from './components/panelDnd'
 import { cn } from '@/lib/utils'
-import { applyDockIconById, startDockIconBlinker } from '@/lib/appIcons'
+import { appIconById, applyDockIconById, startDockIconBlinker } from '@/lib/appIcons'
 import { syncTrayState } from '@/lib/trayIcon'
 
-// Terminal: flush with the base, no rounded border or shadow.
-const TERM = 'bg-background'
-const GAP = 'w-2 my-1 bg-transparent'
-const SIDEBAR_DEFAULT_SIZE = 22
-const SIDEBAR_MIN_SIZE = 12
-const SIDEBAR_MAX_SIZE = 36
-const HORIZONTAL_LAYOUT_PANEL_KEY = 'center,left,right'
-const OLD_UNBALANCED_LAYOUT = [18, 54, 28]
-const BALANCED_LAYOUT = [SIDEBAR_DEFAULT_SIZE, 100 - SIDEBAR_DEFAULT_SIZE * 2, SIDEBAR_DEFAULT_SIZE]
-
-function isSameLayout(layout: unknown, expected: number[]): layout is number[] {
-  return (
-    Array.isArray(layout) &&
-    layout.length === expected.length &&
-    layout.every((value, index) => typeof value === 'number' && Math.abs(value - expected[index]) < 0.1)
-  )
-}
-
-function migrateSavedSidebarLayout(value: string): string {
-  try {
-    const parsed = JSON.parse(value) as Record<string, { layout?: unknown }>
-    const savedLayout = parsed[HORIZONTAL_LAYOUT_PANEL_KEY]
-
-    if (isSameLayout(savedLayout?.layout, OLD_UNBALANCED_LAYOUT)) {
-      parsed[HORIZONTAL_LAYOUT_PANEL_KEY] = {
-        ...savedLayout,
-        layout: BALANCED_LAYOUT
-      }
-      return JSON.stringify(parsed)
-    }
-  } catch {
-    return value
-  }
-
-  return value
-}
-
-const layoutStorage = {
-  getItem(name: string): string | null {
-    const value = localStorage.getItem(name)
-    if (name === LAYOUT_STORAGE_KEY && value) return migrateSavedSidebarLayout(value)
-    return value
-  },
-  setItem(name: string, value: string): void {
-    localStorage.setItem(name, value)
-  }
-}
+const GAP = 'w-3 my-1 bg-transparent'
+/** Default width for the column holding the main terminal, in percent. */
+const SHELLS_COLUMN_SIZE = 56
 
 // Native agent builds can report their process name with an .exe suffix even
 // on macOS (e.g. the Bun-compiled `claude` binary shows up as `claude.exe`).
@@ -71,7 +26,7 @@ function commandName(command: string): string {
 export default function App(): JSX.Element {
   const hydrate = useStore((s) => s.hydrate)
   const blocks = useStore((s) => s.sidebarBlocks)
-  const layout = useStore((s) => s.sidebarLayout)
+  const columns = useStore((s) => s.panelColumns)
   const [introActive, setIntroActive] = useState(true)
   const sessions = useStore((s) => s.sessions)
   const agents = useStore((s) => s.agents)
@@ -79,15 +34,12 @@ export default function App(): JSX.Element {
   const runningSessions = useStore((s) => s.runningSessions)
   const selectedAppIconId = useStore((s) => s.selectedAppIconId)
   const panelLayoutResetCount = useStore((s) => s.panelLayoutResetCount)
-  // A sidebar with every one of its panels toggled off collapses entirely —
-  // except while a panel is being dragged, so it can reappear as a drop target.
   const draggingPanel = useStore((s) => s.draggingPanel)
-  const leftVisible =
-    useStore((s) => s.leftSidebarVisible) &&
-    (draggingPanel !== null || layout.left.some((k) => blocks[k]))
-  const rightVisible =
-    useStore((s) => s.rightSidebarVisible) &&
-    (draggingPanel !== null || layout.right.some((k) => blocks[k]))
+  const movePanelToNewColumn = useStore((s) => s.movePanelToNewColumn)
+  const setDraggingPanel = useStore((s) => s.setDraggingPanel)
+  // The gap index a drop would create a new column at, while hovered.
+  const [hoverGap, setHoverGap] = useState<number | null>(null)
+
   const agentProcessNames = new Set(agents.map((agent) => commandName(agent.command)))
   const agentWorking = Object.entries(sessions).some(([id, session]) => {
     const agentSession = session.agentStarted || !!session.agentName
@@ -95,9 +47,27 @@ export default function App(): JSX.Element {
     return (agentSession || foregroundAgent) && !!runningSessions[id]
   })
 
+  // Columns whose every panel is toggled off collapse entirely.
+  const visibleColumns = columns
+    .map((column, index) => ({
+      index,
+      panels: column.filter((k) => isSplitPanel(k) || blocks[k])
+    }))
+    .filter((c) => c.panels.length > 0)
+  const shellsAt = visibleColumns.findIndex((c) => c.panels.includes('shells'))
+  const columnSize = (i: number): number => {
+    const n = visibleColumns.length
+    if (n <= 1 || shellsAt < 0) return 100 / Math.max(n, 1)
+    return i === shellsAt ? SHELLS_COLUMN_SIZE : (100 - SHELLS_COLUMN_SIZE) / (n - 1)
+  }
+
   useEffect(() => {
     void hydrate()
   }, [hydrate])
+
+  useEffect(() => {
+    if (!draggingPanel) setHoverGap(null)
+  }, [draggingPanel])
 
   useEffect(() => {
     if (!agentWorking) {
@@ -129,16 +99,40 @@ export default function App(): JSX.Element {
   }, [])
 
   // Keyboard shortcuts via the app menu: Cmd+D new session, Cmd+W close session,
-  // Cmd+1..9 switch to the Nth session of the active project.
+  // Cmd+1..9 switch to the Nth project tab.
   useEffect(() => {
     return window.api.menu.onCommand((cmd) => {
       const s = useStore.getState()
       if (cmd === 'new-session') s.newSessionInActiveProject()
       else if (cmd === 'close-session') s.closeActiveSession()
-      else if (cmd.startsWith('switch-session-'))
-        s.setActiveSessionByIndex(Number(cmd.slice('switch-session-'.length)))
+      else if (cmd.startsWith('switch-project-'))
+        s.activateProjectByIndex(Number(cmd.slice('switch-project-'.length)))
     })
   }, [])
+
+  const isPanelDrag = (e: React.DragEvent): boolean =>
+    e.dataTransfer.types.includes(PANEL_DND_MIME)
+
+  // Drop handlers for the gaps between columns and the outer edges — dropping
+  // there opens a brand-new column at that position.
+  const gapDropProps = (gap: number): React.HTMLAttributes<HTMLElement> => ({
+    onDragOver: (e) => {
+      if (!isPanelDrag(e)) return
+      e.preventDefault()
+      e.stopPropagation()
+      e.dataTransfer.dropEffect = 'move'
+      setHoverGap(gap)
+    },
+    onDragLeave: () => setHoverGap((g) => (g === gap ? null : g)),
+    onDrop: (e) => {
+      if (!isPanelDrag(e)) return
+      e.preventDefault()
+      e.stopPropagation()
+      if (draggingPanel) movePanelToNewColumn(draggingPanel, gap)
+      setHoverGap(null)
+      setDraggingPanel(null)
+    }
+  })
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -146,72 +140,80 @@ export default function App(): JSX.Element {
       <div className={cn('flex h-full flex-col bg-background', introActive && 'ultra-intro')}>
         {/* h-12 vertically centers the traffic lights (positioned at y:18 in main). */}
         <header className="app-drag ultra-app-header flex h-12 flex-none items-center gap-2 pl-[92px] pr-2">
-          <div
-            className="flex h-7 w-auto items-center justify-center text-muted-foreground"
-            aria-label="Ultra"
-          >
-            <svg viewBox="0 0 463 325" fill="currentColor" className="h-3.5 w-auto" aria-hidden>
-              <path d="M445.877 290.789C455.324 290.789 462.982 298.448 462.982 307.895C462.982 317.341 455.324 325 445.877 325H271.403C261.956 325 254.298 317.341 254.298 307.895C254.298 298.448 261.956 290.789 271.403 290.789H445.877ZM127.149 0C138.767 0.000129713 147.803 7.0538 151.03 17.9551L169.747 84.6475L236.227 102.603C247.199 105.168 254.298 114.787 254.298 125.688C254.298 137.231 247.199 146.209 236.227 149.415L169.747 168.012L151.03 234.062C147.803 244.964 138.767 252.017 127.149 252.018C115.532 252.018 106.496 244.964 103.269 234.062L84.5508 167.37L18.0723 149.415C7.74554 146.209 0.645548 137.231 0 125.688C0 114.787 7.10001 105.809 18.0723 102.603L85.1963 84.0059L103.269 17.9551C106.496 7.05379 115.532 0 127.149 0Z" />
-            </svg>
-          </div>
+          <ProjectTabs />
           <div className="ml-auto flex items-center gap-1">
             <ViewMenu />
-            <div className="mx-1 h-4 w-px bg-border" />
-            <EditorMenu />
-            <ThemeToggle />
-            <AgentMenu />
+            <SettingsModal />
           </div>
         </header>
 
-        <ResizablePanelGroup
-          key={panelLayoutResetCount}
-          direction="horizontal"
-          className="min-h-0 flex-1 p-2 pt-0"
-          autoSaveId={LAYOUT_AUTO_SAVE_ID}
-          storage={layoutStorage}
-        >
-          {leftVisible && (
-            <>
-              <ResizablePanel
-                id="left"
-                order={1}
-                defaultSize={SIDEBAR_DEFAULT_SIZE}
-                minSize={SIDEBAR_MIN_SIZE}
-                maxSize={SIDEBAR_MAX_SIZE}
-                className="ultra-sidebar-panel ultra-sidebar-left"
-              >
-                <Sidebar side="left" />
-              </ResizablePanel>
-              <ResizableHandle className={GAP} />
-            </>
-          )}
-
-          <ResizablePanel
-            id="center"
-            order={2}
-            defaultSize={100 - SIDEBAR_DEFAULT_SIZE * 2}
-            minSize={30}
-            className={TERM}
+        <div className="relative min-h-0 flex-1">
+          <ResizablePanelGroup
+            key={panelLayoutResetCount}
+            direction="horizontal"
+            className="h-full p-3 pt-0"
+            autoSaveId="ultra-columns"
           >
-            <TerminalPane introActive={introActive} />
-          </ResizablePanel>
+            {visibleColumns.map((column, i) => (
+              <Fragment key={`col-${column.index}`}>
+                {i > 0 && (
+                  <ResizableHandle
+                    className={cn(
+                      GAP,
+                      draggingPanel && hoverGap === column.index && 'rounded-full bg-foreground/15'
+                    )}
+                    // The handle types its DOM props over `keyof HTMLElementTagNameMap`,
+                    // which no concrete handler signature satisfies — cast the spread.
+                    {...(gapDropProps(column.index) as unknown as Partial<
+                      React.ComponentProps<typeof ResizableHandle>
+                    >)}
+                  />
+                )}
+                <ResizablePanel
+                  id={`col-${column.index}`}
+                  order={i}
+                  defaultSize={columnSize(i)}
+                  minSize={10}
+                >
+                  <PanelColumn index={column.index} />
+                </ResizablePanel>
+              </Fragment>
+            ))}
+          </ResizablePanelGroup>
 
-          {rightVisible && (
+          {/* Edge strips: drop at the far left/right to open an outermost column. */}
+          {draggingPanel && (
             <>
-              <ResizableHandle className={GAP} />
-              <ResizablePanel
-                id="right"
-                order={3}
-                defaultSize={SIDEBAR_DEFAULT_SIZE}
-                minSize={SIDEBAR_MIN_SIZE}
-                maxSize={SIDEBAR_MAX_SIZE}
-                className="ultra-sidebar-panel ultra-sidebar-right"
-              >
-                <Sidebar side="right" />
-              </ResizablePanel>
+              <div
+                {...gapDropProps(0)}
+                className={cn(
+                  'absolute inset-y-1 left-0 z-30 w-3 rounded-r',
+                  hoverGap === 0 && 'bg-foreground/15'
+                )}
+              />
+              <div
+                {...gapDropProps(columns.length)}
+                className={cn(
+                  'absolute inset-y-1 right-0 z-30 w-3 rounded-l',
+                  hoverGap === columns.length && 'bg-foreground/15'
+                )}
+              />
             </>
           )}
-        </ResizablePanelGroup>
+
+          {introActive && (
+            <div className="ultra-intro-overlay absolute inset-0 z-40 flex flex-col items-center justify-center bg-background">
+              <img
+                src={appIconById(selectedAppIconId).url}
+                alt="Ultra"
+                className="ultra-intro-icon h-20 w-20 rounded-[22px]"
+              />
+              <div className="ultra-intro-name mt-3 text-sm font-semibold tracking-wide text-foreground">
+                Ultra
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </TooltipProvider>
   )

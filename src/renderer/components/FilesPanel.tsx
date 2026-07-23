@@ -138,7 +138,7 @@ export default function FilesPanel(): JSX.Element {
         ) : (
           <div className="space-y-1 p-4 text-sm text-muted-foreground">
             <p>No folder open.</p>
-            <p>Open a folder from the Projects sidebar to browse its files.</p>
+            <p>Open a folder from the top bar to browse its files.</p>
           </div>
         )}
       </div>

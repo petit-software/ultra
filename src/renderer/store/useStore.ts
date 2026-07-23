@@ -51,12 +51,13 @@ export type ThemeMode = 'dark' | 'light'
 
 /** Per-block visibility inside the sidebars. */
 export interface SidebarBlocks {
-  projects: boolean
   git: boolean
   files: boolean
   editor: boolean
   context: boolean
   terminal: boolean
+  /** The main shells terminal. Always on; lives here so it can be a panel. */
+  shells: boolean
 }
 
 /** A file currently open in the in-app editor panel. Not persisted. */
@@ -66,62 +67,119 @@ export interface ActiveFile {
 }
 
 export type SidebarBlockKey = keyof SidebarBlocks
-/** A panel is any block that can be placed inside a sidebar. */
-export type PanelKey = SidebarBlockKey
-export type SidebarId = 'left' | 'right'
+/**
+ * A panel is any block that can be placed inside a sidebar, plus dynamically
+ * created terminal split panes (`split:<paneId>`).
+ */
+export type PanelKey = SidebarBlockKey | `split:${string}`
 
-/** Which panels live in each sidebar, in top-to-bottom order. Fully user-arranged. */
-export interface SidebarLayout {
-  left: PanelKey[]
-  right: PanelKey[]
-}
+/** True for a dynamically created terminal split pane. */
+export const isSplitPanel = (key: PanelKey): key is `split:${string}` => key.startsWith('split:')
+/** The pane a split panel renders (see `splitPanes`). */
+export const splitPaneId = (key: `split:${string}`): string => key.slice('split:'.length)
+
+/** Where a terminal split lands: below the anchor panel, or in a new column. */
+export type SplitDirection = 'down' | 'side'
+
+/**
+ * The whole layout is just ordered columns of panels — no fixed sidebars.
+ * Panels can be dropped anywhere: into a column, or between columns (which
+ * creates a new column). Columns disappear when their last panel leaves.
+ */
+export type PanelColumns = PanelKey[][]
 
 const DEFAULT_SIDEBAR_BLOCKS: SidebarBlocks = {
-  projects: true,
   git: true,
   files: true,
   editor: false,
   context: true,
-  terminal: false
+  terminal: false,
+  shells: true
 }
 
-const DEFAULT_SIDEBAR_LAYOUT: SidebarLayout = {
-  left: ['projects', 'git'],
-  right: ['files', 'editor', 'context', 'terminal']
+const DEFAULT_PANEL_COLUMNS: PanelColumns = [
+  ['git'],
+  ['shells'],
+  ['files', 'editor', 'context', 'terminal']
+]
+
+/** A project's whole panel arrangement: columns plus per-panel visibility. */
+export interface PanelLayout {
+  columns: PanelColumns
+  blocks: SidebarBlocks
 }
+
+const defaultPanelLayout = (): PanelLayout => ({
+  columns: DEFAULT_PANEL_COLUMNS.map((c) => [...c]),
+  blocks: { ...DEFAULT_SIDEBAR_BLOCKS }
+})
 
 const ALL_PANEL_KEYS = Object.keys(DEFAULT_SIDEBAR_BLOCKS) as PanelKey[]
 
-/** autoSaveId for the root ResizablePanelGroup; widths persist under this key. */
-export const LAYOUT_AUTO_SAVE_ID = 'ultra-layout'
-export const LAYOUT_STORAGE_KEY = `react-resizable-panels:${LAYOUT_AUTO_SAVE_ID}`
+/** All react-resizable-panels autosave entries live under this prefix. */
+export const LAYOUT_STORAGE_PREFIX = 'react-resizable-panels:'
 
 /**
  * Coerce a persisted (possibly stale or corrupt) layout into a valid one: every
- * panel key present exactly once, unknown keys dropped, and any panel missing
- * from the saved layout re-added to whichever sidebar it defaults to.
+ * panel key present exactly once, unknown keys dropped, any panel missing from
+ * the saved layout re-added near its default position, and empty columns gone.
  */
-function normalizeLayout(layout?: Partial<SidebarLayout> | null): SidebarLayout {
+function normalizeColumns(value: unknown): PanelColumns {
   const valid = new Set<PanelKey>(ALL_PANEL_KEYS)
   const seen = new Set<PanelKey>()
   const clean = (keys: unknown): PanelKey[] =>
     (Array.isArray(keys) ? keys : []).filter((k): k is PanelKey => {
-      if (!valid.has(k as PanelKey) || seen.has(k as PanelKey)) return false
-      seen.add(k as PanelKey)
+      if (typeof k !== 'string') return false
+      const key = k as PanelKey
+      // Split panels are valid wherever they were saved; orphans (whose session
+      // is gone) are pruned at hydrate, where the session map is known.
+      if ((!isSplitPanel(key) && !valid.has(key)) || seen.has(key)) return false
+      seen.add(key)
       return true
     })
-  const left = clean(layout?.left)
-  const right = clean(layout?.right)
+  const columns = (Array.isArray(value) ? value : []).map(clean)
+  while (columns.length < DEFAULT_PANEL_COLUMNS.length) columns.push([])
   for (const key of ALL_PANEL_KEYS) {
     if (seen.has(key)) continue
-    ;(DEFAULT_SIDEBAR_LAYOUT.left.includes(key) ? left : right).push(key)
+    const at = DEFAULT_PANEL_COLUMNS.findIndex((c) => c.includes(key))
+    columns[Math.min(at < 0 ? columns.length - 1 : at, columns.length - 1)].push(key)
   }
-  return { left, right }
+  const nonEmpty = columns.filter((c) => c.length > 0)
+  return nonEmpty.length > 0 ? nonEmpty : DEFAULT_PANEL_COLUMNS.map((c) => [...c])
 }
 
-/** Which sidebar currently holds a given panel. */
-function sidebarOf(layout: SidebarLayout, key: PanelKey): SidebarId {
-  return layout.left.includes(key) ? 'left' : 'right'
+/** Drop sessions that no longer exist from panes, and panes left empty. */
+function prunePanes(
+  panes: Record<string, string[]>,
+  sessions: Record<string, Session>
+): Record<string, string[]> {
+  const out: Record<string, string[]> = {}
+  for (const [id, list] of Object.entries(panes)) {
+    const kept = (Array.isArray(list) ? list : []).filter((sid) => sessions[sid])
+    if (kept.length > 0) out[id] = kept
+  }
+  return out
+}
+
+/** Drop split panels whose pane no longer exists, and any emptied columns. */
+function pruneSplitPanels(
+  columns: PanelColumns,
+  panes: Record<string, string[]>
+): PanelColumns {
+  const keep = (k: PanelKey): boolean => !isSplitPanel(k) || !!panes[splitPaneId(k)]
+  return columns.map((c) => c.filter(keep)).filter((c) => c.length > 0)
+}
+
+/** Same pruning applied to every project's layout. */
+function pruneAllLayouts(
+  layouts: Record<string, PanelLayout>,
+  panes: Record<string, string[]>
+): Record<string, PanelLayout> {
+  const out: Record<string, PanelLayout> = {}
+  for (const [pid, layout] of Object.entries(layouts)) {
+    out[pid] = { ...layout, columns: pruneSplitPanels(layout.columns, panes) }
+  }
+  return out
 }
 
 interface PersistShape {
@@ -133,10 +191,10 @@ interface PersistShape {
   recentAgentIds: string[]
   theme: ThemeMode
   editorCommand: string
-  leftSidebarVisible: boolean
-  rightSidebarVisible: boolean
-  sidebarBlocks: SidebarBlocks
-  sidebarLayout: SidebarLayout
+  /** Each project's own panel arrangement, keyed by project id. */
+  panelLayouts: Record<string, PanelLayout>
+  /** Terminal split panes: pane id → the sessions it hosts, in tab order. */
+  splitPanes: Record<string, string[]>
   onboarded: boolean
   selectedAppIconId: string
   /** Ask "Are you sure you want to close Ultra?" before closing/quitting. */
@@ -151,6 +209,13 @@ function applyTheme(theme: ThemeMode): void {
 
 interface AppState extends PersistShape {
   hydrated: boolean
+  /**
+   * The ACTIVE project's layout, mirrored out of `panelLayouts` so components
+   * keep simple selectors. Kept in sync by every layout mutation and by the
+   * project-switch subscriber at the bottom of this file. Not persisted.
+   */
+  panelColumns: PanelColumns
+  sidebarBlocks: SidebarBlocks
   /** File open in the in-app editor panel, or null. Not persisted. */
   activeFile: ActiveFile | null
   /** Session ids where a foreground process (agent/command) is running. Not persisted. */
@@ -174,28 +239,47 @@ interface AppState extends PersistShape {
   launchAgent: (projectId: string, agent: Agent) => void
   startAgent: (sessionId: string, agent: Agent) => void
   removeProject: (projectId: string) => void
-  reorderProject: (dragId: string, overId: string) => void
+  /** Remove every project (and its sessions), leaving a fresh default project. */
+  clearAllProjects: () => void
+  /** Switch to a project's most recently used session (creating one if needed). */
+  activateProject: (projectId: string) => void
+  /** Reorder tabs: move a project directly before `beforeId` (or to the end). */
+  moveProjectTo: (dragId: string, beforeId: string | null) => void
+  /**
+   * Split any panel: open a new shell pane as its own panel, placed relative
+   * to `anchor` — below it ("down") or in a new column beside it ("side").
+   * The new pane can then be swapped to any panel type from its title menu.
+   */
+  splitPanel: (direction: SplitDirection, anchor?: PanelKey) => void
+  /** Open another shell session inside an existing split pane. */
+  newSessionInSplitPane: (paneId: string) => void
+  /** Close a split pane and every session it hosts. */
+  closeSplitPane: (paneId: string) => void
+  /** Close any panel: hide a regular panel, or close a split pane entirely. */
+  closePanel: (key: PanelKey) => void
+  /** Swap a panel's spot with another panel type (via the title dropdown). */
+  swapPanel: (key: PanelKey, withKey: SidebarBlockKey) => void
   renameSession: (id: string, title: string) => void
   closeSession: (id: string) => void
   setActiveSession: (id: string) => void
-  /** Switch to the Nth session (1-based) of the active project (Cmd+1..9). */
-  setActiveSessionByIndex: (index: number) => void
+  /** Switch to the Nth project tab (1-based), for Cmd+1..9. */
+  activateProjectByIndex: (index: number) => void
   addAgent: (name: string, command: string) => void
   removeAgent: (id: string) => void
   pinContext: (projectId: string, paths: string[]) => void
   unpinContext: (projectId: string, path: string) => void
   toggleTheme: () => void
   setEditorCommand: (command: string) => void
-  toggleLeftSidebar: () => void
-  toggleRightSidebar: () => void
   toggleSidebarBlock: (block: SidebarBlockKey) => void
   /**
-   * Move a panel to `side`, inserting it directly before `beforeKey` (or at the
-   * end of that sidebar when `beforeKey` is null). Removes it from its previous
-   * sidebar. Used by drag-and-drop panel rearranging.
+   * Move a panel into the column at `column`, inserting it directly before
+   * `beforeKey` (or at the end when `beforeKey` is null). Removes it from its
+   * previous column; a column emptied by the move disappears.
    */
-  movePanel: (key: PanelKey, side: SidebarId, beforeKey: PanelKey | null) => void
-  /** Restore both sidebars to default widths, panel arrangement, and visibility. */
+  movePanel: (key: PanelKey, column: number, beforeKey: PanelKey | null) => void
+  /** Drop a panel between columns: create a new column at gap index `gap`. */
+  movePanelToNewColumn: (key: PanelKey, gap: number) => void
+  /** Restore default widths, panel arrangement, and visibility. */
   resetPanelLayout: () => void
   /** Mark the panel being dragged so both sidebars can render drop affordances. */
   setDraggingPanel: (key: PanelKey | null) => void
@@ -223,10 +307,8 @@ function makeDefault(): PersistShape {
     recentAgentIds: [],
     theme: 'dark',
     editorCommand: 'code',
-    leftSidebarVisible: true,
-    rightSidebarVisible: true,
-    sidebarBlocks: { ...DEFAULT_SIDEBAR_BLOCKS },
-    sidebarLayout: normalizeLayout(DEFAULT_SIDEBAR_LAYOUT),
+    panelLayouts: { [project.id]: defaultPanelLayout() },
+    splitPanes: {},
     onboarded: false,
     selectedAppIconId: DEFAULT_APP_ICON_ID,
     confirmOnClose: true
@@ -242,10 +324,8 @@ function snapshot(s: AppState): PersistShape {
     recentAgentIds: s.recentAgentIds,
     theme: s.theme,
     editorCommand: s.editorCommand,
-    leftSidebarVisible: s.leftSidebarVisible,
-    rightSidebarVisible: s.rightSidebarVisible,
-    sidebarBlocks: s.sidebarBlocks,
-    sidebarLayout: s.sidebarLayout,
+    panelLayouts: s.panelLayouts,
+    splitPanes: s.splitPanes,
     onboarded: s.onboarded,
     selectedAppIconId: s.selectedAppIconId,
     confirmOnClose: s.confirmOnClose
@@ -284,9 +364,26 @@ function schedulePersist(s: AppState): void {
   saveTimer = setTimeout(() => void window.api.store.save(snapshot(s)), 250)
 }
 
+/** The project whose layout is on screen: the active session's, else the first. */
+function activeProjectIdOf(st: Pick<AppState, 'activeSessionId' | 'sessions' | 'projects'>): string | null {
+  const active = st.activeSessionId ? st.sessions[st.activeSessionId] : null
+  return active?.projectId ?? st.projects[0]?.id ?? null
+}
+
+/** Write a layout change to both the mirror and the active project's entry. */
+function withLayout(st: AppState, columns: PanelColumns, blocks: SidebarBlocks): AppState {
+  const pid = activeProjectIdOf(st)
+  const panelLayouts = pid
+    ? { ...st.panelLayouts, [pid]: { columns, blocks } }
+    : st.panelLayouts
+  return { ...st, panelColumns: columns, sidebarBlocks: blocks, panelLayouts }
+}
+
 export const useStore = create<AppState>((set, get) => ({
   ...makeDefault(),
   hydrated: false,
+  panelColumns: DEFAULT_PANEL_COLUMNS.map((c) => [...c]),
+  sidebarBlocks: { ...DEFAULT_SIDEBAR_BLOCKS },
   activeFile: null,
   busySessions: {},
   sessionProcesses: {},
@@ -334,16 +431,65 @@ export const useStore = create<AppState>((set, get) => ({
       void applyDockIconById(selectedAppIconId)
       const confirmOnClose = loaded.confirmOnClose ?? true
       window.api.app.setConfirmClose(confirmOnClose)
+      // Layouts are per project. Older saves stored one global arrangement
+      // (flat panelColumns/sidebarBlocks, or older still a fixed left/center/
+      // right sidebar split) — carry that over to every project.
+      const old = loaded as {
+        panelColumns?: unknown
+        sidebarBlocks?: Partial<SidebarBlocks>
+        sidebarLayout?: { left?: unknown; center?: unknown; right?: unknown }
+      }
+      const legacyColumns =
+        old.panelColumns ??
+        (old.sidebarLayout
+          ? [old.sidebarLayout.left, old.sidebarLayout.center, old.sidebarLayout.right]
+          : null)
+      const savedLayouts = (
+        loaded.panelLayouts && typeof loaded.panelLayouts === 'object' ? loaded.panelLayouts : {}
+      ) as Record<string, { columns?: unknown; blocks?: Partial<SidebarBlocks> }>
+
+      const splitPanes = prunePanes(
+        loaded.splitPanes && typeof loaded.splitPanes === 'object' ? loaded.splitPanes : {},
+        loaded.sessions
+      )
+      // Legacy split keys referenced a session directly — seed one-shell panes.
+      const seedLegacyPanes = (columns: unknown): void => {
+        if (!Array.isArray(columns)) return
+        for (const col of columns) {
+          if (!Array.isArray(col)) continue
+          for (const k of col) {
+            if (typeof k !== 'string' || !k.startsWith('split:')) continue
+            const id = k.slice('split:'.length)
+            if (!splitPanes[id] && loaded.sessions[id]) splitPanes[id] = [id]
+          }
+        }
+      }
+      seedLegacyPanes(legacyColumns)
+      for (const entry of Object.values(savedLayouts)) seedLegacyPanes(entry?.columns)
+
+      const panelLayouts: Record<string, PanelLayout> = {}
+      for (const p of loaded.projects) {
+        const saved = savedLayouts[p.id]
+        panelLayouts[p.id] = {
+          columns: pruneSplitPanels(
+            normalizeColumns(saved?.columns ?? legacyColumns),
+            splitPanes
+          ),
+          blocks: { ...DEFAULT_SIDEBAR_BLOCKS, ...(saved?.blocks ?? old.sidebarBlocks ?? {}) }
+        }
+      }
+      const activePid = active ? loaded.sessions[active]?.projectId : loaded.projects[0]?.id
+      const mirror = (activePid && panelLayouts[activePid]) || defaultPanelLayout()
       set({
         ...loaded,
         agents,
         recentAgentIds: Array.isArray(loaded.recentAgentIds) ? loaded.recentAgentIds : [],
         theme,
         editorCommand,
-        leftSidebarVisible: loaded.leftSidebarVisible ?? true,
-        rightSidebarVisible: loaded.rightSidebarVisible ?? true,
-        sidebarBlocks: { ...DEFAULT_SIDEBAR_BLOCKS, ...(loaded.sidebarBlocks ?? {}) },
-        sidebarLayout: normalizeLayout(loaded.sidebarLayout),
+        panelLayouts,
+        splitPanes,
+        panelColumns: mirror.columns,
+        sidebarBlocks: mirror.blocks,
         onboarded: loaded.onboarded ?? false,
         selectedAppIconId,
         confirmOnClose,
@@ -532,52 +678,90 @@ export const useStore = create<AppState>((set, get) => ({
       return next
     }),
 
-  toggleLeftSidebar: () =>
-    set((st) => {
-      const next = { ...st, leftSidebarVisible: !st.leftSidebarVisible }
-      schedulePersist(next)
-      return next
-    }),
-
-  toggleRightSidebar: () =>
-    set((st) => {
-      const next = { ...st, rightSidebarVisible: !st.rightSidebarVisible }
-      schedulePersist(next)
-      return next
-    }),
-
   toggleSidebarBlock: (block) =>
     set((st) => {
-      const next = {
-        ...st,
-        sidebarBlocks: { ...st.sidebarBlocks, [block]: !st.sidebarBlocks[block] }
-      }
+      const next = withLayout(st, st.panelColumns, {
+        ...st.sidebarBlocks,
+        [block]: !st.sidebarBlocks[block]
+      })
       schedulePersist(next)
       return next
     }),
 
-  movePanel: (key, side, beforeKey) =>
+  movePanel: (key, column, beforeKey) =>
     set((st) => {
-      const left = st.sidebarLayout.left.filter((k) => k !== key)
-      const right = st.sidebarLayout.right.filter((k) => k !== key)
-      const target = side === 'left' ? left : right
+      const columns = st.panelColumns.map((c) => c.filter((k) => k !== key))
+      const target = columns[Math.min(column, columns.length - 1)]
+      if (!target) return st
       const at = beforeKey ? target.indexOf(beforeKey) : -1
       target.splice(at < 0 ? target.length : at, 0, key)
-      const next = { ...st, sidebarLayout: { left, right } }
+      const next = withLayout(st, columns.filter((c) => c.length > 0), st.sidebarBlocks)
+      schedulePersist(next)
+      return next
+    }),
+
+  movePanelToNewColumn: (key, gap) =>
+    set((st) => {
+      const columns = st.panelColumns.map((c) => c.filter((k) => k !== key))
+      columns.splice(Math.max(0, Math.min(gap, columns.length)), 0, [key])
+      const next = withLayout(st, columns.filter((c) => c.length > 0), st.sidebarBlocks)
+      schedulePersist(next)
+      return next
+    }),
+
+  closePanel: (key) => {
+    if (isSplitPanel(key)) {
+      get().closeSplitPane(splitPaneId(key))
+      return
+    }
+    set((st) => {
+      const next = withLayout(st, st.panelColumns, { ...st.sidebarBlocks, [key]: false })
+      schedulePersist(next)
+      return next
+    })
+  },
+
+  swapPanel: (key, withKey) =>
+    set((st) => {
+      if (key === withKey) return st
+      const columns = st.panelColumns.map((c) => [...c])
+      let keyPos: [number, number] | null = null
+      let withPos: [number, number] | null = null
+      columns.forEach((col, ci) =>
+        col.forEach((k, pi) => {
+          if (k === key) keyPos = [ci, pi]
+          if (k === withKey) withPos = [ci, pi]
+        })
+      )
+      if (!keyPos) return st
+      const [kc, kp] = keyPos as [number, number]
+      const targetWasVisible = !!st.sidebarBlocks[withKey]
+      const blocks = { ...st.sidebarBlocks, [withKey]: true }
+      if (withPos) {
+        const [wc, wp] = withPos as [number, number]
+        columns[kc][kp] = withKey
+        columns[wc][wp] = key
+        // Target already on screen elsewhere → genuine position swap. A hidden
+        // target REPLACES this panel instead: it takes this spot and the panel
+        // it replaced goes off screen (recoverable via any title dropdown).
+        if (!targetWasVisible && !isSplitPanel(key)) blocks[key] = false
+      } else {
+        columns[kc][kp] = withKey
+      }
+      const next = withLayout(st, columns, blocks)
       schedulePersist(next)
       return next
     }),
 
   resetPanelLayout: () =>
     set((st) => {
-      // Drop the saved widths so the remounted panel group starts from defaults.
-      localStorage.removeItem(LAYOUT_STORAGE_KEY)
+      // Drop every saved panel size so the remounted groups start from defaults.
+      for (const k of Object.keys(localStorage)) {
+        if (k.startsWith(LAYOUT_STORAGE_PREFIX)) localStorage.removeItem(k)
+      }
+      const fresh = defaultPanelLayout()
       const next = {
-        ...st,
-        leftSidebarVisible: true,
-        rightSidebarVisible: true,
-        sidebarBlocks: { ...DEFAULT_SIDEBAR_BLOCKS },
-        sidebarLayout: normalizeLayout(DEFAULT_SIDEBAR_LAYOUT),
+        ...withLayout(st, fresh.columns, fresh.blocks),
         panelLayoutResetCount: st.panelLayoutResetCount + 1
       }
       schedulePersist(next)
@@ -589,14 +773,9 @@ export const useStore = create<AppState>((set, get) => ({
 
   openFile: (file) =>
     set((st) => {
-      // Reveal whichever sidebar the editor panel currently lives in.
-      const editorSide = sidebarOf(st.sidebarLayout, 'editor')
       const next = {
-        ...st,
-        activeFile: file,
-        leftSidebarVisible: editorSide === 'left' ? true : st.leftSidebarVisible,
-        rightSidebarVisible: editorSide === 'right' ? true : st.rightSidebarVisible,
-        sidebarBlocks: { ...st.sidebarBlocks, editor: true }
+        ...withLayout(st, st.panelColumns, { ...st.sidebarBlocks, editor: true }),
+        activeFile: file
       }
       schedulePersist(next)
       return next
@@ -641,19 +820,166 @@ export const useStore = create<AppState>((set, get) => ({
       const projects = st.projects.filter((p) => p.id !== projectId)
       let active = st.activeSessionId
       if (active && !sessions[active]) active = Object.keys(sessions)[0] ?? null
-      const next: AppState = { ...st, projects, sessions, activeSessionId: active }
+      const splitPanes = prunePanes(st.splitPanes, sessions)
+      const panelLayouts = pruneAllLayouts(st.panelLayouts, splitPanes)
+      delete panelLayouts[projectId]
+      const next: AppState = {
+        ...st,
+        projects,
+        sessions,
+        activeSessionId: active,
+        splitPanes,
+        panelLayouts,
+        panelColumns: pruneSplitPanels(st.panelColumns, splitPanes)
+      }
       schedulePersist(next)
       return next
     }),
 
-  reorderProject: (dragId, overId) =>
+  activateProject: (projectId) => {
+    const st = get()
+    const project = st.projects.find((p) => p.id === projectId)
+    if (!project) return
+    const current = st.activeSessionId ? st.sessions[st.activeSessionId] : null
+    if (current?.projectId === projectId) return
+    const remembered = lastSessionByProject[projectId]
+    const target =
+      remembered && project.sessionIds.includes(remembered) && st.sessions[remembered]
+        ? remembered
+        : project.sessionIds.find((id) => st.sessions[id])
+    if (target) get().setActiveSession(target)
+    else get().newSession(projectId)
+  },
+
+  clearAllProjects: () =>
     set((st) => {
-      const from = st.projects.findIndex((p) => p.id === dragId)
-      const to = st.projects.findIndex((p) => p.id === overId)
-      if (from < 0 || to < 0 || from === to) return st
-      const projects = [...st.projects]
-      const [moved] = projects.splice(from, 1)
-      projects.splice(to, 0, moved)
+      for (const sid of Object.keys(st.sessions)) window.api.pty.kill(sid)
+      // Start over from the default state: a single "home" project + shell.
+      const fresh = makeDefault()
+      const next: AppState = {
+        ...st,
+        projects: fresh.projects,
+        sessions: fresh.sessions,
+        activeSessionId: fresh.activeSessionId,
+        splitPanes: {},
+        panelLayouts: fresh.panelLayouts,
+        panelColumns: DEFAULT_PANEL_COLUMNS.map((c) => [...c]),
+        sidebarBlocks: { ...DEFAULT_SIDEBAR_BLOCKS }
+      }
+      schedulePersist(next)
+      return next
+    }),
+
+  splitPanel: (direction, anchor = 'shells') =>
+    set((st) => {
+      // A split of a terminal inherits that terminal's project (the anchor
+      // pane's first session); any other panel splits into the active project.
+      const anchorSessionId = isSplitPanel(anchor)
+        ? st.splitPanes[splitPaneId(anchor)]?.[0]
+        : st.activeSessionId
+      const anchorSession = anchorSessionId ? st.sessions[anchorSessionId] : null
+      const project = st.projects.find((p) => p.id === anchorSession?.projectId) ?? st.projects[0]
+      if (!project) return st
+      const session: Session = {
+        id: newId('sess'),
+        title: `shell ${project.sessionIds.length + 1}`,
+        cwd: project.path,
+        projectId: project.id
+      }
+      // The split becomes a regular panel hosting a pane of shells: "down"
+      // lands right below the anchor panel in its column, "side" opens a
+      // brand-new column right next to it.
+      const paneId = newId('pane')
+      const key: PanelKey = `split:${paneId}`
+      const columns = st.panelColumns.map((c) => [...c])
+      let colIdx = columns.findIndex((c) => c.includes(anchor))
+      if (colIdx < 0) colIdx = Math.max(columns.findIndex((c) => c.includes('shells')), 0)
+      if (direction === 'down') {
+        const column = columns[colIdx] ?? []
+        const at = column.indexOf(anchor)
+        column.splice(at < 0 ? column.length : at + 1, 0, key)
+      } else {
+        columns.splice(colIdx + 1, 0, [key])
+      }
+      const next: AppState = {
+        ...withLayout(st, columns, st.sidebarBlocks),
+        projects: st.projects.map((p) =>
+          p.id === project.id ? { ...p, sessionIds: [...p.sessionIds, session.id] } : p
+        ),
+        sessions: { ...st.sessions, [session.id]: session },
+        splitPanes: { ...st.splitPanes, [paneId]: [session.id] }
+      }
+      schedulePersist(next)
+      return next
+    }),
+
+  newSessionInSplitPane: (paneId) =>
+    set((st) => {
+      const pane = st.splitPanes[paneId]
+      const first = pane?.[0] ? st.sessions[pane[0]] : null
+      const project = st.projects.find((p) => p.id === first?.projectId) ?? st.projects[0]
+      if (!pane || !project) return st
+      const session: Session = {
+        id: newId('sess'),
+        title: `shell ${project.sessionIds.length + 1}`,
+        cwd: project.path,
+        projectId: project.id
+      }
+      const next: AppState = {
+        ...st,
+        projects: st.projects.map((p) =>
+          p.id === project.id ? { ...p, sessionIds: [...p.sessionIds, session.id] } : p
+        ),
+        sessions: { ...st.sessions, [session.id]: session },
+        splitPanes: { ...st.splitPanes, [paneId]: [...pane, session.id] }
+      }
+      schedulePersist(next)
+      return next
+    }),
+
+  closeSplitPane: (paneId) =>
+    set((st) => {
+      const pane = st.splitPanes[paneId]
+      if (!pane) return st
+      const sessions = { ...st.sessions }
+      for (const sid of pane) {
+        window.api.pty.kill(sid)
+        delete sessions[sid]
+      }
+      const projects = st.projects.map((p) => ({
+        ...p,
+        sessionIds: p.sessionIds.filter((sid) => !pane.includes(sid))
+      }))
+      const splitPanes = { ...st.splitPanes }
+      delete splitPanes[paneId]
+      let active = st.activeSessionId
+      if (active && !sessions[active]) {
+        // Stay in the same project the closed pane belonged to when possible.
+        const ownerId = st.sessions[active]?.projectId
+        const owner = st.projects.find((p) => p.id === ownerId)
+        const sibling = owner?.sessionIds.find((sid) => sessions[sid])
+        active = sibling ?? Object.keys(sessions)[0] ?? null
+      }
+      const next: AppState = {
+        ...st,
+        sessions,
+        projects,
+        splitPanes,
+        activeSessionId: active,
+        panelLayouts: pruneAllLayouts(st.panelLayouts, splitPanes),
+        panelColumns: pruneSplitPanels(st.panelColumns, splitPanes)
+      }
+      schedulePersist(next)
+      return next
+    }),
+
+  moveProjectTo: (dragId, beforeId) =>
+    set((st) => {
+      const moved = st.projects.find((p) => p.id === dragId)
+      if (!moved || dragId === beforeId) return st
+      const projects = st.projects.filter((p) => p.id !== dragId)
+      const at = beforeId ? projects.findIndex((p) => p.id === beforeId) : -1
+      projects.splice(at < 0 ? projects.length : at, 0, moved)
       const next = { ...st, projects }
       schedulePersist(next)
       return next
@@ -676,14 +1002,43 @@ export const useStore = create<AppState>((set, get) => ({
       window.api.pty.kill(id)
       const sessions = { ...st.sessions }
       delete sessions[id]
+      const owner = st.projects.find((p) => p.sessionIds.includes(id))
       const projects = st.projects.map((p) =>
         p.sessionIds.includes(id)
           ? { ...p, sessionIds: p.sessionIds.filter((s) => s !== id) }
           : p
       )
       let active = st.activeSessionId
-      if (active === id) active = Object.keys(sessions)[0] ?? null
-      const next: AppState = { ...st, sessions, projects, activeSessionId: active }
+      if (active === id) {
+        // Stay in the same project if it has other sessions, so the active
+        // tab doesn't jump to another project.
+        const sibling = owner?.sessionIds.find((sid) => sid !== id && sessions[sid])
+        active = sibling ?? Object.keys(sessions)[0] ?? null
+      }
+      // Drop the session from any split pane; a pane left empty disappears,
+      // and its panel with it.
+      let splitPanes = st.splitPanes
+      for (const [paneId, list] of Object.entries(st.splitPanes)) {
+        if (!list.includes(id)) continue
+        const kept = list.filter((sid) => sid !== id)
+        splitPanes = { ...splitPanes }
+        if (kept.length > 0) splitPanes[paneId] = kept
+        else delete splitPanes[paneId]
+      }
+      const panesChanged = splitPanes !== st.splitPanes
+      const next: AppState = {
+        ...st,
+        sessions,
+        projects,
+        activeSessionId: active,
+        splitPanes,
+        panelLayouts: panesChanged
+          ? pruneAllLayouts(st.panelLayouts, splitPanes)
+          : st.panelLayouts,
+        panelColumns: panesChanged
+          ? pruneSplitPanels(st.panelColumns, splitPanes)
+          : st.panelColumns
+      }
       schedulePersist(next)
       return next
     }),
@@ -695,13 +1050,36 @@ export const useStore = create<AppState>((set, get) => ({
       return next
     }),
 
-  setActiveSessionByIndex: (index) => {
-    const st = get()
-    const active = st.activeSessionId ? st.sessions[st.activeSessionId] : null
-    const project = st.projects.find((p) => p.id === active?.projectId) ?? st.projects[0]
-    const sid = project?.sessionIds[index - 1]
-    if (sid && sid !== st.activeSessionId) get().setActiveSession(sid)
+  activateProjectByIndex: (index) => {
+    const project = get().projects[index - 1]
+    if (project) get().activateProject(project.id)
   }
 }))
 
-export { newId, sidebarOf, ALL_PANEL_KEYS }
+// Remember each project's most recently active session so switching project
+// tabs returns to where the user left off. Derived state, so it lives outside
+// the store and is rebuilt naturally as sessions activate.
+const lastSessionByProject: Record<string, string> = {}
+useStore.subscribe((s) => {
+  const active = s.activeSessionId ? s.sessions[s.activeSessionId] : null
+  if (active) lastSessionByProject[active.projectId] = active.id
+})
+
+// Panel layouts are per project: whenever the project on screen changes, load
+// its layout into the mirror (creating a default entry lazily). Mutations keep
+// the mirror and the map entry in sync, so nothing needs saving on the way out.
+let mirroredProject: string | null = null
+useStore.subscribe((s) => {
+  const pid = activeProjectIdOf(s)
+  if (!pid || pid === mirroredProject) return
+  mirroredProject = pid
+  const entry = s.panelLayouts[pid] ?? defaultPanelLayout()
+  useStore.setState({
+    panelColumns: entry.columns,
+    sidebarBlocks: entry.blocks,
+    panelLayouts: s.panelLayouts[pid] ? s.panelLayouts : { ...s.panelLayouts, [pid]: entry }
+  })
+  schedulePersist(useStore.getState())
+})
+
+export { newId, ALL_PANEL_KEYS }
