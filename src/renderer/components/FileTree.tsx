@@ -85,7 +85,10 @@ function TreeNode({ entry, depth, version, onOpenFile, onSend, onEdit }: NodePro
         {entry.isDir ? (
           <>
             <ChevronRight
-              className={cn('h-3.5 w-3.5 shrink-0 transition-transform', expanded && 'rotate-90')}
+              className={cn(
+                'h-3.5 w-3.5 shrink-0 text-muted-foreground/60 transition-[transform,color] group-hover/row:text-foreground',
+                expanded && 'rotate-90'
+              )}
             />
             <Folder className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           </>

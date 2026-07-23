@@ -139,11 +139,12 @@ export default function ProjectTabs(): JSX.Element {
                 : 'text-muted-foreground hover:bg-secondary/70 hover:text-foreground'
             )}
           >
-            {/* Terminal mark that flips into the close button on tab hover. */}
+            {/* Terminal mark that swaps into the close button on tab hover:
+                the mark scales down and fades out while the X scales in. */}
             <span className="relative h-3.5 w-3.5 shrink-0">
               <Terminal
                 className={cn(
-                  'absolute inset-0 h-3.5 w-3.5 transition-opacity group-hover/tab:opacity-0',
+                  'absolute inset-0 h-3.5 w-3.5 transition-all duration-150 group-hover/tab:scale-50 group-hover/tab:opacity-0',
                   running && 'text-primary'
                 )}
                 aria-hidden="true"
@@ -155,7 +156,7 @@ export default function ProjectTabs(): JSX.Element {
                   e.stopPropagation()
                   confirmRemove(p.id, p.name)
                 }}
-                className="absolute inset-0 flex items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover/tab:opacity-100"
+                className="absolute inset-0 flex scale-50 items-center justify-center rounded text-muted-foreground opacity-0 transition-all duration-150 hover:text-foreground group-hover/tab:scale-100 group-hover/tab:opacity-100"
               >
                 <X className="h-3.5 w-3.5" />
               </button>

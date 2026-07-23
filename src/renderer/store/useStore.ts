@@ -226,6 +226,8 @@ interface AppState extends PersistShape {
   runningSessions: Record<string, boolean>
   /** Panel key currently being dragged between/within sidebars, or null. Not persisted. */
   draggingPanel: PanelKey | null
+  /** Panel the user is interacting with (last click / focus), or null. Not persisted. */
+  focusedPanel: PanelKey | null
   /** Bumped on every panel reset so the layout group remounts with default widths. Not persisted. */
   panelLayoutResetCount: number
 
@@ -283,6 +285,7 @@ interface AppState extends PersistShape {
   resetPanelLayout: () => void
   /** Mark the panel being dragged so both sidebars can render drop affordances. */
   setDraggingPanel: (key: PanelKey | null) => void
+  setFocusedPanel: (key: PanelKey | null) => void
   /** Open a file in the in-app editor panel, revealing the panel if hidden. */
   openFile: (file: ActiveFile) => void
   closeFile: () => void
@@ -389,6 +392,7 @@ export const useStore = create<AppState>((set, get) => ({
   sessionProcesses: {},
   runningSessions: {},
   draggingPanel: null,
+  focusedPanel: null,
   panelLayoutResetCount: 0,
 
   setSessionBusy: (id, busy, processName = '') =>
@@ -770,6 +774,9 @@ export const useStore = create<AppState>((set, get) => ({
 
   setDraggingPanel: (key) =>
     set((st) => (st.draggingPanel === key ? st : { ...st, draggingPanel: key })),
+
+  setFocusedPanel: (key) =>
+    set((st) => (st.focusedPanel === key ? st : { ...st, focusedPanel: key })),
 
   openFile: (file) =>
     set((st) => {

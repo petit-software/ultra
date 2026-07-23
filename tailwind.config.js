@@ -4,6 +4,10 @@ export default {
   content: ['./src/renderer/index.html', './src/renderer/**/*.{ts,tsx}'],
   theme: {
     extend: {
+      fontFamily: {
+        // Panel titles + shells only — not the app-wide default.
+        server: ['"Server Mono"', 'Menlo', 'monospace']
+      },
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',

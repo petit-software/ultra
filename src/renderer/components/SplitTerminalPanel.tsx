@@ -45,21 +45,39 @@ export default function SplitTerminalPanel({ paneId }: Props): JSX.Element {
             <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
               <span className="h-3 w-px shrink-0 bg-border" aria-hidden="true" />
               {ids.map((id) => (
-                <button
+                <div
                   key={id}
-                  type="button"
                   title={sessions[id].title}
                   onClick={() => setActiveId(id)}
                   className={cn(
-                    'app-no-drag flex h-5 max-w-[9rem] shrink-0 items-center gap-1 rounded-md px-1.5 text-[11px] transition-colors',
+                    'group/tab app-no-drag flex h-5 max-w-[9rem] shrink-0 cursor-pointer items-center gap-1 rounded-md px-1.5 font-server text-[11px] transition-colors',
                     id === active
                       ? 'bg-accent text-accent-foreground'
                       : 'text-muted-foreground hover:bg-secondary/70 hover:text-foreground'
                   )}
                 >
-                  <ShellStatusMark active={id === active} running={!!runningSessions[id]} />
+                  {/* Status mark swaps into the close X on tab hover:
+                      scale-down fade-out, scale-in fade-in. */}
+                  <span className="relative flex h-3 w-3 shrink-0 items-center justify-center">
+                    <ShellStatusMark
+                      active={id === active}
+                      running={!!runningSessions[id]}
+                      className="transition-all duration-150 group-hover/tab:scale-50 group-hover/tab:opacity-0"
+                    />
+                    <button
+                      type="button"
+                      title="Close session"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        closeSession(id)
+                      }}
+                      className="absolute inset-0 flex scale-50 items-center justify-center rounded-sm text-muted-foreground opacity-0 transition-all duration-150 hover:text-foreground group-hover/tab:scale-100 group-hover/tab:opacity-100"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
                   <span className="truncate">{sessions[id].title}</span>
-                </button>
+                </div>
               ))}
             </div>
           ) : null
@@ -78,18 +96,8 @@ export default function SplitTerminalPanel({ paneId }: Props): JSX.Element {
           </TooltipTrigger>
           <TooltipContent>New session</TooltipContent>
         </Tooltip>
-        {/* Closing the pane itself is the header's universal "Close panel" X. */}
-        {ids.length > 1 && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-5 w-5"
-            title="Close session"
-            onClick={() => closeSession(active)}
-          >
-            <X />
-          </Button>
-        )}
+        {/* Closing the pane itself is the header's universal "Close panel" X;
+            individual sessions close from the X on their own tab. */}
       </PaneHeader>
       <div className="relative min-h-0 flex-1">
         {ids.map((id) => (

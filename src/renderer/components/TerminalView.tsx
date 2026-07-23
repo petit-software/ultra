@@ -50,7 +50,7 @@ export default function TerminalView({
   // until the host is opened, so background sessions still capture their output.
   useEffect(() => {
     const term = new Terminal({
-      fontFamily: 'Menlo, "SF Mono", "JetBrains Mono", monospace',
+      fontFamily: '"Server Mono", Menlo, "SF Mono", "JetBrains Mono", monospace',
       fontSize,
       lineHeight: 1.2,
       cursorBlink: true,
@@ -125,22 +125,30 @@ export default function TerminalView({
   // Open (once) and refit whenever this view is visible — fit needs real layout.
   useEffect(() => {
     if (!visible) return
+    let cancelled = false
     const id = requestAnimationFrame(() => {
       const term = termRef.current
       const fit = fitRef.current
       const host = hostRef.current
       if (!term || !fit || !host) return
-      if (!openedRef.current) {
-        term.open(host)
-        openedRef.current = true
+      const openAndFit = (): void => {
+        if (cancelled) return
+        if (!openedRef.current) {
+          term.open(host)
+          openedRef.current = true
+        }
+        try {
+          fit.fit()
+          if (autoFocus) term.focus()
+          window.api.pty.resize(sessionId, term.cols, term.rows)
+        } catch {
+          /* not laid out yet */
+        }
       }
-      try {
-        fit.fit()
-        if (autoFocus) term.focus()
-        window.api.pty.resize(sessionId, term.cols, term.rows)
-      } catch {
-        /* not laid out yet */
-      }
+      if (openedRef.current) openAndFit()
+      // First open waits for Server Mono: xterm measures its cell grid at
+      // open, and a font that swaps in later would leave stale metrics.
+      else document.fonts.load(`${fontSize}px 'Server Mono'`).then(openAndFit, openAndFit)
     })
 
     // Keep the grid sized to the pane while it's visible.
@@ -159,10 +167,11 @@ export default function TerminalView({
     if (ro && hostRef.current) ro.observe(hostRef.current)
 
     return () => {
+      cancelled = true
       cancelAnimationFrame(id)
       ro?.disconnect()
     }
-  }, [visible, sessionId, autoFocus])
+  }, [visible, sessionId, autoFocus, fontSize])
 
   return (
     <div

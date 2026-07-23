@@ -5,7 +5,8 @@ import { panelMeta } from './panelRegistry'
 import { PanelDndContext, PANEL_DND_MIME, setPanelDragImage } from './panelDnd'
 import { cn } from '@/lib/utils'
 
-const SECTION = 'ultra-panel overflow-hidden rounded-xl border border-border bg-transparent'
+// Inactive panels sit back with a dimmed border; the focused one (below) is lighter.
+const SECTION = 'ultra-panel overflow-hidden rounded-xl border border-border/50 bg-transparent'
 const HANDLE = 'mx-1 bg-transparent data-[panel-group-direction=vertical]:h-3'
 
 interface Props {
@@ -27,8 +28,10 @@ export default function PanelColumn({ index }: Props): JSX.Element {
   const column = useStore((s) => s.panelColumns[index])
   const blocks = useStore((s) => s.sidebarBlocks)
   const dragging = useStore((s) => s.draggingPanel)
+  const focused = useStore((s) => s.focusedPanel)
   const movePanel = useStore((s) => s.movePanel)
   const setDraggingPanel = useStore((s) => s.setDraggingPanel)
+  const setFocusedPanel = useStore((s) => s.setFocusedPanel)
 
   // Split panels have no visibility toggle — they exist until closed.
   const visible = (column ?? []).filter((key) => isSplitPanel(key) || blocks[key])
@@ -99,6 +102,8 @@ export default function PanelColumn({ index }: Props): JSX.Element {
               className={cn(
                 SECTION,
                 'transition-colors duration-150',
+                // The panel being used right now carries a lighter border.
+                focused === key && 'border-muted-foreground/50',
                 dragging && 'border-transparent'
               )}
             >
@@ -127,6 +132,10 @@ export default function PanelColumn({ index }: Props): JSX.Element {
               >
                 <div
                   className="relative h-full"
+                  // Click anywhere in the panel or focus anything inside it
+                  // (e.g. the terminal's textarea) marks it as the one in use.
+                  onMouseDownCapture={() => setFocusedPanel(key)}
+                  onFocusCapture={() => setFocusedPanel(key)}
                   onDragOver={(e) => {
                     if (!isPanelDrag(e)) return
                     e.preventDefault()

@@ -52,7 +52,7 @@ export default function PaneHeader({ title, titleContent, children, className }:
   const swappable = drag !== null
 
   const titleLabel = (
-    <span className="truncate text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+    <span className="truncate font-server text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
       {title}
     </span>
   )
@@ -104,7 +104,9 @@ export default function PaneHeader({ title, titleContent, children, className }:
         {titleContent}
       </div>
       {(drag || children) && (
-        <div className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover/section:opacity-100">
+        // All header action icons share the drag handle's palette: muted by
+        // default, full foreground on hover. Covers panel-provided children.
+        <div className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover/section:opacity-100 [&_button]:text-muted-foreground/60 [&_button:hover]:text-foreground">
           {/* Any panel can be split: the new pane opens beside/below it and
               can then be swapped to any panel type from its title menu. */}
           {drag && (

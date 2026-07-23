@@ -52,21 +52,39 @@ export default function TerminalPane(): JSX.Element {
                 const running = !!runningSessions[id]
 
                 return (
-                  <button
+                  <div
                     key={id}
-                    type="button"
                     title={session.title}
                     onClick={() => setActiveSession(id)}
                     className={cn(
-                      'app-no-drag flex h-5 max-w-[9rem] shrink-0 items-center gap-1 rounded-md px-1.5 text-[11px] transition-colors',
+                      'group/tab app-no-drag flex h-5 max-w-[9rem] shrink-0 cursor-pointer items-center gap-1 rounded-md px-1.5 font-server text-[11px] transition-colors',
                       selected
                         ? 'bg-accent text-accent-foreground'
                         : 'text-muted-foreground hover:bg-secondary/70 hover:text-foreground'
                     )}
                   >
-                    <ShellStatusMark active={selected} running={running} />
+                    {/* Status mark swaps into the close X on tab hover:
+                        scale-down fade-out, scale-in fade-in. */}
+                    <span className="relative flex h-3 w-3 shrink-0 items-center justify-center">
+                      <ShellStatusMark
+                        active={selected}
+                        running={running}
+                        className="transition-all duration-150 group-hover/tab:scale-50 group-hover/tab:opacity-0"
+                      />
+                      <button
+                        type="button"
+                        title="Close session"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          closeSession(id)
+                        }}
+                        className="absolute inset-0 flex scale-50 items-center justify-center rounded-sm text-muted-foreground opacity-0 transition-all duration-150 hover:text-foreground group-hover/tab:scale-100 group-hover/tab:opacity-100"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
                     <span className="truncate">{session.title}</span>
-                  </button>
+                  </div>
                 )
               })}
             </div>
@@ -87,18 +105,6 @@ export default function TerminalPane(): JSX.Element {
             </TooltipTrigger>
             <TooltipContent>New session</TooltipContent>
           </Tooltip>
-        )}
-        {/* The last remaining session can't be closed — no X for it. */}
-        {active && ids.length > 1 && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-5 w-5"
-            title="Close session"
-            onClick={() => closeSession(active.id)}
-          >
-            <X />
-          </Button>
         )}
       </PaneHeader>
 

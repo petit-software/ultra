@@ -123,6 +123,25 @@ CSC_IDENTITY_AUTO_DISCOVERY=false SKIP_NOTARIZE=1 npm run dist:mac
 Unsigned DMGs trip Gatekeeper ("damaged"); to open one locally:
 `xattr -dr com.apple.quarantine <app>` then `codesign --force --deep --sign - <app>`.
 
+## Command: "Push and release"
+
+When the user says **"Push and release"**, run the full release flow end to end
+without further questions:
+
+1. **Bump the version** (patch bump unless told otherwise) in `package.json`.
+2. **Commit everything pending + push to remote `main`** (commit message
+   describes the actual changes, not just "release").
+3. **Build + notarize**: `npm run dist:mac` with the ASC API-key env vars set,
+   then notarize + staple the DMG itself, then verify — exactly per the
+   "Release runbook" above.
+4. **Publish an updatable GitHub release**: tag `v<version>`, create the
+   release (published, not draft) with notes describing what changed, and
+   upload the DMG, the zip, AND `release/latest-mac.yml` (required for
+   electron-updater auto-updates).
+
+Done = `stapler validate` passes on the DMG and the release shows all three
+assets.
+
 ## Releases
 
 - Distributed via GitHub releases on `petit-software/ultra`, tag `v<version>`.

@@ -2,6 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'Server Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src:
+    url('./assets/fonts/ServerMono-Regular.woff2') format('woff2'),
+    url('./assets/fonts/ServerMono-Regular.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Server Mono';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src:
+    url('./assets/fonts/ServerMono-RegularOblique.woff2') format('woff2'),
+    url('./assets/fonts/ServerMono-RegularOblique.woff') format('woff');
+}
+
 @layer base {
   /* Light theme — white base + terminal, super-light-gray sidebars */
   :root {
@@ -216,14 +236,10 @@
 }
 
 /* macOS window surface — the window carries native vibrancy (blur of whatever
-   is behind it), and #root paints a translucent wash over that material so the
-   app keeps its theme color while the desktop shows through, frosted. Corner
-   rounding and the edge highlight are the native window's. */
+   is behind it) with no wash over it, so the app sits directly on the frosted
+   material. Corner rounding and the edge highlight are the native window's. */
 .mac body {
   background: transparent;
-}
-.mac #root {
-  background: hsl(var(--background) / 0.75);
 }
 .mac.fullscreen .ultra-app-header {
   padding-left: 0.5rem;
