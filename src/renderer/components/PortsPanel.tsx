@@ -54,13 +54,13 @@ export default function PortsPanel(): JSX.Element {
               key={`${p.pid}:${p.port}`}
               onClick={() => window.api.app.openExternal(`http://localhost:${p.port}`)}
               title={`Open http://localhost:${p.port} — ${p.command} (pid ${p.pid}) on ${p.address}`}
-              className="group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-sm hover:bg-secondary/60"
+              className="group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-xs hover:bg-secondary/60"
             >
               <span className="w-12 shrink-0 font-server text-xs tabular-nums text-muted-foreground">
                 {p.port}
               </span>
               <span className="flex-1 truncate">{p.command}</span>
-              <span className="shrink-0 font-server text-[11px] tabular-nums text-muted-foreground">
+              <span className="shrink-0 font-server text-[11px] tabular-nums text-muted-foreground group-hover:hidden">
                 {p.pid}
               </span>
               <button
@@ -69,7 +69,7 @@ export default function PortsPanel(): JSX.Element {
                   void kill(p.pid)
                 }}
                 title="Kill process (SIGTERM)"
-                className="text-muted-foreground opacity-0 transition hover:text-foreground group-hover:opacity-100"
+                className="hidden shrink-0 text-muted-foreground transition hover:text-foreground group-hover:block"
               >
                 <X className="h-3.5 w-3.5" />
               </button>

@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback } from 'react'
 import {
   ChevronRight,
   File as FileIcon,
-  Folder,
   CornerDownLeft,
   MoreHorizontal,
   FolderOpen as RevealIcon,
@@ -80,23 +79,17 @@ function TreeNode({ entry, depth, version, onOpenFile, onSend, onEdit }: NodePro
           e.dataTransfer.effectAllowed = 'copy'
         }}
         style={{ paddingLeft: depth * 12 + 8 }}
-        className="group/row flex cursor-pointer items-center gap-1 rounded-sm py-1 pr-1 text-sm hover:bg-secondary/60"
+        className="group/row flex cursor-pointer items-center gap-1 rounded-sm py-1 pr-1 text-xs hover:bg-secondary/60"
       >
         {entry.isDir ? (
-          <>
-            <ChevronRight
-              className={cn(
-                'h-3.5 w-3.5 shrink-0 text-muted-foreground/60 transition-[transform,color] group-hover/row:text-foreground',
-                expanded && 'rotate-90'
-              )}
-            />
-            <Folder className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          </>
+          <ChevronRight
+            className={cn(
+              'h-3.5 w-3.5 shrink-0 text-muted-foreground/60 transition-[transform,color] group-hover/row:text-foreground',
+              expanded && 'rotate-90'
+            )}
+          />
         ) : (
-          <>
-            <span className="w-3.5 shrink-0" />
-            <FileIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          </>
+          <FileIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
         )}
         {editing ? (
           <>
@@ -110,7 +103,7 @@ function TreeNode({ entry, depth, version, onOpenFile, onSend, onEdit }: NodePro
                 if (e.key === 'Enter') void doRename()
                 else if (e.key === 'Escape') setEditing(false)
               }}
-              className="min-w-0 flex-1 bg-transparent p-0 text-sm text-foreground outline-none"
+              className="min-w-0 flex-1 bg-transparent p-0 text-xs text-foreground outline-none"
             />
             <button
               title="Rename"

@@ -123,7 +123,7 @@ export default function ContextSection(): JSX.Element {
               }
             }}
             placeholder="https://…"
-            className="min-w-0 flex-1 bg-transparent p-0 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+            className="min-w-0 flex-1 bg-transparent p-0 text-xs text-foreground outline-none placeholder:text-muted-foreground"
           />
         </div>
       )}

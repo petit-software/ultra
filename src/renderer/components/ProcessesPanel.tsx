@@ -84,7 +84,7 @@ export default function ProcessesPanel(): JSX.Element {
                 <div
                   key={p.pid}
                   title={`${p.command} (pid ${p.pid})`}
-                  className="group flex items-center gap-2 rounded-md px-2 py-0.5 text-sm hover:bg-secondary/60"
+                  className="group flex items-center gap-2 rounded-md px-2 py-0.5 text-xs hover:bg-secondary/60"
                 >
                   <span
                     className={cn('flex-1 truncate', p.depth === 0 && 'text-muted-foreground')}
@@ -92,16 +92,16 @@ export default function ProcessesPanel(): JSX.Element {
                   >
                     {procName(p.command)}
                   </span>
-                  <span className="w-12 shrink-0 text-right font-server text-[11px] tabular-nums text-muted-foreground">
+                  <span className="w-12 shrink-0 text-right font-server text-[11px] tabular-nums text-muted-foreground group-hover:hidden">
                     {p.cpu.toFixed(1)}%
                   </span>
-                  <span className="w-14 shrink-0 text-right font-server text-[11px] tabular-nums text-muted-foreground">
+                  <span className="w-14 shrink-0 text-right font-server text-[11px] tabular-nums text-muted-foreground group-hover:hidden">
                     {fmtMem(p.rssKb)}
                   </span>
                   <button
                     onClick={() => void kill(p.pid)}
                     title="Kill process (SIGTERM)"
-                    className="text-muted-foreground opacity-0 transition hover:text-foreground group-hover:opacity-100"
+                    className="ml-auto hidden shrink-0 text-muted-foreground transition hover:text-foreground group-hover:block"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>

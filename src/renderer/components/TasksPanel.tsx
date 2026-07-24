@@ -47,13 +47,13 @@ function TaskRow({
         onClick={onToggle}
         title={todo.done ? 'Mark as open' : 'Mark as done'}
         className={cn(
-          'mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-[4px] border transition-colors',
+          'mt-0.5 flex h-3 w-3 shrink-0 items-center justify-center rounded-full border transition-colors',
           todo.done
             ? 'border-foreground bg-foreground text-background'
             : 'border-muted-foreground/50 hover:border-foreground'
         )}
       >
-        {todo.done && <Check className="h-2.5 w-2.5" strokeWidth={3} />}
+        {todo.done && <Check className="h-2 w-2" strokeWidth={3} />}
       </button>
       <textarea
         ref={(el) => {
@@ -69,7 +69,7 @@ function TaskRow({
         }}
         onKeyDown={(e) => onKeyDown(e, index)}
         className={cn(
-          'min-w-0 flex-1 resize-none overflow-hidden bg-transparent text-sm leading-relaxed text-foreground outline-none',
+          'min-w-0 flex-1 resize-none overflow-hidden bg-transparent text-xs leading-relaxed text-foreground outline-none',
           todo.done && 'text-muted-foreground line-through'
         )}
       />
@@ -233,7 +233,7 @@ export default function TasksPanel(): JSX.Element {
         ))}
 
         <div className="flex items-start gap-2 rounded-md px-2 py-1">
-          <span className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded-[4px] border border-dashed border-muted-foreground/40" />
+          <span className="mt-0.5 h-3 w-3 shrink-0 rounded-full border border-dashed border-muted-foreground/40" />
           <textarea
             ref={draftRef}
             rows={1}
@@ -248,7 +248,7 @@ export default function TasksPanel(): JSX.Element {
             }}
             placeholder={todos.length === 0 ? 'Write down something to fix…' : 'Add a task…'}
             disabled={!project}
-            className="min-w-0 flex-1 resize-none overflow-hidden bg-transparent text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/70"
+            className="min-w-0 flex-1 resize-none overflow-hidden bg-transparent text-xs leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/70"
           />
         </div>
       </div>

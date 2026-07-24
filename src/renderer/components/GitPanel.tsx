@@ -9,11 +9,10 @@ import {
   Minus,
   Undo2,
   Check,
-  ChevronDown,
-  History
+  ChevronDown
 } from 'lucide-react'
 import PaneHeader from './PaneHeader'
-import PaneFooter from './PaneFooter'
+import PaneFooter, { PaneFooterButton } from './PaneFooter'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
@@ -319,7 +318,6 @@ export default function GitPanel(): JSX.Element {
           onClick={() => setShowHistory((v) => !v)}
           className="flex w-full items-center gap-1.5 px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground"
         >
-          <History className="h-3.5 w-3.5" />
           History
           <ChevronDown className={cn('ml-auto h-3.5 w-3.5 transition', showHistory && 'rotate-180')} />
         </button>
@@ -344,11 +342,10 @@ export default function GitPanel(): JSX.Element {
       <PaneFooter className="gap-1 text-foreground">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-6 min-w-0 gap-1.5 px-1.5">
-              <GitBranch className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate text-xs">{status?.branch ?? '…'}</span>
-              <ChevronDown className="h-3 w-3 shrink-0 opacity-60" />
-            </Button>
+            <PaneFooterButton>
+              <span className="truncate">{status?.branch ?? '…'}</span>
+              <ChevronDown className="h-2.5 w-2.5 shrink-0 opacity-60" />
+            </PaneFooterButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="max-h-72 overflow-auto">
             <DropdownMenuLabel>Switch branch</DropdownMenuLabel>
@@ -391,13 +388,13 @@ export default function GitPanel(): JSX.Element {
           </span>
         )}
 
-        <div className="ml-auto flex items-center opacity-0 transition group-hover/section:opacity-100">
+        <div className="ml-auto flex items-center opacity-0 transition group-hover/section:opacity-100 [&_button]:text-muted-foreground/60 [&_button:hover]:text-foreground">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6"
+                className="h-5 w-5"
                 disabled={busy}
                 onClick={() =>
                   void remote(
@@ -407,7 +404,7 @@ export default function GitPanel(): JSX.Element {
                   )
                 }
               >
-                <RotateCw className="h-3.5 w-3.5" />
+                <RotateCw />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Fetch</TooltipContent>
@@ -417,7 +414,7 @@ export default function GitPanel(): JSX.Element {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6"
+                className="h-5 w-5"
                 disabled={busy}
                 onClick={() =>
                   void remote(
@@ -427,7 +424,7 @@ export default function GitPanel(): JSX.Element {
                   )
                 }
               >
-                <ArrowDown className="h-3.5 w-3.5" />
+                <ArrowDown />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Pull</TooltipContent>
@@ -437,7 +434,7 @@ export default function GitPanel(): JSX.Element {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6"
+                className="h-5 w-5"
                 disabled={busy}
                 onClick={() =>
                   void remote(
@@ -447,7 +444,7 @@ export default function GitPanel(): JSX.Element {
                   )
                 }
               >
-                <ArrowUp className="h-3.5 w-3.5" />
+                <ArrowUp />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Push</TooltipContent>
@@ -554,7 +551,7 @@ function FileRow({
       className="group/grow flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 hover:bg-secondary/60"
       title={file.path}
     >
-      <span className="min-w-0 flex-1 truncate text-sm">{base(file.path)}</span>
+      <span className="min-w-0 flex-1 truncate text-xs">{base(file.path)}</span>
       {/* Status + stats sit inline after the name; on hover they yield their
           spot to the action icons. */}
       <span className="flex shrink-0 items-center gap-1.5 text-[10px] group-hover/grow:hidden">

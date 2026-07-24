@@ -94,7 +94,7 @@ export default function ContextPanel(): JSX.Element {
             <li
               key={p}
               onClick={() => insert([p])}
-              className="group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-sm hover:bg-secondary/60"
+              className="group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-xs hover:bg-secondary/60"
               title={isUrl(p) ? `Insert ${p}` : `Insert @${project ? relTo(project.path, p) : p}`}
             >
               {isUrl(p) ? (

@@ -68,7 +68,7 @@ export default function ResourcesPanel(): JSX.Element {
         <div className="min-h-0 flex-1 overflow-auto px-2 py-1">
           {usage.map((u) => (
             <div key={u.id} className="rounded-md px-2 py-1.5 hover:bg-secondary/60">
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-2 text-xs">
                 <span className="flex-1 truncate">{u.title}</span>
                 <span className="shrink-0 font-server text-[11px] tabular-nums text-muted-foreground">
                   {u.cpu.toFixed(1)}% · {fmtMem(u.rssKb)}
