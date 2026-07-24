@@ -147,13 +147,13 @@ export default function ProjectTabs(): JSX.Element {
             <span className="relative h-3.5 w-3.5 shrink-0">
               {running ? (
                 <span
-                  className="absolute inset-0 transition-all duration-150 group-hover/tab:scale-50 group-hover/tab:opacity-0"
+                  className="absolute inset-0 flex items-center justify-center transition-all duration-150 group-hover/tab:scale-50 group-hover/tab:opacity-0"
                   aria-hidden="true"
                 >
                   <svg
                     viewBox={`0 0 ${SPARKLE_VIEWBOX.width} ${SPARKLE_VIEWBOX.height}`}
                     fill="none"
-                    className="ultra-working-sparkle h-3.5 w-3.5"
+                    className="ultra-working-sparkle h-[11.9px] w-[11.9px]"
                   >
                     <path d={SPARKLE_PATH} fill="currentColor" />
                   </svg>

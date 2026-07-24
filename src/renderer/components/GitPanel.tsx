@@ -13,6 +13,7 @@ import {
   History
 } from 'lucide-react'
 import PaneHeader from './PaneHeader'
+import PaneFooter from './PaneFooter'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
@@ -197,122 +198,6 @@ export default function GitPanel(): JSX.Element {
         </Tooltip>
       </PaneHeader>
 
-      {/* Branch + remote actions */}
-      <div className="flex items-center gap-1 border-b border-border px-2 py-1.5">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-6 min-w-0 gap-1.5 px-1.5">
-              <GitBranch className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate text-xs">{status?.branch ?? '…'}</span>
-              <ChevronDown className="h-3 w-3 shrink-0 opacity-60" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="max-h-72 overflow-auto">
-            <DropdownMenuLabel>Switch branch</DropdownMenuLabel>
-            {branchList.map((b) => (
-              <DropdownMenuItem
-                key={b}
-                onSelect={() => void act(() => window.api.git.switchBranch(cwd, b))}
-              >
-                <GitBranch className="h-3.5 w-3.5" />
-                {b}
-              </DropdownMenuItem>
-            ))}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onSelect={() => {
-                setBranchName('')
-                setBranchOpen(true)
-              }}
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Create branch…
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {status && (status.ahead > 0 || status.behind > 0) && (
-          <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-            {status.ahead > 0 && (
-              <span className="flex items-center">
-                <ArrowUp className="h-3 w-3" />
-                {status.ahead}
-              </span>
-            )}
-            {status.behind > 0 && (
-              <span className="flex items-center">
-                <ArrowDown className="h-3 w-3" />
-                {status.behind}
-              </span>
-            )}
-          </span>
-        )}
-
-        <div className="ml-auto flex items-center opacity-0 transition group-hover/section:opacity-100">
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                disabled={busy}
-                onClick={() =>
-                  void remote(
-                    'Fetch',
-                    `Fetch from the remote?\n\nDownloads remote changes for "${status?.branch ?? 'this branch'}" so you can see what's new. It does NOT modify your working files or current branch.`,
-                    () => window.api.git.fetch(cwd)
-                  )
-                }
-              >
-                <RotateCw className="h-3.5 w-3.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Fetch</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                disabled={busy}
-                onClick={() =>
-                  void remote(
-                    'Pull',
-                    `Pull into "${status?.branch ?? 'this branch'}"?\n\nThis fetches and MERGES remote changes${status?.behind ? ` (${status.behind} behind)` : ''} into your local branch, changing your working files. Commit or stash local changes first to avoid conflicts.`,
-                    () => window.api.git.pull(cwd)
-                  )
-                }
-              >
-                <ArrowDown className="h-3.5 w-3.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Pull</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                disabled={busy}
-                onClick={() =>
-                  void remote(
-                    'Push',
-                    `Push "${status?.branch ?? 'this branch'}" to the remote?\n\nThis uploads your${status?.ahead ? ` ${status.ahead}` : ''} local commit(s) to origin${status?.hasUpstream ? '' : ' and sets the upstream'}. This publishes your work to the remote.`,
-                    () => window.api.git.push(cwd)
-                  )
-                }
-              >
-                <ArrowUp className="h-3.5 w-3.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Push</TooltipContent>
-          </Tooltip>
-        </div>
-      </div>
-
       {/* Commit box — only when something is staged */}
       {staged.length > 0 && (
         <div className="flex flex-none gap-2 border-b border-border p-2">
@@ -454,6 +339,121 @@ export default function GitPanel(): JSX.Element {
           </ul>
         )}
       </div>
+
+      {/* Current branch + remote actions live in the footer */}
+      <PaneFooter className="gap-1 text-foreground">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-6 min-w-0 gap-1.5 px-1.5">
+              <GitBranch className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate text-xs">{status?.branch ?? '…'}</span>
+              <ChevronDown className="h-3 w-3 shrink-0 opacity-60" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="max-h-72 overflow-auto">
+            <DropdownMenuLabel>Switch branch</DropdownMenuLabel>
+            {branchList.map((b) => (
+              <DropdownMenuItem
+                key={b}
+                onSelect={() => void act(() => window.api.git.switchBranch(cwd, b))}
+              >
+                <GitBranch className="h-3.5 w-3.5" />
+                {b}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onSelect={() => {
+                setBranchName('')
+                setBranchOpen(true)
+              }}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Create branch…
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {status && (status.ahead > 0 || status.behind > 0) && (
+          <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+            {status.ahead > 0 && (
+              <span className="flex items-center">
+                <ArrowUp className="h-3 w-3" />
+                {status.ahead}
+              </span>
+            )}
+            {status.behind > 0 && (
+              <span className="flex items-center">
+                <ArrowDown className="h-3 w-3" />
+                {status.behind}
+              </span>
+            )}
+          </span>
+        )}
+
+        <div className="ml-auto flex items-center opacity-0 transition group-hover/section:opacity-100">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                disabled={busy}
+                onClick={() =>
+                  void remote(
+                    'Fetch',
+                    `Fetch from the remote?\n\nDownloads remote changes for "${status?.branch ?? 'this branch'}" so you can see what's new. It does NOT modify your working files or current branch.`,
+                    () => window.api.git.fetch(cwd)
+                  )
+                }
+              >
+                <RotateCw className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Fetch</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                disabled={busy}
+                onClick={() =>
+                  void remote(
+                    'Pull',
+                    `Pull into "${status?.branch ?? 'this branch'}"?\n\nThis fetches and MERGES remote changes${status?.behind ? ` (${status.behind} behind)` : ''} into your local branch, changing your working files. Commit or stash local changes first to avoid conflicts.`,
+                    () => window.api.git.pull(cwd)
+                  )
+                }
+              >
+                <ArrowDown className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Pull</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                disabled={busy}
+                onClick={() =>
+                  void remote(
+                    'Push',
+                    `Push "${status?.branch ?? 'this branch'}" to the remote?\n\nThis uploads your${status?.ahead ? ` ${status.ahead}` : ''} local commit(s) to origin${status?.hasUpstream ? '' : ' and sets the upstream'}. This publishes your work to the remote.`,
+                    () => window.api.git.push(cwd)
+                  )
+                }
+              >
+                <ArrowUp className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Push</TooltipContent>
+          </Tooltip>
+        </div>
+      </PaneFooter>
 
       <Dialog open={branchOpen} onOpenChange={setBranchOpen}>
         <DialogContent className="max-w-sm">

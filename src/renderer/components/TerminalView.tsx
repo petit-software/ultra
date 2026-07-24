@@ -141,6 +141,10 @@ export default function TerminalView({
           fit.fit()
           if (autoFocus) term.focus()
           window.api.pty.resize(sessionId, term.cols, term.rows)
+          // Rows hidden via display:none aren't repainted by xterm's renderer,
+          // so a session revealed by a tab switch can come back blank/black.
+          // Force a full redraw now that the host is laid out again.
+          term.refresh(0, term.rows - 1)
         } catch {
           /* not laid out yet */
         }
@@ -159,6 +163,7 @@ export default function TerminalView({
       try {
         fit.fit()
         window.api.pty.resize(sessionId, term.cols, term.rows)
+        term.refresh(0, term.rows - 1)
       } catch {
         /* host hidden / not laid out */
       }

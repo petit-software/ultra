@@ -14,7 +14,7 @@ export default function PaneFooter({
   return (
     <div
       className={cn(
-        'flex flex-none items-center gap-1.5 border-t border-border/50 px-3 py-1.5 font-server text-[11px] tabular-nums text-muted-foreground',
+        'flex flex-none items-center gap-1.5 border-t border-border/75 px-3 py-1.5 font-server text-[11px] tabular-nums text-muted-foreground',
         className
       )}
     >

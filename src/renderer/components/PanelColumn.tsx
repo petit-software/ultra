@@ -6,7 +6,7 @@ import { PanelDndContext, PANEL_DND_MIME, setPanelDragImage } from './panelDnd'
 import { cn } from '@/lib/utils'
 
 // Inactive panels sit back with a dimmed border; the focused one (below) is lighter.
-const SECTION = 'ultra-panel overflow-hidden rounded-xl border border-border/50 bg-transparent'
+const SECTION = 'ultra-panel overflow-hidden rounded-xl border border-border/75 bg-transparent'
 const HANDLE = 'mx-1 bg-transparent data-[panel-group-direction=vertical]:h-3'
 
 interface Props {

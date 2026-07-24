@@ -951,7 +951,15 @@ export const useStore = create<AppState>((set, get) => ({
       return next
     }),
 
-  closeFile: () => set({ activeFile: null }),
+  closeFile: () =>
+    set((st) => {
+      const next = {
+        ...withLayout(st, st.panelColumns, { ...st.sidebarBlocks, editor: false }),
+        activeFile: null
+      }
+      schedulePersist(next)
+      return next
+    }),
 
   setSelectedAppIcon: (id) =>
     set((st) => {
