@@ -10,7 +10,11 @@ import {
   Terminal,
   Columns2,
   Rows2,
-  X
+  X,
+  Plug,
+  Activity,
+  Gauge,
+  ListTodo
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { usePanelDrag } from './panelDnd'
@@ -32,7 +36,11 @@ const SWAP_TARGETS: { key: SidebarBlockKey; label: string; icon: JSX.Element }[]
   { key: 'editor', label: 'Editor', icon: <FileCode className="h-4 w-4" /> },
   { key: 'context', label: 'Context', icon: <Paperclip className="h-4 w-4" /> },
   { key: 'terminal', label: 'Termini', icon: <SquareTerminal className="h-4 w-4" /> },
-  { key: 'shells', label: 'Shells', icon: <Terminal className="h-4 w-4" /> }
+  { key: 'shells', label: 'Shells', icon: <Terminal className="h-4 w-4" /> },
+  { key: 'ports', label: 'Ports', icon: <Plug className="h-4 w-4" /> },
+  { key: 'processes', label: 'Processes', icon: <Activity className="h-4 w-4" /> },
+  { key: 'resources', label: 'Resources', icon: <Gauge className="h-4 w-4" /> },
+  { key: 'tasks', label: 'Tasks', icon: <ListTodo className="h-4 w-4" /> }
 ]
 
 interface Props {

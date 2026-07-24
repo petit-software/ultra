@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Plus, FileText, Folder, Link2, Forward } from 'lucide-react'
 import PaneHeader from './PaneHeader'
+import PaneFooter from './PaneFooter'
 import ContextPanel from './ContextPanel'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
@@ -60,14 +61,7 @@ export default function ContextSection(): JSX.Element {
 
   return (
     <div className="group/section flex h-full flex-col">
-      <PaneHeader
-        title="Context"
-        titleContent={
-          pinned.length > 0 ? (
-            <span className="text-[11px] tabular-nums text-muted-foreground">{pinned.length}</span>
-          ) : null
-        }
-      >
+      <PaneHeader title="Context">
         {pinned.length > 0 && (
           <Tooltip>
             <TooltipTrigger asChild>
@@ -135,6 +129,8 @@ export default function ContextSection(): JSX.Element {
       )}
 
       <ContextPanel />
+
+      {pinned.length > 0 && <PaneFooter>{pinned.length} pinned</PaneFooter>}
     </div>
   )
 }

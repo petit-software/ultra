@@ -115,6 +115,13 @@ const api = {
     open: (command: string, path: string): Promise<boolean> =>
       ipcRenderer.invoke('editor:open', command, path)
   },
+  system: {
+    ports: (): Promise<PortInfo[]> => ipcRenderer.invoke('system:ports'),
+    processes: (): Promise<Record<string, ProcessInfo[]>> =>
+      ipcRenderer.invoke('system:processes'),
+    kill: (pid: number): Promise<boolean> => ipcRenderer.invoke('system:kill', pid),
+    stats: (): Promise<SystemStats> => ipcRenderer.invoke('system:stats')
+  },
   theme: {
     setNative: (mode: 'dark' | 'light') => ipcRenderer.send('theme:setNative', mode)
   },
@@ -138,6 +145,27 @@ export interface DirEntry {
   name: string
   path: string
   isDir: boolean
+}
+
+export interface PortInfo {
+  port: number
+  address: string
+  pid: number
+  command: string
+}
+
+export interface ProcessInfo {
+  pid: number
+  ppid: number
+  cpu: number
+  rssKb: number
+  command: string
+}
+
+export interface SystemStats {
+  loadAvg: number
+  cpuCount: number
+  totalMemKb: number
 }
 
 contextBridge.exposeInMainWorld('api', api)

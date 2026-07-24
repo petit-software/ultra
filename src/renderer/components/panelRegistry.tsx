@@ -4,7 +4,11 @@ import {
   FileCode,
   Paperclip,
   SquareTerminal,
-  Terminal
+  Terminal,
+  Plug,
+  Activity,
+  Gauge,
+  ListTodo
 } from 'lucide-react'
 import {
   useStore,
@@ -20,6 +24,10 @@ import ContextSection from './ContextSection'
 import SidebarTerminal from './SidebarTerminal'
 import TerminalPane from './TerminalPane'
 import SplitTerminalPanel from './SplitTerminalPanel'
+import PortsPanel from './PortsPanel'
+import ProcessesPanel from './ProcessesPanel'
+import ResourcesPanel from './ResourcesPanel'
+import TasksPanel from './TasksPanel'
 
 export interface PanelMeta {
   /** Human label, shown in the drag ghost and menus. */
@@ -77,6 +85,34 @@ export const PANEL_REGISTRY: Record<SidebarBlockKey, PanelMeta> = {
     defaultSize: 60,
     minSize: 20,
     render: () => <TerminalPane />
+  },
+  ports: {
+    label: 'Ports',
+    icon: <Plug className="h-4 w-4" />,
+    defaultSize: 25,
+    minSize: 15,
+    render: () => <PortsPanel />
+  },
+  processes: {
+    label: 'Processes',
+    icon: <Activity className="h-4 w-4" />,
+    defaultSize: 30,
+    minSize: 15,
+    render: () => <ProcessesPanel />
+  },
+  resources: {
+    label: 'Resources',
+    icon: <Gauge className="h-4 w-4" />,
+    defaultSize: 25,
+    minSize: 15,
+    render: () => <ResourcesPanel />
+  },
+  tasks: {
+    label: 'Tasks',
+    icon: <ListTodo className="h-4 w-4" />,
+    defaultSize: 30,
+    minSize: 15,
+    render: () => <TasksPanel />
   }
 }
 

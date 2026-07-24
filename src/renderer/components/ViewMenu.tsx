@@ -6,7 +6,11 @@ import {
   Paperclip,
   SquareTerminal,
   Terminal,
-  RotateCcw
+  RotateCcw,
+  Plug,
+  Activity,
+  Gauge,
+  ListTodo
 } from 'lucide-react'
 import { HiMiniViewColumns } from 'react-icons/hi2'
 import { useStore, type SidebarBlockKey } from '../store/useStore'
@@ -26,7 +30,11 @@ const BLOCKS: { key: SidebarBlockKey; label: string; icon: JSX.Element }[] = [
   { key: 'files', label: 'Files', icon: <Files className="h-4 w-4" /> },
   { key: 'editor', label: 'Editor', icon: <FileCode className="h-4 w-4" /> },
   { key: 'context', label: 'Context', icon: <Paperclip className="h-4 w-4" /> },
-  { key: 'terminal', label: 'Termini', icon: <SquareTerminal className="h-4 w-4" /> }
+  { key: 'terminal', label: 'Termini', icon: <SquareTerminal className="h-4 w-4" /> },
+  { key: 'ports', label: 'Ports', icon: <Plug className="h-4 w-4" /> },
+  { key: 'processes', label: 'Processes', icon: <Activity className="h-4 w-4" /> },
+  { key: 'resources', label: 'Resources', icon: <Gauge className="h-4 w-4" /> },
+  { key: 'tasks', label: 'Tasks', icon: <ListTodo className="h-4 w-4" /> }
 ]
 
 export default function ViewMenu(): JSX.Element {

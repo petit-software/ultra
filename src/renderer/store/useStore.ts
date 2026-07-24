@@ -13,6 +13,12 @@ export interface Session {
   agentStarted?: boolean
 }
 
+export interface Todo {
+  id: string
+  text: string
+  done: boolean
+}
+
 export interface Project {
   id: string
   name: string
@@ -20,6 +26,8 @@ export interface Project {
   sessionIds: string[]
   /** Absolute paths the user pinned as agent context for this project. */
   contextPaths?: string[]
+  /** The project's simple todo list (Tasks panel). */
+  todos?: Todo[]
 }
 
 export interface Agent {
@@ -58,6 +66,10 @@ export interface SidebarBlocks {
   terminal: boolean
   /** The main shells terminal. Always on; lives here so it can be a panel. */
   shells: boolean
+  ports: boolean
+  processes: boolean
+  resources: boolean
+  tasks: boolean
 }
 
 /** A file currently open in the in-app editor panel. Not persisted. */
@@ -94,13 +106,17 @@ const DEFAULT_SIDEBAR_BLOCKS: SidebarBlocks = {
   editor: false,
   context: true,
   terminal: false,
-  shells: true
+  shells: true,
+  ports: true,
+  processes: true,
+  resources: true,
+  tasks: true
 }
 
 const DEFAULT_PANEL_COLUMNS: PanelColumns = [
-  ['git'],
+  ['git', 'ports', 'processes', 'resources'],
   ['shells'],
-  ['files', 'editor', 'context', 'terminal']
+  ['files', 'editor', 'context', 'terminal', 'tasks']
 ]
 
 /** A project's whole panel arrangement: columns plus per-panel visibility. */
@@ -270,6 +286,12 @@ interface AppState extends PersistShape {
   removeAgent: (id: string) => void
   pinContext: (projectId: string, paths: string[]) => void
   unpinContext: (projectId: string, path: string) => void
+  addTodo: (projectId: string, text: string) => void
+  updateTodo: (projectId: string, todoId: string, text: string) => void
+  toggleTodo: (projectId: string, todoId: string) => void
+  removeTodo: (projectId: string, todoId: string) => void
+  /** Remove every completed task from the project's list. */
+  clearDoneTodos: (projectId: string) => void
   toggleTheme: () => void
   setEditorCommand: (command: string) => void
   toggleSidebarBlock: (block: SidebarBlockKey) => void
@@ -297,6 +319,41 @@ interface AppState extends PersistShape {
 let counter = 0
 const newId = (prefix: string): string => `${prefix}-${Date.now().toString(36)}-${counter++}`
 const basename = (p: string): string => p.replace(/\/+$/, '').split('/').pop() || p
+
+/** Session titles already used inside a project. */
+function takenTitles(
+  sessions: Record<string, Session>,
+  project: Project,
+  excludeId?: string
+): Set<string> {
+  const taken = new Set<string>()
+  for (const sid of project.sessionIds) {
+    if (sid !== excludeId && sessions[sid]) taken.add(sessions[sid].title)
+  }
+  return taken
+}
+
+/** Lowest free "shell N" title — closing a shell frees its number for reuse. */
+function nextShellTitle(sessions: Record<string, Session>, project: Project): string {
+  const taken = takenTitles(sessions, project)
+  let n = 1
+  while (taken.has(`shell ${n}`)) n++
+  return `shell ${n}`
+}
+
+/** `base`, or `base 2`, `base 3`… — the first variant free within the project. */
+function uniqueSessionTitle(
+  sessions: Record<string, Session>,
+  project: Project,
+  base: string,
+  excludeId?: string
+): string {
+  const taken = takenTitles(sessions, project, excludeId)
+  if (!taken.has(base)) return base
+  let n = 2
+  while (taken.has(`${base} ${n}`)) n++
+  return `${base} ${n}`
+}
 
 function makeDefault(): PersistShape {
   const project: Project = { id: newId('proj'), name: 'home', path: '', sessionIds: [] }
@@ -537,7 +594,7 @@ export const useStore = create<AppState>((set, get) => ({
       if (!project) return st
       const session: Session = {
         id: newId('sess'),
-        title: `shell ${project.sessionIds.length + 1}`,
+        title: nextShellTitle(st.sessions, project),
         cwd: project.path,
         projectId
       }
@@ -576,7 +633,11 @@ export const useStore = create<AppState>((set, get) => ({
         if (!project) return st
         const session: Session = {
           id: newId('sess'),
-          title: resolved.available ? agent.name : `Install ${agent.name}`,
+          title: uniqueSessionTitle(
+            st.sessions,
+            project,
+            resolved.available ? agent.name : `Install ${agent.name}`
+          ),
           cwd: project.path,
           projectId,
           command: resolved.command,
@@ -659,6 +720,85 @@ export const useStore = create<AppState>((set, get) => ({
         projects: st.projects.map((p) =>
           p.id === projectId
             ? { ...p, contextPaths: (p.contextPaths ?? []).filter((c) => c !== path) }
+            : p
+        )
+      }
+      schedulePersist(next)
+      return next
+    }),
+
+  addTodo: (projectId, text) =>
+    set((st) => {
+      const trimmed = text.trim()
+      if (!trimmed) return st
+      const todo: Todo = { id: newId('todo'), text: trimmed, done: false }
+      const next = {
+        ...st,
+        projects: st.projects.map((p) =>
+          p.id === projectId ? { ...p, todos: [...(p.todos ?? []), todo] } : p
+        )
+      }
+      schedulePersist(next)
+      return next
+    }),
+
+  updateTodo: (projectId, todoId, text) =>
+    set((st) => {
+      const next = {
+        ...st,
+        projects: st.projects.map((p) =>
+          p.id === projectId
+            ? {
+                ...p,
+                todos: (p.todos ?? []).map((t) => (t.id === todoId ? { ...t, text } : t))
+              }
+            : p
+        )
+      }
+      schedulePersist(next)
+      return next
+    }),
+
+  toggleTodo: (projectId, todoId) =>
+    set((st) => {
+      const next = {
+        ...st,
+        projects: st.projects.map((p) =>
+          p.id === projectId
+            ? {
+                ...p,
+                todos: (p.todos ?? []).map((t) =>
+                  t.id === todoId ? { ...t, done: !t.done } : t
+                )
+              }
+            : p
+        )
+      }
+      schedulePersist(next)
+      return next
+    }),
+
+  removeTodo: (projectId, todoId) =>
+    set((st) => {
+      const next = {
+        ...st,
+        projects: st.projects.map((p) =>
+          p.id === projectId
+            ? { ...p, todos: (p.todos ?? []).filter((t) => t.id !== todoId) }
+            : p
+        )
+      }
+      schedulePersist(next)
+      return next
+    }),
+
+  clearDoneTodos: (projectId) =>
+    set((st) => {
+      const next = {
+        ...st,
+        projects: st.projects.map((p) =>
+          p.id === projectId
+            ? { ...p, todos: (p.todos ?? []).filter((t) => !t.done) }
             : p
         )
       }
@@ -889,7 +1029,7 @@ export const useStore = create<AppState>((set, get) => ({
       if (!project) return st
       const session: Session = {
         id: newId('sess'),
-        title: `shell ${project.sessionIds.length + 1}`,
+        title: nextShellTitle(st.sessions, project),
         cwd: project.path,
         projectId: project.id
       }
@@ -928,7 +1068,7 @@ export const useStore = create<AppState>((set, get) => ({
       if (!pane || !project) return st
       const session: Session = {
         id: newId('sess'),
-        title: `shell ${project.sessionIds.length + 1}`,
+        title: nextShellTitle(st.sessions, project),
         cwd: project.path,
         projectId: project.id
       }
@@ -996,9 +1136,14 @@ export const useStore = create<AppState>((set, get) => ({
     set((st) => {
       const s = st.sessions[id]
       if (!s) return st
+      const trimmed = title.trim()
+      // A rename that collides with a sibling gets suffixed ("foo" → "foo 2").
+      const project = st.projects.find((p) => p.id === s.projectId)
+      const unique =
+        trimmed && project ? uniqueSessionTitle(st.sessions, project, trimmed, id) : trimmed
       const next = {
         ...st,
-        sessions: { ...st.sessions, [id]: { ...s, title: title.trim() || s.title } }
+        sessions: { ...st.sessions, [id]: { ...s, title: unique || s.title } }
       }
       schedulePersist(next)
       return next

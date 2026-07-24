@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { X, Check, RotateCcw, ArrowUpRight } from 'lucide-react'
+import { X, Check, RotateCcw, ArrowUpRight, Eye, Pencil } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import PaneHeader from './PaneHeader'
+import PaneFooter from './PaneFooter'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { useStore } from '../store/useStore'
@@ -9,6 +12,8 @@ type Loaded =
   | { kind: 'text'; content: string }
   | { kind: 'readonly'; reason: string }
   | { kind: 'error'; reason: string }
+
+const isMarkdown = (name: string): boolean => /\.(md|markdown|mdx)$/i.test(name)
 
 export default function EditorPanel(): JSX.Element {
   const activeFile = useStore((s) => s.activeFile)
@@ -23,6 +28,9 @@ export default function EditorPanel(): JSX.Element {
 
   const path = activeFile?.path ?? null
   const dirty = loaded?.kind === 'text' && draft !== loaded.content
+  const markdown = !!activeFile && isMarkdown(activeFile.name)
+  // Markdown opens as a rendered preview; the header toggle switches to editing.
+  const [preview, setPreview] = useState(false)
 
   const lineCount = useMemo(() => (draft ? draft.split('\n').length : 1), [draft])
 
@@ -42,6 +50,7 @@ export default function EditorPanel(): JSX.Element {
     }
     let live = true
     setLoaded(null)
+    setPreview(isMarkdown(path))
     window.api.fs
       .readFile(path)
       .then((res) => {
@@ -77,19 +86,24 @@ export default function EditorPanel(): JSX.Element {
 
   return (
     <div className="group/section flex h-full flex-col">
-      <PaneHeader
-        title="Editor"
-        titleContent={
-          activeFile && (
-            <div className="flex min-w-0 items-center gap-1.5">
-              <span className="truncate text-xs text-foreground/80">{activeFile.name}</span>
-              {dirty && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" title="Unsaved changes" />}
-            </div>
-          )
-        }
-      >
+      <PaneHeader title="Editor">
         {activeFile && (
           <>
+            {markdown && loaded?.kind === 'text' && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5"
+                    onClick={() => setPreview((p) => !p)}
+                  >
+                    {preview ? <Pencil /> : <Eye />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{preview ? 'Edit source' : 'Preview'}</TooltipContent>
+              </Tooltip>
+            )}
             {dirty && loaded?.kind === 'text' && (
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -152,6 +166,28 @@ export default function EditorPanel(): JSX.Element {
           </div>
         ) : loaded === null ? (
           <div className="p-4 text-xs text-muted-foreground">loading…</div>
+        ) : loaded.kind === 'text' && markdown && preview ? (
+          <div className="prose prose-sm dark:prose-invert h-full max-w-none overflow-auto px-4 py-3">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                // Keep navigation out of the app window; http(s) links open in the browser.
+                a: ({ href, children }) => (
+                  <a
+                    href={href}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      if (href) window.api.app.openExternal(href)
+                    }}
+                  >
+                    {children}
+                  </a>
+                )
+              }}
+            >
+              {draft}
+            </ReactMarkdown>
+          </div>
         ) : loaded.kind === 'text' ? (
           <div className="flex h-full font-mono text-xs leading-relaxed">
             <div
@@ -178,6 +214,18 @@ export default function EditorPanel(): JSX.Element {
           <div className="p-4 text-sm text-muted-foreground">{loaded.reason}</div>
         )}
       </div>
+
+      {activeFile && (
+        <PaneFooter>
+          <span className="truncate">{activeFile.name}</span>
+          {dirty && (
+            <span
+              className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary"
+              title="Unsaved changes"
+            />
+          )}
+        </PaneFooter>
+      )}
     </div>
   )
 }

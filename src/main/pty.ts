@@ -157,6 +157,19 @@ export function createPty(
   ensurePoller()
 }
 
+/** Session id → PTY process pid, for the processes/resources panels. */
+export function ptyPids(): { id: string; pid: number }[] {
+  const out: { id: string; pid: number }[] = []
+  for (const [id, s] of sessions) {
+    try {
+      out.push({ id, pid: s.pty.pid })
+    } catch {
+      /* pty just exited */
+    }
+  }
+  return out
+}
+
 export function writePty(id: string, data: string): void {
   sessions.get(id)?.pty.write(data)
 }

@@ -11,7 +11,8 @@ import {
   type MenuItemConstructorOptions
 } from 'electron'
 import { join } from 'path'
-import { createPty, writePty, resizePty, killPty, killAllPty } from './pty'
+import { createPty, writePty, resizePty, killPty, killAllPty, ptyPids } from './pty'
+import { listPorts, listSessionProcesses, killProcess, systemStats } from './system-service'
 import { loadWorkspace, saveWorkspace } from './store'
 import {
   listDir,
@@ -419,6 +420,11 @@ function registerIpc(): void {
   ipcMain.handle('editor:open', (_e, command: string, path: string) =>
     openInEditor(command, path)
   )
+
+  ipcMain.handle('system:ports', () => listPorts())
+  ipcMain.handle('system:processes', () => listSessionProcesses(ptyPids()))
+  ipcMain.handle('system:kill', (_e, pid: number) => killProcess(pid))
+  ipcMain.handle('system:stats', () => systemStats())
 
   // Sync the native window appearance (titlebar + traffic lights) to the app theme.
   ipcMain.on('theme:setNative', (_e, mode: 'dark' | 'light') => {

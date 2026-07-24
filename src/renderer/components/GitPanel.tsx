@@ -35,14 +35,15 @@ const isStaged = (f: GitFile): boolean => f.x !== ' ' && f.x !== '?'
 const isUnstaged = (f: GitFile): boolean => f.y !== ' '
 const isUntracked = (f: GitFile): boolean => f.x === '?' && f.y === '?'
 
-const STATUS_META: Record<string, { label: string; color: string }> = {
-  M: { label: 'Modified', color: 'text-amber-500' },
-  A: { label: 'New', color: 'text-emerald-500' },
-  '?': { label: 'New', color: 'text-emerald-500' },
-  D: { label: 'Deleted', color: 'text-red-500' },
-  R: { label: 'Renamed', color: 'text-primary' },
-  C: { label: 'Copied', color: 'text-primary' },
-  U: { label: 'Conflict', color: 'text-red-500' }
+// Single-letter status marks; the full word lives in the tooltip.
+const STATUS_META: Record<string, { letter: string; label: string; color: string }> = {
+  M: { letter: 'M', label: 'Modified', color: 'text-amber-500' },
+  A: { letter: 'N', label: 'New', color: 'text-emerald-500' },
+  '?': { letter: 'N', label: 'New', color: 'text-emerald-500' },
+  D: { letter: 'D', label: 'Deleted', color: 'text-red-500' },
+  R: { letter: 'R', label: 'Renamed', color: 'text-primary' },
+  C: { letter: 'C', label: 'Copied', color: 'text-primary' },
+  U: { letter: 'U', label: 'Conflict', color: 'text-red-500' }
 }
 
 function DiffView({ text }: { text: string }): JSX.Element {
@@ -543,30 +544,32 @@ function FileRow({
   actions: React.ReactNode
 }): JSX.Element {
   const code = staged ? file.x : file.y
-  const meta = STATUS_META[code] ?? { label: 'Changed', color: 'text-primary' }
+  const meta = STATUS_META[code] ?? { letter: '•', label: 'Changed', color: 'text-primary' }
   const stats = staged ? file.stagedStats : file.worktreeStats
   const added = stats?.added ?? 0
   const removed = stats?.removed ?? 0
   return (
     <li
       onClick={onOpen}
-      className="group/grow cursor-pointer rounded-md px-2 py-1 hover:bg-secondary/60"
+      className="group/grow flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 hover:bg-secondary/60"
       title={file.path}
     >
-      <div className="flex items-center gap-2">
-        <span className="min-w-0 flex-1 truncate text-sm">{base(file.path)}</span>
-        <span
-          className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover/grow:opacity-100"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {actions}
+      <span className="min-w-0 flex-1 truncate text-sm">{base(file.path)}</span>
+      {/* Status + stats sit inline after the name; on hover they yield their
+          spot to the action icons. */}
+      <span className="flex shrink-0 items-center gap-1.5 text-[10px] group-hover/grow:hidden">
+        <span className={cn('font-mono font-medium', meta.color)} title={meta.label}>
+          {meta.letter}
         </span>
-      </div>
-      <div className="flex items-center gap-2 text-[10px] leading-4">
-        <span className={cn('font-medium', meta.color)}>{meta.label}</span>
         {added > 0 && <span className="font-mono text-emerald-500">+{added}</span>}
         {removed > 0 && <span className="font-mono text-red-500">−{removed}</span>}
-      </div>
+      </span>
+      <span
+        className="hidden shrink-0 items-center gap-1 group-hover/grow:flex"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {actions}
+      </span>
     </li>
   )
 }
