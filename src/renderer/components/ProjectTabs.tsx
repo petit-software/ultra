@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { Plus, X, Terminal } from 'lucide-react'
+import { SPARKLE_PATH, SPARKLE_VIEWBOX } from '@/lib/sparkle'
 import { useStore } from '../store/useStore'
 import { setPanelDragImage } from './panelDnd'
 import { Button } from '@/components/ui/button'
@@ -140,15 +141,29 @@ export default function ProjectTabs(): JSX.Element {
             )}
           >
             {/* Terminal mark that swaps into the close button on tab hover:
-                the mark scales down and fades out while the X scales in. */}
+                the mark scales down and fades out while the X scales in. While
+                an agent is working the mark is the spinning Ultra sparkle
+                instead (wrapped so its rotation doesn't fight the hover scale). */}
             <span className="relative h-3.5 w-3.5 shrink-0">
-              <Terminal
-                className={cn(
-                  'absolute inset-0 h-3.5 w-3.5 transition-all duration-150 group-hover/tab:scale-50 group-hover/tab:opacity-0',
-                  running && 'text-primary'
-                )}
-                aria-hidden="true"
-              />
+              {running ? (
+                <span
+                  className="absolute inset-0 transition-all duration-150 group-hover/tab:scale-50 group-hover/tab:opacity-0"
+                  aria-hidden="true"
+                >
+                  <svg
+                    viewBox={`0 0 ${SPARKLE_VIEWBOX.width} ${SPARKLE_VIEWBOX.height}`}
+                    fill="none"
+                    className="ultra-working-sparkle h-3.5 w-3.5"
+                  >
+                    <path d={SPARKLE_PATH} fill="currentColor" />
+                  </svg>
+                </span>
+              ) : (
+                <Terminal
+                  className="absolute inset-0 h-3.5 w-3.5 transition-all duration-150 group-hover/tab:scale-50 group-hover/tab:opacity-0"
+                  aria-hidden="true"
+                />
+              )}
               <button
                 type="button"
                 title="Close project"

@@ -235,7 +235,43 @@ function buildAppMenu(): void {
       ]
     },
     { role: 'editMenu' },
-    { role: 'viewMenu' },
+    // Standard View menu, except zoom routes through the renderer so the
+    // focused panel can claim Cmd+/- (the editor scales its own font) before
+    // falling back to app-wide zoom.
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { role: 'toggleDevTools' },
+        { type: 'separator' },
+        {
+          label: 'Actual Size',
+          accelerator: 'CmdOrCtrl+0',
+          click: () => send('zoom-reset')
+        },
+        {
+          label: 'Zoom In',
+          accelerator: 'CmdOrCtrl+Plus',
+          click: () => send('zoom-in')
+        },
+        // Hidden twin so plain Cmd+= (no Shift) also zooms in, like browsers do.
+        {
+          label: 'Zoom In',
+          accelerator: 'CmdOrCtrl+=',
+          visible: false,
+          acceleratorWorksWhenHidden: true,
+          click: () => send('zoom-in')
+        },
+        {
+          label: 'Zoom Out',
+          accelerator: 'CmdOrCtrl+-',
+          click: () => send('zoom-out')
+        },
+        { type: 'separator' },
+        { role: 'togglefullscreen' }
+      ]
+    },
     // Custom Window menu WITHOUT a Cmd+W close item, so Close Session owns it.
     {
       label: 'Window',

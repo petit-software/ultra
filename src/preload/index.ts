@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron'
+import { contextBridge, ipcRenderer, webFrame, webUtils, type IpcRendererEvent } from 'electron'
 
 type Unsubscribe = () => void
 
@@ -131,6 +131,11 @@ const api = {
     version: (): Promise<string> => ipcRenderer.invoke('app:getVersion')
   },
   app: {
+    // App-wide zoom, used when no panel claims the Cmd+/- menu commands.
+    zoom: (dir: 'in' | 'out' | 'reset') => {
+      if (dir === 'reset') webFrame.setZoomLevel(0)
+      else webFrame.setZoomLevel(webFrame.getZoomLevel() + (dir === 'in' ? 0.5 : -0.5))
+    },
     openExternal: (url: string) => ipcRenderer.send('app:openExternal', url),
     setConfirmClose: (enabled: boolean) => ipcRenderer.send('app:setConfirmClose', enabled),
     setDockIcon: (dataUrl: string | null) => ipcRenderer.send('app:setDockIcon', dataUrl),

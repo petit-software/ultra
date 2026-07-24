@@ -99,7 +99,8 @@ export default function App(): JSX.Element {
   }, [])
 
   // Keyboard shortcuts via the app menu: Cmd+D new session, Cmd+W close session,
-  // Cmd+1..9 switch to the Nth project tab.
+  // Cmd+1..9 switch to the Nth project tab, Cmd+/-/0 zoom (editor font size
+  // while the editor panel is focused, app-wide zoom otherwise).
   useEffect(() => {
     return window.api.menu.onCommand((cmd) => {
       const s = useStore.getState()
@@ -107,6 +108,14 @@ export default function App(): JSX.Element {
       else if (cmd === 'close-session') s.closeActiveSession()
       else if (cmd.startsWith('switch-project-'))
         s.activateProjectByIndex(Number(cmd.slice('switch-project-'.length)))
+      else if (cmd === 'zoom-in' || cmd === 'zoom-out' || cmd === 'zoom-reset') {
+        if (s.focusedPanel === 'editor' && s.activeFile) {
+          if (cmd === 'zoom-reset') s.resetEditorFontSize()
+          else s.adjustEditorFontSize(cmd === 'zoom-in' ? 1 : -1)
+        } else {
+          window.api.app.zoom(cmd === 'zoom-in' ? 'in' : cmd === 'zoom-out' ? 'out' : 'reset')
+        }
+      }
     })
   }, [])
 

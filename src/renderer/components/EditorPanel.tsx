@@ -19,6 +19,7 @@ export default function EditorPanel(): JSX.Element {
   const activeFile = useStore((s) => s.activeFile)
   const closeFile = useStore((s) => s.closeFile)
   const editorCommand = useStore((s) => s.editorCommand)
+  const editorFontSize = useStore((s) => s.editorFontSize)
 
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [draft, setDraft] = useState('')
@@ -146,14 +147,6 @@ export default function EditorPanel(): JSX.Element {
               </TooltipTrigger>
               <TooltipContent>Open in external editor</TooltipContent>
             </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-5 w-5" onClick={closeFile}>
-                  <X />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Close</TooltipContent>
-            </Tooltip>
           </>
         )}
       </PaneHeader>
@@ -189,7 +182,10 @@ export default function EditorPanel(): JSX.Element {
             </ReactMarkdown>
           </div>
         ) : loaded.kind === 'text' ? (
-          <div className="flex h-full font-mono text-xs leading-relaxed">
+          <div
+            className="flex h-full font-mono leading-relaxed"
+            style={{ fontSize: editorFontSize }}
+          >
             <div
               ref={gutterRef}
               aria-hidden
@@ -224,6 +220,14 @@ export default function EditorPanel(): JSX.Element {
               title="Unsaved changes"
             />
           )}
+          <button
+            type="button"
+            title="Close file"
+            onClick={closeFile}
+            className="flex h-4 w-4 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <X className="h-3 w-3" />
+          </button>
         </PaneFooter>
       )}
     </div>

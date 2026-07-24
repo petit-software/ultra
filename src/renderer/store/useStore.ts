@@ -135,6 +135,11 @@ const ALL_PANEL_KEYS = Object.keys(DEFAULT_SIDEBAR_BLOCKS) as PanelKey[]
 /** All react-resizable-panels autosave entries live under this prefix. */
 export const LAYOUT_STORAGE_PREFIX = 'react-resizable-panels:'
 
+// In-app editor font size, stepped with Cmd+/- while the editor panel is focused.
+const DEFAULT_EDITOR_FONT_SIZE = 12 // matches the text-xs the editor used to hardcode
+const MIN_EDITOR_FONT_SIZE = 8
+const MAX_EDITOR_FONT_SIZE = 28
+
 /**
  * Coerce a persisted (possibly stale or corrupt) layout into a valid one: every
  * panel key present exactly once, unknown keys dropped, any panel missing from
@@ -244,6 +249,8 @@ interface AppState extends PersistShape {
   draggingPanel: PanelKey | null
   /** Panel the user is interacting with (last click / focus), or null. Not persisted. */
   focusedPanel: PanelKey | null
+  /** Font size of the in-app editor, adjusted with Cmd+/- while it's focused. Not persisted. */
+  editorFontSize: number
   /** Bumped on every panel reset so the layout group remounts with default widths. Not persisted. */
   panelLayoutResetCount: number
 
@@ -308,6 +315,10 @@ interface AppState extends PersistShape {
   /** Mark the panel being dragged so both sidebars can render drop affordances. */
   setDraggingPanel: (key: PanelKey | null) => void
   setFocusedPanel: (key: PanelKey | null) => void
+  /** Step the editor font size up/down (Cmd+/- while the editor is focused). */
+  adjustEditorFontSize: (delta: number) => void
+  /** Back to the default editor font size (Cmd+0 while the editor is focused). */
+  resetEditorFontSize: () => void
   /** Open a file in the in-app editor panel, revealing the panel if hidden. */
   openFile: (file: ActiveFile) => void
   closeFile: () => void
@@ -450,6 +461,7 @@ export const useStore = create<AppState>((set, get) => ({
   runningSessions: {},
   draggingPanel: null,
   focusedPanel: null,
+  editorFontSize: DEFAULT_EDITOR_FONT_SIZE,
   panelLayoutResetCount: 0,
 
   setSessionBusy: (id, busy, processName = '') =>
@@ -917,6 +929,17 @@ export const useStore = create<AppState>((set, get) => ({
 
   setFocusedPanel: (key) =>
     set((st) => (st.focusedPanel === key ? st : { ...st, focusedPanel: key })),
+
+  adjustEditorFontSize: (delta) =>
+    set((st) => ({
+      ...st,
+      editorFontSize: Math.min(
+        MAX_EDITOR_FONT_SIZE,
+        Math.max(MIN_EDITOR_FONT_SIZE, st.editorFontSize + delta)
+      )
+    })),
+
+  resetEditorFontSize: () => set({ editorFontSize: DEFAULT_EDITOR_FONT_SIZE }),
 
   openFile: (file) =>
     set((st) => {
