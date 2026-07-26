@@ -156,7 +156,7 @@ export default function GitPanel(): JSX.Element {
     return (
       <div className="flex h-full flex-col">
         <PaneHeader title="Git" />
-        <div className="p-4 text-xs text-muted-foreground">Open a project to use Git.</div>
+        <div className="p-2 text-xs text-muted-foreground">Open a project to use Git.</div>
       </div>
     )
   }
@@ -165,7 +165,7 @@ export default function GitPanel(): JSX.Element {
     return (
       <div className="flex h-full flex-col">
         <PaneHeader title="Git" />
-        <div className="space-y-3 p-4 text-xs text-muted-foreground">
+        <div className="space-y-3 p-2 text-xs text-muted-foreground">
           <p>No git repository in this project.</p>
           <Button
             size="sm"
@@ -310,7 +310,11 @@ export default function GitPanel(): JSX.Element {
         </Section>
 
         {staged.length === 0 && changes.length === 0 && (
-          <div className="p-4 text-xs text-muted-foreground">No changes. Working tree clean.</div>
+          <div className="p-2">
+            <div className="rounded-lg bg-[hsl(220_13%_82%)] px-3 py-1 text-center text-xs font-medium text-muted-foreground dark:bg-[hsl(0_0%_10%)]">
+              Working tree clean
+            </div>
+          </div>
         )}
 
         {/* History */}

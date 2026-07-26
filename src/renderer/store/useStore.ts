@@ -136,7 +136,7 @@ const ALL_PANEL_KEYS = Object.keys(DEFAULT_SIDEBAR_BLOCKS) as PanelKey[]
 export const LAYOUT_STORAGE_PREFIX = 'react-resizable-panels:'
 
 // In-app editor font size, stepped with Cmd+/- while the editor panel is focused.
-const DEFAULT_EDITOR_FONT_SIZE = 12 // matches the text-xs the editor used to hardcode
+const DEFAULT_EDITOR_FONT_SIZE = 11 // matches the app's 11px panel labels
 const MIN_EDITOR_FONT_SIZE = 8
 const MAX_EDITOR_FONT_SIZE = 28
 

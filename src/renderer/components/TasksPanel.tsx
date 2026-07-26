@@ -255,7 +255,8 @@ export default function TasksPanel(): JSX.Element {
 
       {todos.length > 0 && (
         <PaneFooter>
-          {openCount} open · {doneCount} done
+          {openCount} open
+          {doneCount > 0 && ` · ${doneCount} done`}
         </PaneFooter>
       )}
     </div>

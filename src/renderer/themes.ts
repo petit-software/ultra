@@ -9,7 +9,10 @@ export const HYPER_DARK: ITheme = {
   cursor: '#F81CE5',
   cursorAccent: '#000000',
   selectionBackground: 'rgba(255,255,255,0.3)',
-  black: '#000000',
+  // ANSI black is lifted off pure black: the shell renders transparent over the
+  // black app surface, so #000 text (color 0) would be invisible. A dim gray
+  // stays legible while still reading as near-black when used as a background.
+  black: '#565656',
   red: '#C51E14',
   green: '#1DC121',
   yellow: '#C7C329',
@@ -41,7 +44,9 @@ export const HYPER_LIGHT: ITheme = {
   blue: '#0A2FC4',
   magenta: '#C839C5',
   cyan: '#178C8D',
-  white: '#C7C7C7',
+  // ANSI white (color 7) on the white app surface: #C7C7C7 was ~1.3:1 and all
+  // but invisible. A mid gray keeps color-7 text legible on the light theme.
+  white: '#8A8A8A',
   brightBlack: '#686868',
   brightRed: '#E5484D',
   brightGreen: '#1DC121',

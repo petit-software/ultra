@@ -1,14 +1,14 @@
 import {
   GitBranch,
-  Files,
-  FileCode,
+  GalleryVerticalEnd,
+  Code,
   Paperclip,
   SquareTerminal,
   Terminal,
-  Plug,
-  Activity,
+  Globe,
+  Signpost,
   Gauge,
-  ListTodo
+  CircleCheck
 } from 'lucide-react'
 import {
   useStore,
@@ -53,14 +53,14 @@ export const PANEL_REGISTRY: Record<SidebarBlockKey, PanelMeta> = {
   },
   files: {
     label: 'Files',
-    icon: <Files className="h-4 w-4" />,
+    icon: <GalleryVerticalEnd className="h-4 w-4" />,
     defaultSize: 40,
     minSize: 15,
     render: () => <FilesPanel />
   },
   editor: {
     label: 'Editor',
-    icon: <FileCode className="h-4 w-4" />,
+    icon: <Code className="h-4 w-4" />,
     defaultSize: 35,
     minSize: 15,
     render: () => <EditorPanel />
@@ -88,14 +88,14 @@ export const PANEL_REGISTRY: Record<SidebarBlockKey, PanelMeta> = {
   },
   ports: {
     label: 'Ports',
-    icon: <Plug className="h-4 w-4" />,
+    icon: <Globe className="h-4 w-4" />,
     defaultSize: 25,
     minSize: 15,
     render: () => <PortsPanel />
   },
   processes: {
     label: 'Processes',
-    icon: <Activity className="h-4 w-4" />,
+    icon: <Signpost className="h-4 w-4" />,
     defaultSize: 30,
     minSize: 15,
     render: () => <ProcessesPanel />
@@ -109,7 +109,7 @@ export const PANEL_REGISTRY: Record<SidebarBlockKey, PanelMeta> = {
   },
   tasks: {
     label: 'Tasks',
-    icon: <ListTodo className="h-4 w-4" />,
+    icon: <CircleCheck className="h-4 w-4" />,
     defaultSize: 30,
     minSize: 15,
     render: () => <TasksPanel />

@@ -1,28 +1,13 @@
 import { useRef } from 'react'
-import { X, Plus } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import TerminalView from './TerminalView'
 import PaneHeader from './PaneHeader'
-import ShellStatusMark from './ShellStatusMark'
-import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
-import { cn } from '@/lib/utils'
 
 export default function TerminalPane(): JSX.Element {
   const sessions = useStore((s) => s.sessions)
-  const projects = useStore((s) => s.projects)
   const activeSessionId = useStore((s) => s.activeSessionId)
   const splitPanes = useStore((s) => s.splitPanes)
-  const runningSessions = useStore((s) => s.runningSessions)
-  const setActiveSession = useStore((s) => s.setActiveSession)
-  const closeSession = useStore((s) => s.closeSession)
-  const newSession = useStore((s) => s.newSession)
   const active = activeSessionId ? sessions[activeSessionId] : null
-  const activeProject = active ? projects.find((p) => p.id === active.projectId) : null
-  const projectSessionIds = activeProject?.sessionIds.filter((id) => sessions[id]) ?? []
-  // Projects live as tabs in the app bar, so the pane header always shows the
-  // active project's session tabs once there is more than one.
-  const showHeaderTabs = projectSessionIds.length > 1
   const ids = Object.keys(sessions)
 
   // Sessions that live in split panes render there, not here.
@@ -40,73 +25,7 @@ export default function TerminalPane(): JSX.Element {
 
   return (
     <div className="group/section relative flex h-full flex-col">
-      <PaneHeader
-        title={showHeaderTabs ? 'shells' : (active?.title ?? 'terminal')}
-        titleContent={
-          showHeaderTabs ? (
-            <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
-              <span className="h-3 w-px shrink-0 bg-border" aria-hidden="true" />
-              {projectSessionIds.map((id) => {
-                const session = sessions[id]
-                const selected = id === activeSessionId
-                const running = !!runningSessions[id]
-
-                return (
-                  <div
-                    key={id}
-                    title={session.title}
-                    onClick={() => setActiveSession(id)}
-                    className={cn(
-                      'group/tab app-no-drag flex h-5 max-w-[9rem] shrink-0 cursor-pointer items-center gap-1 rounded-md px-1.5 font-server text-[11px] transition-colors',
-                      selected
-                        ? 'bg-accent text-accent-foreground'
-                        : 'text-muted-foreground hover:bg-secondary/70 hover:text-foreground'
-                    )}
-                  >
-                    {/* Status mark swaps into the close X on tab hover:
-                        scale-down fade-out, scale-in fade-in. */}
-                    <span className="relative flex h-3 w-3 shrink-0 items-center justify-center">
-                      <ShellStatusMark
-                        active={selected}
-                        running={running}
-                        className="transition-all duration-150 group-hover/tab:scale-50 group-hover/tab:opacity-0"
-                      />
-                      <button
-                        type="button"
-                        title="Close session"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          closeSession(id)
-                        }}
-                        className="absolute inset-0 flex scale-50 items-center justify-center rounded-sm text-muted-foreground opacity-0 transition-all duration-150 hover:text-foreground group-hover/tab:scale-100 group-hover/tab:opacity-100"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </span>
-                    <span className="truncate">{session.title}</span>
-                  </div>
-                )
-              })}
-            </div>
-          ) : null
-        }
-      >
-        {activeProject && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-5 w-5"
-                onClick={() => newSession(activeProject.id)}
-              >
-                <Plus />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>New session</TooltipContent>
-          </Tooltip>
-        )}
-      </PaneHeader>
+      <PaneHeader title={active?.title ?? 'terminal'} />
 
       <div className="relative min-h-0 flex-1">
         {ids.length === 0 && (

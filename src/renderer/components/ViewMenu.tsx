@@ -1,16 +1,16 @@
 import {
   Check,
   GitBranch,
-  Files,
-  FileCode,
+  GalleryVerticalEnd,
+  Code,
   Paperclip,
   SquareTerminal,
   Terminal,
   RotateCcw,
-  Plug,
-  Activity,
+  Globe,
+  Signpost,
   Gauge,
-  ListTodo
+  CircleCheck
 } from 'lucide-react'
 import { HiMiniViewColumns } from 'react-icons/hi2'
 import { useStore, type SidebarBlockKey } from '../store/useStore'
@@ -27,14 +27,14 @@ import {
 const BLOCKS: { key: SidebarBlockKey; label: string; icon: JSX.Element }[] = [
   { key: 'shells', label: 'Shells', icon: <Terminal className="h-3.5 w-3.5" /> },
   { key: 'git', label: 'Git', icon: <GitBranch className="h-3.5 w-3.5" /> },
-  { key: 'files', label: 'Files', icon: <Files className="h-3.5 w-3.5" /> },
-  { key: 'editor', label: 'Editor', icon: <FileCode className="h-3.5 w-3.5" /> },
+  { key: 'files', label: 'Files', icon: <GalleryVerticalEnd className="h-3.5 w-3.5" /> },
+  { key: 'editor', label: 'Editor', icon: <Code className="h-3.5 w-3.5" /> },
   { key: 'context', label: 'Context', icon: <Paperclip className="h-3.5 w-3.5" /> },
   { key: 'terminal', label: 'Termini', icon: <SquareTerminal className="h-3.5 w-3.5" /> },
-  { key: 'ports', label: 'Ports', icon: <Plug className="h-3.5 w-3.5" /> },
-  { key: 'processes', label: 'Processes', icon: <Activity className="h-3.5 w-3.5" /> },
+  { key: 'ports', label: 'Ports', icon: <Globe className="h-3.5 w-3.5" /> },
+  { key: 'processes', label: 'Processes', icon: <Signpost className="h-3.5 w-3.5" /> },
   { key: 'resources', label: 'Resources', icon: <Gauge className="h-3.5 w-3.5" /> },
-  { key: 'tasks', label: 'Tasks', icon: <ListTodo className="h-3.5 w-3.5" /> }
+  { key: 'tasks', label: 'Tasks', icon: <CircleCheck className="h-3.5 w-3.5" /> }
 ]
 
 export default function ViewMenu(): JSX.Element {
