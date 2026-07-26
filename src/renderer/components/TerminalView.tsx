@@ -32,7 +32,7 @@ export default function TerminalView({
   command,
   autoFocus = true,
   transparent = false,
-  fontSize = 13,
+  fontSize = 11,
   minimalPrompt = false
 }: Props): JSX.Element {
   const hostRef = useRef<HTMLDivElement>(null)
@@ -180,7 +180,7 @@ export default function TerminalView({
 
   return (
     <div
-      className="absolute inset-0 pb-3 pl-2 pr-1"
+      className="absolute inset-0 pb-3 px-3"
       style={{ display: visible ? 'block' : 'none' }}
     >
       <div className="terminal-host" ref={hostRef} />

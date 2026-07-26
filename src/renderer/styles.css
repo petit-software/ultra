@@ -101,6 +101,13 @@
 .ultra-dropdown-item {
   corner-shape: superellipse(1.4);
 }
+.ultra-dropdown {
+  border: 0.5px solid hsl(var(--border));
+  background: hsl(220 13% 94%);
+}
+.dark .ultra-dropdown {
+  background: hsl(0 0% 8%);
+}
 
 /* Custom scrollbars — thin, rounded, and only visible while hovering the area. */
 * {

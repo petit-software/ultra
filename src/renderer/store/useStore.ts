@@ -135,6 +135,48 @@ const ALL_PANEL_KEYS = Object.keys(DEFAULT_SIDEBAR_BLOCKS) as PanelKey[]
 /** All react-resizable-panels autosave entries live under this prefix. */
 export const LAYOUT_STORAGE_PREFIX = 'react-resizable-panels:'
 
+// react-resizable-panels files a column's saved heights under a storage sub-key
+// that is the sorted set of the column's visible panel ids (see its getPanelKey).
+// Replacing one panel with another changes that set, so the library would fall
+// back to default sizes. Copy the saved layout across to the new id-set — same
+// positions, one id renamed — so the replacement inherits the panel's height.
+// The library reloads from storage whenever the panel set changes, so this takes
+// effect without remounting the column (terminals etc. stay alive).
+interface RrpGroupState {
+  layout: number[]
+  expandToSizes?: Record<string, number>
+}
+function rrpSubKey(ids: PanelKey[]): string {
+  return [...ids].sort((a, b) => a.localeCompare(b)).join(',')
+}
+function carryPanelHeights(
+  colIndex: number,
+  oldVisible: PanelKey[],
+  newVisible: PanelKey[],
+  renameFrom: PanelKey,
+  renameTo: PanelKey
+): void {
+  // Only a clean 1:1 replace (same count, same positions) carries cleanly.
+  if (oldVisible.length !== newVisible.length) return
+  try {
+    const storageKey = `${LAYOUT_STORAGE_PREFIX}ultra-col-${colIndex}`
+    const raw = localStorage.getItem(storageKey)
+    if (!raw) return
+    const state = JSON.parse(raw) as Record<string, RrpGroupState>
+    const from = state[rrpSubKey(oldVisible)]
+    if (!from) return
+    const expandToSizes = { ...(from.expandToSizes ?? {}) }
+    if (renameFrom in expandToSizes) {
+      expandToSizes[renameTo] = expandToSizes[renameFrom]
+      delete expandToSizes[renameFrom]
+    }
+    state[rrpSubKey(newVisible)] = { layout: [...from.layout], expandToSizes }
+    localStorage.setItem(storageKey, JSON.stringify(state))
+  } catch {
+    // Storage is best-effort; on any failure the height just falls back to default.
+  }
+}
+
 // In-app editor font size, stepped with Cmd+/- while the editor panel is focused.
 const DEFAULT_EDITOR_FONT_SIZE = 11 // matches the app's 11px panel labels
 const MIN_EDITOR_FONT_SIZE = 8
@@ -220,6 +262,8 @@ interface PersistShape {
   selectedAppIconId: string
   /** Ask "Are you sure you want to close Ultra?" before closing/quitting. */
   confirmOnClose: boolean
+  /** Show the Ultra icon in the macOS menu bar (system tray). */
+  showMenuBarIcon: boolean
 }
 
 function applyTheme(theme: ThemeMode): void {
@@ -325,6 +369,7 @@ interface AppState extends PersistShape {
   setSelectedAppIcon: (id: string) => void
   completeOnboarding: () => void
   toggleConfirmOnClose: () => void
+  toggleMenuBarIcon: () => void
 }
 
 let counter = 0
@@ -382,7 +427,8 @@ function makeDefault(): PersistShape {
     splitPanes: {},
     onboarded: false,
     selectedAppIconId: DEFAULT_APP_ICON_ID,
-    confirmOnClose: true
+    confirmOnClose: true,
+    showMenuBarIcon: true
   }
 }
 
@@ -399,7 +445,8 @@ function snapshot(s: AppState): PersistShape {
     splitPanes: s.splitPanes,
     onboarded: s.onboarded,
     selectedAppIconId: s.selectedAppIconId,
-    confirmOnClose: s.confirmOnClose
+    confirmOnClose: s.confirmOnClose,
+    showMenuBarIcon: s.showMenuBarIcon
   }
 }
 
@@ -504,6 +551,8 @@ export const useStore = create<AppState>((set, get) => ({
       void applyDockIconById(selectedAppIconId)
       const confirmOnClose = loaded.confirmOnClose ?? true
       window.api.app.setConfirmClose(confirmOnClose)
+      const showMenuBarIcon = loaded.showMenuBarIcon ?? true
+      window.api.app.setTrayVisible(showMenuBarIcon)
       // Layouts are per project. Older saves stored one global arrangement
       // (flat panelColumns/sidebarBlocks, or older still a fixed left/center/
       // right sidebar split) — carry that over to every project.
@@ -566,6 +615,7 @@ export const useStore = create<AppState>((set, get) => ({
         onboarded: loaded.onboarded ?? false,
         selectedAppIconId,
         confirmOnClose,
+        showMenuBarIcon,
         activeSessionId: active,
         hydrated: true
       })
@@ -573,6 +623,7 @@ export const useStore = create<AppState>((set, get) => ({
       applyTheme(get().theme)
       void applyDockIconById(get().selectedAppIconId)
       window.api.app.setConfirmClose(get().confirmOnClose)
+      window.api.app.setTrayVisible(get().showMenuBarIcon)
       set({ hydrated: true })
     }
   },
@@ -891,19 +942,21 @@ export const useStore = create<AppState>((set, get) => ({
       )
       if (!keyPos) return st
       const [kc, kp] = keyPos as [number, number]
-      const targetWasVisible = !!st.sidebarBlocks[withKey]
+      const oldVisible = st.panelColumns[kc].filter((k) => isSplitPanel(k) || st.sidebarBlocks[k])
       const blocks = { ...st.sidebarBlocks, [withKey]: true }
+      // Replace in place: the chosen type takes this slot and the panel it
+      // replaced goes off screen (recoverable via any title dropdown) — never a
+      // position swap that would leave the old panel visible elsewhere.
+      columns[kc][kp] = withKey
       if (withPos) {
         const [wc, wp] = withPos as [number, number]
-        columns[kc][kp] = withKey
         columns[wc][wp] = key
-        // Target already on screen elsewhere → genuine position swap. A hidden
-        // target REPLACES this panel instead: it takes this spot and the panel
-        // it replaced goes off screen (recoverable via any title dropdown).
-        if (!targetWasVisible && !isSplitPanel(key)) blocks[key] = false
-      } else {
-        columns[kc][kp] = withKey
       }
+      if (!isSplitPanel(key)) blocks[key] = false
+      // Carry the replaced slot's height over to the incoming panel so the
+      // column doesn't jump back to default sizes.
+      const newVisible = columns[kc].filter((k) => isSplitPanel(k) || blocks[k])
+      carryPanelHeights(kc, oldVisible, newVisible, key, withKey)
       const next = withLayout(st, columns, blocks)
       schedulePersist(next)
       return next
@@ -981,6 +1034,15 @@ export const useStore = create<AppState>((set, get) => ({
       const confirmOnClose = !st.confirmOnClose
       window.api.app.setConfirmClose(confirmOnClose)
       const next = { ...st, confirmOnClose }
+      schedulePersist(next)
+      return next
+    }),
+
+  toggleMenuBarIcon: () =>
+    set((st) => {
+      const showMenuBarIcon = !st.showMenuBarIcon
+      window.api.app.setTrayVisible(showMenuBarIcon)
+      const next = { ...st, showMenuBarIcon }
       schedulePersist(next)
       return next
     }),

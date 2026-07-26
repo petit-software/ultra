@@ -245,7 +245,7 @@ export default function FileTree({ root, onOpenFile, onSend, onEdit }: Props): J
   if (!entries) return <div className="p-4 text-xs text-muted-foreground">loading…</div>
 
   return (
-    <div className="py-1">
+    <div className="pb-1">
       {entries.map((e) => (
         <TreeNode
           key={e.path}

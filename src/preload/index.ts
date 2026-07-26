@@ -142,7 +142,8 @@ const api = {
     setTrayFrames: (payload: { idle: string; frames: string[]; intervalMs: number }) =>
       ipcRenderer.send('app:setTrayFrames', payload),
     setTrayState: (state: { working: boolean; animate: boolean }) =>
-      ipcRenderer.send('app:setTrayState', state)
+      ipcRenderer.send('app:setTrayState', state),
+    setTrayVisible: (visible: boolean) => ipcRenderer.send('app:setTrayVisible', visible)
   }
 }
 

@@ -101,20 +101,21 @@ let trayWorking = false
 let trayAnimate = true
 let trayTimer: NodeJS.Timeout | null = null
 let trayFrame = 0
+// When true the user has hidden the menu-bar icon: don't create the Tray, and
+// destroy it if one already exists. Frames are still cached so re-enabling works.
+let hideTrayIcon = false
 
-// Renderer frames arrive at 2x (36px) for an 18pt menu bar icon.
-const TRAY_ICON_SIZE = 18
-
+// Renderer PNGs are rendered at 2x for an 18pt-tall menu bar icon. Decode them
+// at scaleFactor 2 so macOS keeps each frame's natural aspect (the working
+// frames are wider than tall) instead of squaring the icon off.
 function trayImageFromDataUrl(dataUrl: unknown): Electron.NativeImage | null {
   if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/')) return null
-  const full = nativeImage.createFromDataURL(dataUrl)
-  if (full.isEmpty()) return null
-  const img = nativeImage.createEmpty()
-  img.addRepresentation({
-    scaleFactor: 1,
-    buffer: full.resize({ width: TRAY_ICON_SIZE, height: TRAY_ICON_SIZE }).toPNG()
+  const comma = dataUrl.indexOf(',')
+  if (comma < 0) return null
+  const img = nativeImage.createFromBuffer(Buffer.from(dataUrl.slice(comma + 1), 'base64'), {
+    scaleFactor: 2
   })
-  img.addRepresentation({ scaleFactor: 2, buffer: full.toPNG() })
+  if (img.isEmpty()) return null
   // Template image: macOS tints it to match the menu bar in light and dark mode.
   img.setTemplateImage(true)
   return img
@@ -163,19 +164,36 @@ function setTrayFrames(payload: unknown): void {
     .filter((img): img is Electron.NativeImage => img !== null)
   if (typeof intervalMs === 'number' && intervalMs >= 16) trayIntervalMs = intervalMs
 
-  if (!tray) {
-    tray = new Tray(idleImage)
-    tray.on('click', () => {
-      const win = BrowserWindow.getAllWindows()[0]
-      if (win) {
-        win.show()
-        win.focus()
-      } else {
-        createWindow()
-      }
-    })
-  }
+  ensureTray()
   applyTrayState()
+}
+
+/** Create the menu-bar tray from cached frames, unless the user hid it. */
+function ensureTray(): void {
+  if (tray || hideTrayIcon || process.platform !== 'darwin' || !trayIdleImage) return
+  tray = new Tray(trayIdleImage)
+  tray.on('click', () => {
+    const win = BrowserWindow.getAllWindows()[0]
+    if (win) {
+      win.show()
+      win.focus()
+    } else {
+      createWindow()
+    }
+  })
+}
+
+/** Toggle the menu-bar icon on/off at runtime. */
+function setTrayVisible(visible: boolean): void {
+  hideTrayIcon = !visible
+  if (hideTrayIcon) {
+    stopTrayTimer()
+    tray?.destroy()
+    tray = null
+  } else {
+    ensureTray()
+    applyTrayState()
+  }
 }
 
 // Application menu. Owns Cmd+D (new session) / Cmd+W (close session) — the
@@ -488,6 +506,7 @@ function registerIpc(): void {
     trayAnimate = state?.animate !== false
     applyTrayState()
   })
+  ipcMain.on('app:setTrayVisible', (_e, visible: unknown) => setTrayVisible(visible !== false))
 }
 
 app.whenReady().then(() => {

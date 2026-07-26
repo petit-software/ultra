@@ -1,11 +1,23 @@
 import { useEffect, useState } from 'react'
-import { Check } from 'lucide-react'
+import { Check, ChevronDown, X } from 'lucide-react'
 import { IoMdMoon, IoMdSunny } from 'react-icons/io'
 import { useStore, type ThemeMode } from '../store/useStore'
-import { EditorIcon } from '../lib/toolIcons'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator
+} from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 
 const KNOWN_EDITORS = [
@@ -14,8 +26,18 @@ const KNOWN_EDITORS = [
   { name: 'Zed', command: 'zed' },
   { name: 'Sublime', command: 'subl' },
   { name: 'WebStorm', command: 'webstorm' },
-  { name: 'Neovim', command: 'nvim' }
+  { name: 'Neovim', command: 'nvim' },
+  { name: 'Xcode', command: 'xed' }
 ]
+
+const THEMES: { mode: ThemeMode; label: string; icon: JSX.Element }[] = [
+  { mode: 'dark', label: 'Dark', icon: <IoMdMoon className="h-4 w-4" /> },
+  { mode: 'light', label: 'Light', icon: <IoMdSunny className="h-4 w-4" /> }
+]
+
+/** Borderless dropdown trigger — gray label + chevron that turns white on hover. */
+const triggerClass =
+  'flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground'
 
 /** The Ultra mark, mono. Trigger for the settings modal, far right in the bar. */
 function UltraMark({ className }: { className?: string }): JSX.Element {
@@ -26,11 +48,42 @@ function UltraMark({ className }: { className?: string }): JSX.Element {
   )
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }): JSX.Element {
+/** One setting: label on the left, control on the right, no borders. */
+function Row({
+  label,
+  children
+}: {
+  label: React.ReactNode
+  children: React.ReactNode
+}): JSX.Element {
   return (
-    <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+    <div className="flex min-h-9 items-center justify-between gap-4">
+      <span className="font-server text-[11px] uppercase tracking-wider text-foreground">{label}</span>
       {children}
     </div>
+  )
+}
+
+/** On/off switch, right-aligned in a Row. */
+function Switch({ checked, onClick }: { checked: boolean; onClick: () => void }): JSX.Element {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={onClick}
+      className={cn(
+        'relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors',
+        checked ? 'bg-primary' : 'bg-secondary'
+      )}
+    >
+      <span
+        className={cn(
+          'inline-block h-3 w-3 transform rounded-full bg-white shadow-sm transition-transform',
+          checked ? 'translate-x-[14px]' : 'translate-x-0.5'
+        )}
+      />
+    </button>
   )
 }
 
@@ -42,6 +95,8 @@ export default function SettingsModal(): JSX.Element {
   const setEditorCommand = useStore((s) => s.setEditorCommand)
   const confirmOnClose = useStore((s) => s.confirmOnClose)
   const toggleConfirmOnClose = useStore((s) => s.toggleConfirmOnClose)
+  const showMenuBarIcon = useStore((s) => s.showMenuBarIcon)
+  const toggleMenuBarIcon = useStore((s) => s.toggleMenuBarIcon)
 
   const [available, setAvailable] = useState<Record<string, boolean>>({})
   const isCustom = !KNOWN_EDITORS.some((e) => e.command === editorCommand)
@@ -103,110 +158,91 @@ export default function SettingsModal(): JSX.Element {
       </Tooltip>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md rounded-[24px] p-8" hideClose>
+          <DialogClose className="absolute right-5 top-5 rounded-sm text-muted-foreground opacity-70 transition hover:opacity-100 focus:outline-none">
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </DialogClose>
           <DialogHeader>
-            <DialogTitle>Settings</DialogTitle>
+            <DialogTitle className="text-xl font-semibold">Settings</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-5 pt-1">
-            <div className="space-y-2">
-              <SectionLabel>Appearance</SectionLabel>
-              <div className="flex gap-2">
-                {(
-                  [
-                    { mode: 'dark' as const, label: 'Dark', icon: <IoMdMoon className="h-4 w-4" /> },
-                    { mode: 'light' as const, label: 'Light', icon: <IoMdSunny className="h-4 w-4" /> }
-                  ]
-                ).map(({ mode, label, icon }) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => setTheme(mode)}
-                    className={cn(
-                      'flex flex-1 items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors',
-                      theme === mode
-                        ? 'border-primary/50 bg-accent text-accent-foreground'
-                        : 'border-border text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
-                    )}
-                  >
-                    {icon}
-                    {label}
-                    {theme === mode && <Check className="h-3.5 w-3.5 text-primary" />}
+          <div className="divide-y divide-border pt-1">
+            <Row label="Appearance">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button type="button" className={triggerClass}>
+                    <span className="capitalize">{theme}</span>
+                    <ChevronDown className="h-4 w-4" />
                   </button>
-                ))}
-              </div>
-            </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {THEMES.map(({ mode, label, icon }) => (
+                    <DropdownMenuItem key={mode} onSelect={() => setTheme(mode)}>
+                      {icon}
+                      <span className="flex-1">{label}</span>
+                      {theme === mode && <Check className="h-3.5 w-3.5 text-primary" />}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </Row>
 
-            <div className="space-y-2">
-              <SectionLabel>Default editor</SectionLabel>
-              <div className="overflow-hidden rounded-md border border-border">
-                {KNOWN_EDITORS.map((e) => (
-                  <button
-                    key={e.command}
-                    type="button"
-                    onClick={() => setEditorCommand(e.command)}
-                    className={cn(
-                      'flex w-full items-center gap-2 px-3 py-1.5 text-sm transition-colors',
-                      editorCommand === e.command
-                        ? 'bg-accent text-accent-foreground'
-                        : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
-                    )}
-                  >
-                    <EditorIcon command={e.command} className="h-4 w-4" />
-                    {dot(e.command)}
-                    <span className="flex-1 text-left">{e.name}</span>
-                    <code className="text-[11px] text-muted-foreground">{e.command}</code>
-                    {editorCommand === e.command && <Check className="h-3.5 w-3.5 text-primary" />}
+            <Row label="Default editor">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button type="button" className={triggerClass}>
+                    <span>
+                      {KNOWN_EDITORS.find((e) => e.command === editorCommand)?.name ?? 'Custom'}
+                    </span>
+                    <ChevronDown className="h-4 w-4" />
                   </button>
-                ))}
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  value={custom}
-                  onChange={(e) => setCustom(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && applyCustom()}
-                  placeholder="Custom command (e.g. subl -n)"
-                  className="flex-1 rounded-md border border-input bg-secondary/40 px-2 py-1.5 font-mono text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                />
-                <Button size="sm" variant="outline" onClick={applyCustom} disabled={!custom.trim()}>
-                  Use
-                </Button>
-                {isCustom && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
-              </div>
-            </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  {KNOWN_EDITORS.map((e) => (
+                    <DropdownMenuItem key={e.command} onSelect={() => setEditorCommand(e.command)}>
+                      {dot(e.command)}
+                      <span className="flex-1">{e.name}</span>
+                      <code className="text-[11px] text-muted-foreground">{e.command}</code>
+                      {editorCommand === e.command && <Check className="h-3.5 w-3.5 text-primary" />}
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                  {/* Custom command — stop key/select events so the menu's typeahead
+                      doesn't steal keystrokes and Enter doesn't close the menu. */}
+                  <div className="px-1 pb-1" onKeyDown={(e) => e.stopPropagation()}>
+                    <input
+                      value={custom}
+                      onChange={(e) => setCustom(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && applyCustom()}
+                      onBlur={applyCustom}
+                      placeholder="Custom command…"
+                      className="w-full rounded-md bg-secondary/50 px-2 py-1 font-mono text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    />
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </Row>
 
-            <div className="space-y-2">
-              <SectionLabel>Updates</SectionLabel>
-              <div className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm">
-                <span className="flex-1 text-muted-foreground">
-                  Ultra {version || '…'}
-                </span>
-                <Button size="sm" variant="outline" onClick={() => window.api.updates.check()}>
-                  Check for updates
-                </Button>
-              </div>
-            </div>
+            <Row label="Show in menu bar">
+              <Switch checked={showMenuBarIcon} onClick={toggleMenuBarIcon} />
+            </Row>
 
-            <div className="space-y-2">
-              <SectionLabel>Closing</SectionLabel>
-              <button
-                type="button"
-                onClick={toggleConfirmOnClose}
-                className="flex w-full items-center gap-2 rounded-md border border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary/60 hover:text-foreground"
-              >
-                <span className="flex-1 text-left">Ask before closing Ultra</span>
-                <span
-                  className={cn(
-                    'flex h-4 w-4 items-center justify-center rounded border',
-                    confirmOnClose
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-border'
-                  )}
-                >
-                  {confirmOnClose && <Check className="h-3 w-3" />}
-                </span>
-              </button>
-            </div>
+            <Row label="Ask before closing">
+              <Switch checked={confirmOnClose} onClick={toggleConfirmOnClose} />
+            </Row>
+          </div>
+
+          <div className="flex flex-col items-center gap-2 pt-6 font-server text-xs text-muted-foreground">
+            <UltraMark className="h-[42px] w-[42px]" />
+            <span>Ultra {version || '…'}</span>
+            <button
+              type="button"
+              onClick={() => window.api.updates.check()}
+              className="transition-colors hover:text-foreground"
+            >
+              Check for updates
+            </button>
           </div>
         </DialogContent>
       </Dialog>

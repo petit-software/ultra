@@ -1,232 +1,101 @@
-import { SPARKLE_PATH, SPARKLE_VIEWBOX } from './sparkle'
-
-// Menu bar sparkle. The renderer renders the full set of spin frames once and
-// ships them to main, which owns the animation timer: renderer timers are
-// throttled (and eventually frozen) by Chromium while the window is hidden or
-// occluded — precisely when a menu bar indicator matters most.
+// Menu bar mark. The renderer rasterizes the icons once and ships the PNGs to
+// main, which owns the animation timer: renderer timers are throttled (and
+// eventually frozen) by Chromium while the window is hidden or occluded —
+// exactly when a menu bar indicator matters most.
 //
-// While an agent works, the sparkle plays as a solid 3D star: the SVG outline
-// is extruded into a prism that spins in-plane while its axis precesses on a
-// tilted cone. The tilt keeps the front face toward the viewer in every frame,
-// so the silhouette always reads as the Ultra star (no edge-on slivers), while
-// the extruded walls catch the light and give it depth. Faces are shaded
-// through alpha only — the image ships as a macOS template, so the menu bar
-// tints it for light and dark appearance.
-export const TRAY_FRAME_COUNT = 24
-export const TRAY_SPIN_DURATION_MS = 1600
-export const TRAY_FRAME_INTERVAL_MS = Math.round(TRAY_SPIN_DURATION_MS / TRAY_FRAME_COUNT)
+// Idle shows the Ultra star. While an agent works, a small indicator to the
+// star's right loops between two shapes (frame 0 and frame 1). Every image
+// ships as a macOS template (black shapes + alpha), so the menu bar tints it
+// for light and dark appearance automatically.
 
-export interface TrayFramePose {
-  spin: number
-  tiltX: number
-  tiltY: number
+export const TRAY_FRAME_COUNT = 2
+export const TRAY_FRAME_INTERVAL_MS = 480
+
+// 18pt icon rendered at 2x. The glyph is inset inside the tile so it reads at
+// menu-bar weight with a little breathing room.
+const TRAY_TILE_HEIGHT = 36
+const TRAY_GLYPH_SCALE = 0.82
+
+export interface TrayGlyphLayout {
+  canvasWidth: number
+  canvasHeight: number
+  x: number
+  y: number
+  width: number
+  height: number
 }
 
-const TILT_RAD = (28 * Math.PI) / 180
-
-/**
- * Pose for a frame index. One cycle = a quarter turn of in-plane spin (the
- * star's 4-fold symmetry makes it seamless) while the tilt axis precesses one
- * full revolution, so frame N and frame 0 line up exactly.
- */
-export function trayFramePose(index: number): TrayFramePose {
-  if (!Number.isFinite(index)) return { spin: 0, tiltX: 0, tiltY: 0 }
-  const step = ((Math.trunc(index) % TRAY_FRAME_COUNT) + TRAY_FRAME_COUNT) % TRAY_FRAME_COUNT
-  const t = step / TRAY_FRAME_COUNT
+/** Fit a viewBox into the menu-bar tile at glyph scale, with equal padding. */
+export function trayGlyphLayout(viewBoxWidth: number, viewBoxHeight: number): TrayGlyphLayout {
+  const height = TRAY_TILE_HEIGHT * TRAY_GLYPH_SCALE
+  const width = height * (viewBoxWidth / viewBoxHeight)
+  const pad = (TRAY_TILE_HEIGHT - height) / 2
   return {
-    spin: (Math.PI / 2) * t,
-    tiltX: TILT_RAD * Math.sin(2 * Math.PI * t),
-    tiltY: TILT_RAD * Math.cos(2 * Math.PI * t)
+    canvasWidth: Math.round(width + pad * 2),
+    canvasHeight: TRAY_TILE_HEIGHT,
+    x: pad,
+    y: pad,
+    width,
+    height
   }
 }
 
-/** Sample the sparkle SVG path into a polygon, centered and radius-normalized. */
-export function sparkleOutline(samplesPerCurve = 8): Array<[number, number]> {
-  const tokens = SPARKLE_PATH.match(/[a-z]|-?\d*\.?\d+(?:e[+-]?\d+)?/gi) ?? []
-  const points: Array<[number, number]> = []
-  let command = ''
-  let i = 0
-  let current: [number, number] = [0, 0]
-
-  const num = (): number => Number(tokens[i++])
-  while (i < tokens.length) {
-    if (/[a-z]/i.test(tokens[i])) command = tokens[i++]
-    else if (!command) break
-
-    if (command === 'M' || command === 'L') {
-      current = [num(), num()]
-      points.push(current)
-    } else if (command === 'C') {
-      const [x0, y0] = current
-      const c1x = num(), c1y = num(), c2x = num(), c2y = num(), x = num(), y = num()
-      for (let k = 1; k <= samplesPerCurve; k++) {
-        const t = k / samplesPerCurve
-        const u = 1 - t
-        points.push([
-          u * u * u * x0 + 3 * u * u * t * c1x + 3 * u * t * t * c2x + t * t * t * x,
-          u * u * u * y0 + 3 * u * u * t * c1y + 3 * u * t * t * c2y + t * t * t * y
-        ])
-      }
-      current = [x, y]
-    } else if (command === 'Z' || command === 'z') {
-      // closed implicitly by the polygon fill
-    } else {
-      break
-    }
-  }
-
-  const cx = SPARKLE_VIEWBOX.width / 2
-  const cy = SPARKLE_VIEWBOX.height / 2
-  const centered = points.map(([x, y]): [number, number] => [x - cx, y - cy])
-  const radius = Math.max(...centered.map(([x, y]) => Math.hypot(x, y)))
-  const outline = centered.map(([x, y]): [number, number] => [x / radius, y / radius])
-  // Drop a duplicated closing point so wall quads don't degenerate.
-  const [fx, fy] = outline[0]
-  const [lx, ly] = outline[outline.length - 1]
-  if (Math.hypot(fx - lx, fy - ly) < 1e-6) outline.pop()
-  return outline
+function svg({ width, height }: { width: number; height: number }, body: string): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${body}</svg>`
 }
 
-type Vec3 = [number, number, number]
+// The Ultra star. Both frames share one viewBox with this star so it stays put
+// as the indicator toggles beside it.
+const STAR_PATH =
+  'M127.149 0C138.767 0.000129713 147.803 7.0538 151.03 17.9551L169.747 84.6475L236.227 102.603C247.199 105.168 254.298 114.787 254.298 125.688C254.298 137.231 247.199 146.209 236.227 149.415L169.747 168.012L151.03 234.062C147.803 244.964 138.767 252.017 127.149 252.018C115.532 252.018 106.496 244.964 103.269 234.062L84.5508 167.37L18.0723 149.415C7.74554 146.209 0.645548 137.231 0 125.688C0 114.787 7.10001 105.809 18.0723 102.603L85.1963 84.0059L103.269 17.9551C106.496 7.05379 115.532 0 127.149 0Z'
 
-// Extrusion half-depth and camera distance, in units of star radius.
-const DEPTH = 0.2
-const CAMERA_DIST = 3.5
-// Light from the upper left, toward the viewer (y grows downward on canvas).
-const LIGHT: Vec3 = normalize([-0.45, -0.55, 0.75])
-// Alpha shading: the front face stays near-solid so the mark anchors the
-// silhouette; walls span a darker band so depth reads at menu-bar size.
-const FRONT_ALPHA_MIN = 0.88
-const WALL_ALPHA_MIN = 0.2
-const WALL_ALPHA_MAX = 0.75
+const STAR = `<path d="${STAR_PATH}" fill="black"/>`
 
-function normalize([x, y, z]: Vec3): Vec3 {
-  const len = Math.hypot(x, y, z) || 1
-  return [x / len, y / len, z / len]
-}
+const FRAME_VIEWBOX = { width: 485, height: 253 }
 
-function rotate([x, y, z]: Vec3, { spin, tiltX, tiltY }: TrayFramePose): Vec3 {
-  // In-plane spin first, then the precessing tilt.
-  const cs = Math.cos(spin), ss = Math.sin(spin)
-  const [sx, sy] = [x * cs - y * ss, x * ss + y * cs]
-  const cx = Math.cos(tiltX), sxr = Math.sin(tiltX)
-  const [ty, tz] = [sy * cx - z * sxr, sy * sxr + z * cx]
-  const cy = Math.cos(tiltY), syr = Math.sin(tiltY)
-  return [sx * cy + tz * syr, ty, -sx * syr + tz * cy]
-}
+// The two indicators sit to the star's right. Frame 1 (the vertical bar) is the
+// resting/default icon; the loop plays frame 0 → frame 1 while working.
+// fill-opacity keeps them lighter than the star through the template's alpha.
+const FRAME_SVGS = [
+  svg(
+    FRAME_VIEWBOX,
+    STAR +
+      '<path d="M484.297 231.018C484.297 219.42 474.895 210.018 463.297 210.018H336.297C324.699 210.018 315.297 219.42 315.297 231.018C315.297 242.616 324.699 252.018 336.297 252.018H463.297C474.895 252.018 484.297 242.616 484.297 231.018Z" fill="black" fill-opacity="0.42"/>'
+  ),
+  svg(
+    FRAME_VIEWBOX,
+    STAR +
+      '<path d="M484.297 215.009C484.297 235.443 467.731 252.009 447.297 252.009H352.297C331.862 252.009 315.297 235.443 315.297 215.009V37.0088C315.297 16.5742 331.862 0.00878906 352.297 0.00878906H447.297C467.731 0.00878906 484.297 16.5743 484.297 37.0088V215.009Z" fill="black" fill-opacity="0.42"/>'
+  )
+]
 
-function project([x, y, z]: Vec3): [number, number] {
-  const s = CAMERA_DIST / (CAMERA_DIST - z)
-  return [x * s, y * s]
-}
-
-function faceNormal(a: Vec3, b: Vec3, c: Vec3): Vec3 {
-  const u: Vec3 = [b[0] - a[0], b[1] - a[1], b[2] - a[2]]
-  const v: Vec3 = [c[0] - a[0], c[1] - a[1], c[2] - a[2]]
-  return normalize([u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]])
-}
-
-interface Face {
-  points: Array<[number, number]>
-  depth: number
-  alpha: number
-}
-
-function shade(normal: Vec3, min: number, max: number): number {
-  const lit = Math.max(0, normal[0] * LIGHT[0] + normal[1] * LIGHT[1] + normal[2] * LIGHT[2])
-  return min + (max - min) * lit
-}
-
-/** Project the extruded star at a pose into shaded, depth-sorted 2D faces. */
-export function trayFrameFaces(pose: TrayFramePose, outline: Array<[number, number]>): Face[] {
-  const front = outline.map(([x, y]) => rotate([x, y, DEPTH], pose))
-  const back = outline.map(([x, y]) => rotate([x, y, -DEPTH], pose))
-  const faces: Face[] = []
-
-  for (let i = 0; i < outline.length; i++) {
-    const j = (i + 1) % outline.length
-    const quad = [front[i], front[j], back[j], back[i]]
-    let normal = faceNormal(quad[0], quad[1], quad[3])
-    // Orient outward: away from the wall's own edge midpoint toward the rim.
-    const mid = rotate(
-      [(outline[i][0] + outline[j][0]) / 2, (outline[i][1] + outline[j][1]) / 2, 0],
-      pose
-    )
-    const centerDot = normal[0] * mid[0] + normal[1] * mid[1]
-    if (centerDot < 0) normal = [-normal[0], -normal[1], -normal[2]]
-    if (normal[2] <= 0) continue // facing away from the viewer
-
-    faces.push({
-      points: quad.map(project),
-      depth: (quad[0][2] + quad[1][2] + quad[2][2] + quad[3][2]) / 4,
-      alpha: shade(normal, WALL_ALPHA_MIN, WALL_ALPHA_MAX)
-    })
-  }
-
-  const frontNormal = faceNormal(front[0], front[1], front[2])
-  const facing: Vec3 = frontNormal[2] > 0 ? frontNormal : [-frontNormal[0], -frontNormal[1], -frontNormal[2]]
-  faces.push({
-    points: front.map(project),
-    depth: front.reduce((sum, [, , z]) => sum + z, 0) / front.length,
-    alpha: shade(facing, FRONT_ALPHA_MIN, 1)
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = () => reject(new Error('Tray SVG failed to load'))
+    img.src = src
   })
-
-  return faces.sort((a, b) => a.depth - b.depth)
 }
 
-// 18pt menu bar icon rendered at 2x, supersampled 3x for clean edges.
-// The glyph sits inset inside the tile so it reads at menu-bar weight.
-const TRAY_ICON_CANVAS_SIZE = 36
-const TRAY_GLYPH_SCALE = 0.72
-const SUPERSAMPLE = 3
-
-function renderTrayFrame(pose: TrayFramePose | null, outline: Array<[number, number]>): string {
-  const size = TRAY_ICON_CANVAS_SIZE * SUPERSAMPLE
+/** Rasterize one SVG into a template-ready PNG data URL, inset in its tile. */
+async function rasterize(source: string, viewBox: { width: number; height: number }): Promise<string> {
+  const layout = trayGlyphLayout(viewBox.width, viewBox.height)
+  const img = await loadImage(`data:image/svg+xml,${encodeURIComponent(source)}`)
   const canvas = document.createElement('canvas')
-  canvas.width = size
-  canvas.height = size
+  canvas.width = layout.canvasWidth
+  canvas.height = layout.canvasHeight
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('Canvas is unavailable')
-
-  const scale = (size * TRAY_GLYPH_SCALE) / 2
-  ctx.translate(size / 2, size / 2)
-  ctx.fillStyle = '#000000'
-
-  if (!pose) {
-    // Idle: the flat sparkle, exactly as it appears next to shell names.
-    ctx.beginPath()
-    for (const [x, y] of outline) ctx.lineTo(x * scale, y * scale)
-    ctx.closePath()
-    ctx.fill()
-  } else {
-    for (const face of trayFrameFaces(pose, outline)) {
-      ctx.globalAlpha = face.alpha
-      ctx.beginPath()
-      for (const [x, y] of face.points) ctx.lineTo(x * scale, y * scale)
-      ctx.closePath()
-      ctx.fill()
-    }
-  }
-
-  const out = document.createElement('canvas')
-  out.width = TRAY_ICON_CANVAS_SIZE
-  out.height = TRAY_ICON_CANVAS_SIZE
-  const outCtx = out.getContext('2d')
-  if (!outCtx) throw new Error('Canvas is unavailable')
-  outCtx.imageSmoothingQuality = 'high'
-  outCtx.drawImage(canvas, 0, 0, TRAY_ICON_CANVAS_SIZE, TRAY_ICON_CANVAS_SIZE)
-  return out.toDataURL('image/png')
+  ctx.imageSmoothingQuality = 'high'
+  ctx.drawImage(img, layout.x, layout.y, layout.width, layout.height)
+  return canvas.toDataURL('image/png')
 }
 
-/** Render the idle mark plus one full spin cycle. */
-export function renderTrayFrames(): { idle: string; frames: string[] } {
-  const outline = sparkleOutline()
-  return {
-    idle: renderTrayFrame(null, outline),
-    frames: Array.from({ length: TRAY_FRAME_COUNT }, (_, i) =>
-      renderTrayFrame(trayFramePose(i), outline)
-    )
-  }
+/** Rasterize the two-frame loop; frame 1 doubles as the resting idle icon. */
+export async function renderTrayFrames(): Promise<{ idle: string; frames: string[] }> {
+  const frames = await Promise.all(FRAME_SVGS.map((s) => rasterize(s, FRAME_VIEWBOX)))
+  return { idle: frames[1], frames }
 }
 
 let framesSent: Promise<boolean> | null = null
@@ -236,7 +105,7 @@ function ensureTrayFrames(): Promise<boolean> {
 
   framesSent = (async (): Promise<boolean> => {
     try {
-      const { idle, frames } = renderTrayFrames()
+      const { idle, frames } = await renderTrayFrames()
       window.api.app.setTrayFrames({ idle, frames, intervalMs: TRAY_FRAME_INTERVAL_MS })
       return true
     } catch {
@@ -247,7 +116,7 @@ function ensureTrayFrames(): Promise<boolean> {
   return framesSent
 }
 
-/** Tell main whether to show the idle sparkle or run the working spin. */
+/** Tell main whether to show the idle star or run the working loop. */
 export async function syncTrayState(working: boolean, animate: boolean): Promise<void> {
   if (await ensureTrayFrames()) window.api.app.setTrayState({ working, animate })
 }
