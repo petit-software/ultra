@@ -65,7 +65,7 @@ export default function ResourcesPanel(): JSX.Element {
           {loaded ? 'No sessions to measure in this project.' : 'Measuring…'}
         </div>
       ) : (
-        <div className="min-h-0 flex-1 overflow-auto px-2 py-1">
+        <div className="min-h-0 flex-1 overflow-auto px-2 pb-1">
           {usage.map((u) => (
             <div key={u.id} className="rounded-md px-2 py-1.5 hover:bg-secondary/60">
               <div className="flex items-center gap-2 text-xs">

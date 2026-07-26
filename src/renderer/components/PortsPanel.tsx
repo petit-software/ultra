@@ -48,7 +48,7 @@ export default function PortsPanel(): JSX.Element {
           {loaded ? 'No listening TCP ports.' : 'Scanning ports…'}
         </div>
       ) : (
-        <ul className="min-h-0 flex-1 overflow-auto px-2 py-1">
+        <ul className="min-h-0 flex-1 overflow-auto px-2 pb-1">
           {ports.map((p) => (
             <li
               key={`${p.pid}:${p.port}`}

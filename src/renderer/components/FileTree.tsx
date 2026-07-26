@@ -11,7 +11,6 @@ import {
   Trash2
 } from 'lucide-react'
 import type { DirEntry } from '../types'
-import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -79,7 +78,7 @@ function TreeNode({ entry, depth, version, onOpenFile, onSend, onEdit }: NodePro
           e.dataTransfer.effectAllowed = 'copy'
         }}
         style={{ paddingLeft: depth * 12 + 8 }}
-        className="group/row flex cursor-pointer items-center gap-1 rounded-sm py-1 pr-1 text-xs hover:bg-secondary/60"
+        className="group/row flex cursor-pointer items-center gap-2 rounded-md py-1 pr-2 text-xs hover:bg-secondary/60"
       >
         {entry.isDir ? (
           <ChevronRight
@@ -122,29 +121,27 @@ function TreeNode({ entry, depth, version, onOpenFile, onSend, onEdit }: NodePro
             <span className="min-w-0 flex-1 truncate">{entry.name}</span>
 
             <div
-              className="flex shrink-0 items-center opacity-0 transition group-hover/row:opacity-100 data-[open=true]:opacity-100"
+              className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover/row:opacity-100 data-[open=true]:opacity-100"
               data-open={menuOpen}
               onClick={(e) => e.stopPropagation()}
             >
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-5 w-5 text-muted-foreground hover:text-foreground"
+              <button
+                type="button"
+                className="text-muted-foreground hover:text-foreground"
                 title="Send to agent"
                 onClick={() => onSend(entry)}
               >
                 <CornerDownLeft className="h-3.5 w-3.5" />
-              </Button>
+              </button>
               <DropdownMenu onOpenChange={setMenuOpen}>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-5 w-5 text-muted-foreground hover:text-foreground"
+                  <button
+                    type="button"
+                    className="text-muted-foreground hover:text-foreground"
                     title="More"
                   >
                     <MoreHorizontal className="h-3.5 w-3.5" />
-                  </Button>
+                  </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="start"

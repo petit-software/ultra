@@ -25,16 +25,16 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 const BLOCKS: { key: SidebarBlockKey; label: string; icon: JSX.Element }[] = [
-  { key: 'shells', label: 'Shells', icon: <Terminal className="h-4 w-4" /> },
-  { key: 'git', label: 'Git', icon: <GitBranch className="h-4 w-4" /> },
-  { key: 'files', label: 'Files', icon: <Files className="h-4 w-4" /> },
-  { key: 'editor', label: 'Editor', icon: <FileCode className="h-4 w-4" /> },
-  { key: 'context', label: 'Context', icon: <Paperclip className="h-4 w-4" /> },
-  { key: 'terminal', label: 'Termini', icon: <SquareTerminal className="h-4 w-4" /> },
-  { key: 'ports', label: 'Ports', icon: <Plug className="h-4 w-4" /> },
-  { key: 'processes', label: 'Processes', icon: <Activity className="h-4 w-4" /> },
-  { key: 'resources', label: 'Resources', icon: <Gauge className="h-4 w-4" /> },
-  { key: 'tasks', label: 'Tasks', icon: <ListTodo className="h-4 w-4" /> }
+  { key: 'shells', label: 'Shells', icon: <Terminal className="h-3.5 w-3.5" /> },
+  { key: 'git', label: 'Git', icon: <GitBranch className="h-3.5 w-3.5" /> },
+  { key: 'files', label: 'Files', icon: <Files className="h-3.5 w-3.5" /> },
+  { key: 'editor', label: 'Editor', icon: <FileCode className="h-3.5 w-3.5" /> },
+  { key: 'context', label: 'Context', icon: <Paperclip className="h-3.5 w-3.5" /> },
+  { key: 'terminal', label: 'Termini', icon: <SquareTerminal className="h-3.5 w-3.5" /> },
+  { key: 'ports', label: 'Ports', icon: <Plug className="h-3.5 w-3.5" /> },
+  { key: 'processes', label: 'Processes', icon: <Activity className="h-3.5 w-3.5" /> },
+  { key: 'resources', label: 'Resources', icon: <Gauge className="h-3.5 w-3.5" /> },
+  { key: 'tasks', label: 'Tasks', icon: <ListTodo className="h-3.5 w-3.5" /> }
 ]
 
 export default function ViewMenu(): JSX.Element {
@@ -66,13 +66,13 @@ export default function ViewMenu(): JSX.Element {
           >
             {icon}
             <span className="flex-1">{label}</span>
-            {blocks[key] && <Check className="h-3.5 w-3.5 text-primary" />}
+            {blocks[key] && <Check className="h-3.5 w-3.5 text-white" />}
           </DropdownMenuItem>
         ))}
 
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => resetPanelLayout()}>
-          <RotateCcw className="h-4 w-4" />
+          <RotateCcw className="h-3.5 w-3.5" />
           <span className="flex-1">Reset panels</span>
         </DropdownMenuItem>
       </DropdownMenuContent>

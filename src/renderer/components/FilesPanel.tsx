@@ -93,7 +93,7 @@ export default function FilesPanel(): JSX.Element {
           </DropdownMenuContent>
         </DropdownMenu>
       </PaneHeader>
-      <div className="flex-1 overflow-y-auto overflow-x-hidden py-1 pr-1">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden pb-1 pr-1">
         {root ? (
           <div className="px-1.5">
             {creating && (

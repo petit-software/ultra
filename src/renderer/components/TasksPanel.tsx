@@ -47,7 +47,7 @@ function TaskRow({
         onClick={onToggle}
         title={todo.done ? 'Mark as open' : 'Mark as done'}
         className={cn(
-          'mt-0.5 flex h-3 w-3 shrink-0 items-center justify-center rounded-full border transition-colors',
+          'mt-1 flex h-3 w-3 shrink-0 items-center justify-center rounded-full border transition-colors',
           todo.done
             ? 'border-foreground bg-foreground text-background'
             : 'border-muted-foreground/50 hover:border-foreground'
@@ -214,7 +214,7 @@ export default function TasksPanel(): JSX.Element {
         )}
       </PaneHeader>
 
-      <div className="min-h-0 flex-1 overflow-auto px-2 py-1">
+      <div className="min-h-0 flex-1 overflow-auto px-2 pb-1">
         {todos.map((todo, i) => (
           <TaskRow
             key={todo.id}

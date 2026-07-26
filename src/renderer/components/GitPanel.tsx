@@ -228,7 +228,7 @@ export default function GitPanel(): JSX.Element {
         </div>
       )}
 
-      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-1 pr-1">
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-1 pr-1">
         <Section
           title="Staged"
           count={staged.length}
@@ -517,8 +517,8 @@ function Section({
 }): JSX.Element | null {
   if (count === 0) return null
   return (
-    <div>
-      <div className="flex items-center justify-between px-3 pb-0.5 pt-2">
+    <div className="mt-2 first:mt-0">
+      <div className="flex items-center justify-between px-3 pb-0.5">
         <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           {title} · {count}
         </span>

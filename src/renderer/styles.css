@@ -95,6 +95,13 @@
   corner-shape: superellipse(1.25);
 }
 
+/* Dropdown menus use the same smooth superellipse corners so their larger
+   radius on the popover and items curves softly rather than as a hard arc. */
+.ultra-dropdown,
+.ultra-dropdown-item {
+  corner-shape: superellipse(1.4);
+}
+
 /* Custom scrollbars — thin, rounded, and only visible while hovering the area. */
 * {
   scrollbar-width: thin;

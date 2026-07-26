@@ -74,7 +74,7 @@ export default function ProcessesPanel(): JSX.Element {
           {loaded ? 'No processes running in this project’s sessions.' : 'Scanning processes…'}
         </div>
       ) : (
-        <div className="min-h-0 flex-1 overflow-auto px-2 py-1">
+        <div className="min-h-0 flex-1 overflow-auto px-2 pb-1">
           {entries.map(([sid, list]) => (
             <div key={sid} className="mb-1">
               <div className="px-2 pb-0.5 pt-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">

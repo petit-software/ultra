@@ -189,7 +189,7 @@ export default function EditorPanel(): JSX.Element {
             <div
               ref={gutterRef}
               aria-hidden
-              className="select-none overflow-hidden py-3 pl-3 pr-2 text-right text-muted-foreground/50"
+              className="select-none overflow-hidden pb-3 pl-3 pr-2 text-right text-muted-foreground/50"
             >
               {Array.from({ length: lineCount }, (_, i) => (
                 <div key={i}>{i + 1}</div>
@@ -203,7 +203,7 @@ export default function EditorPanel(): JSX.Element {
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={onKeyDown}
               onScroll={syncScroll}
-              className="h-full w-full resize-none whitespace-pre bg-transparent py-3 pl-1 pr-3 text-foreground outline-none"
+              className="h-full w-full resize-none whitespace-pre bg-transparent pb-3 pl-1 pr-3 text-foreground outline-none"
             />
           </div>
         ) : (

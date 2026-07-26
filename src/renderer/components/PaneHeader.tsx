@@ -31,16 +31,16 @@ import {
 // Duplicated from the registry on purpose: importing it here would create a
 // module cycle (registry → panels → this header).
 const SWAP_TARGETS: { key: SidebarBlockKey; label: string; icon: JSX.Element }[] = [
-  { key: 'git', label: 'Git', icon: <GitBranch className="h-4 w-4" /> },
-  { key: 'files', label: 'Files', icon: <Files className="h-4 w-4" /> },
-  { key: 'editor', label: 'Editor', icon: <FileCode className="h-4 w-4" /> },
-  { key: 'context', label: 'Context', icon: <Paperclip className="h-4 w-4" /> },
-  { key: 'terminal', label: 'Termini', icon: <SquareTerminal className="h-4 w-4" /> },
-  { key: 'shells', label: 'Shells', icon: <Terminal className="h-4 w-4" /> },
-  { key: 'ports', label: 'Ports', icon: <Plug className="h-4 w-4" /> },
-  { key: 'processes', label: 'Processes', icon: <Activity className="h-4 w-4" /> },
-  { key: 'resources', label: 'Resources', icon: <Gauge className="h-4 w-4" /> },
-  { key: 'tasks', label: 'Tasks', icon: <ListTodo className="h-4 w-4" /> }
+  { key: 'git', label: 'Git', icon: <GitBranch className="h-3.5 w-3.5" /> },
+  { key: 'files', label: 'Files', icon: <Files className="h-3.5 w-3.5" /> },
+  { key: 'editor', label: 'Editor', icon: <FileCode className="h-3.5 w-3.5" /> },
+  { key: 'context', label: 'Context', icon: <Paperclip className="h-3.5 w-3.5" /> },
+  { key: 'terminal', label: 'Termini', icon: <SquareTerminal className="h-3.5 w-3.5" /> },
+  { key: 'shells', label: 'Shells', icon: <Terminal className="h-3.5 w-3.5" /> },
+  { key: 'ports', label: 'Ports', icon: <Plug className="h-3.5 w-3.5" /> },
+  { key: 'processes', label: 'Processes', icon: <Activity className="h-3.5 w-3.5" /> },
+  { key: 'resources', label: 'Resources', icon: <Gauge className="h-3.5 w-3.5" /> },
+  { key: 'tasks', label: 'Tasks', icon: <ListTodo className="h-3.5 w-3.5" /> }
 ]
 
 interface Props {
@@ -101,7 +101,7 @@ export default function PaneHeader({ title, titleContent, children, className }:
                 <DropdownMenuItem key={key} onSelect={() => swapPanel(drag.panelKey, key)}>
                   {icon}
                   <span className="flex-1">{label}</span>
-                  {drag.panelKey === key && <Check className="h-3.5 w-3.5 text-primary" />}
+                  {drag.panelKey === key && <Check className="h-3.5 w-3.5 text-white" />}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>

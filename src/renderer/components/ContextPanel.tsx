@@ -89,7 +89,7 @@ export default function ContextPanel(): JSX.Element {
             : 'Open a project to pin context.'}
         </div>
       ) : (
-        <ul className="min-h-0 flex-1 overflow-auto px-2 py-2">
+        <ul className="min-h-0 flex-1 overflow-auto px-1.5 pb-2">
           {pinned.map((p) => (
             <li
               key={p}
