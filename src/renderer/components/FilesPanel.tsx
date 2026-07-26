@@ -14,12 +14,27 @@ import { useStore } from '../store/useStore'
 import { relTo } from '../lib/paths'
 import type { DirEntry } from '../types'
 
+// Friendly names for the known editor commands, for the file "Edit in…" item.
+const EDITOR_NAMES: Record<string, string> = {
+  code: 'VS Code',
+  cursor: 'Cursor',
+  zed: 'Zed',
+  subl: 'Sublime',
+  webstorm: 'WebStorm',
+  nvim: 'Neovim',
+  xed: 'Xcode'
+}
+
 export default function FilesPanel(): JSX.Element {
   const sessions = useStore((s) => s.sessions)
   const projects = useStore((s) => s.projects)
   const activeSessionId = useStore((s) => s.activeSessionId)
   const editorCommand = useStore((s) => s.editorCommand)
   const openFile = useStore((s) => s.openFile)
+
+  // Only offer "Edit in <editor>" when a default code editor is configured.
+  const editorBin = editorCommand.trim().split(/\s+/)[0]
+  const editorName = editorBin ? (EDITOR_NAMES[editorBin] ?? editorBin) : null
 
   const activeSession = activeSessionId ? sessions[activeSessionId] : null
   const project = activeSession
@@ -128,6 +143,8 @@ export default function FilesPanel(): JSX.Element {
               onOpenFile={(e) => openFile({ path: e.path, name: e.name })}
               onSend={sendToAgent}
               onEdit={(e) => void window.api.editor.open(editorCommand, e.path)}
+              editorCommand={editorCommand}
+              editorName={editorName}
             />
           </div>
         ) : (

@@ -2,15 +2,16 @@ import { useEffect, useState, useCallback } from 'react'
 import {
   ChevronRight,
   File as FileIcon,
-  CornerDownLeft,
+  Forward,
   MoreHorizontal,
-  FolderOpen as RevealIcon,
-  Pencil,
-  SquarePen,
+  Eye,
+  PenLine,
+  Code,
   Check,
   Trash2
 } from 'lucide-react'
 import type { DirEntry } from '../types'
+import { EditorIcon } from '../lib/toolIcons'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -27,9 +28,22 @@ interface NodeProps {
   onOpenFile: (entry: DirEntry) => void
   onSend: (entry: DirEntry) => void
   onEdit: (entry: DirEntry) => void
+  /** The user's default code editor command (for the external "Edit in…" icon). */
+  editorCommand: string
+  /** Friendly name of that editor, or null when none is configured. */
+  editorName: string | null
 }
 
-function TreeNode({ entry, depth, version, onOpenFile, onSend, onEdit }: NodeProps): JSX.Element {
+function TreeNode({
+  entry,
+  depth,
+  version,
+  onOpenFile,
+  onSend,
+  onEdit,
+  editorCommand,
+  editorName
+}: NodeProps): JSX.Element {
   const [expanded, setExpanded] = useState(false)
   const [children, setChildren] = useState<DirEntry[] | null>(null)
   const [loading, setLoading] = useState(false)
@@ -128,10 +142,10 @@ function TreeNode({ entry, depth, version, onOpenFile, onSend, onEdit }: NodePro
               <button
                 type="button"
                 className="text-muted-foreground hover:text-foreground"
-                title="Send to agent"
+                title="Insert into active terminal"
                 onClick={() => onSend(entry)}
               >
-                <CornerDownLeft className="h-3.5 w-3.5" />
+                <Forward className="h-3.5 w-3.5" />
               </button>
               <DropdownMenu onOpenChange={setMenuOpen}>
                 <DropdownMenuTrigger asChild>
@@ -147,25 +161,31 @@ function TreeNode({ entry, depth, version, onOpenFile, onSend, onEdit }: NodePro
                   align="start"
                   onCloseAutoFocus={(e) => e.preventDefault()}
                 >
+                  {!entry.isDir && (
+                    <DropdownMenuItem onSelect={() => onOpenFile(entry)}>
+                      <Code className="h-4 w-4" />
+                      Open in editor
+                    </DropdownMenuItem>
+                  )}
+                  {!entry.isDir && editorName && (
+                    <DropdownMenuItem onSelect={() => onEdit(entry)}>
+                      <EditorIcon command={editorCommand} className="h-4 w-4" />
+                      Edit in {editorName}
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onSelect={() => window.api.fs.reveal(entry.path)}>
+                    <Eye className="h-4 w-4" />
+                    Open in Finder
+                  </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={() => {
                       setEditName(entry.name)
                       setEditing(true)
                     }}
                   >
-                    <SquarePen className="h-4 w-4" />
+                    <PenLine className="h-4 w-4" />
                     Rename
                   </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => window.api.fs.reveal(entry.path)}>
-                    <RevealIcon className="h-4 w-4" />
-                    Open in Finder
-                  </DropdownMenuItem>
-                  {!entry.isDir && (
-                    <DropdownMenuItem onSelect={() => onEdit(entry)}>
-                      <Pencil className="h-4 w-4" />
-                      Edit
-                    </DropdownMenuItem>
-                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="text-destructive focus:text-destructive"
@@ -201,6 +221,8 @@ function TreeNode({ entry, depth, version, onOpenFile, onSend, onEdit }: NodePro
               onOpenFile={onOpenFile}
               onSend={onSend}
               onEdit={onEdit}
+              editorCommand={editorCommand}
+              editorName={editorName}
             />
           ))}
           {children?.length === 0 && (
@@ -219,9 +241,18 @@ interface Props {
   onOpenFile: (entry: DirEntry) => void
   onSend: (entry: DirEntry) => void
   onEdit: (entry: DirEntry) => void
+  editorCommand: string
+  editorName: string | null
 }
 
-export default function FileTree({ root, onOpenFile, onSend, onEdit }: Props): JSX.Element {
+export default function FileTree({
+  root,
+  onOpenFile,
+  onSend,
+  onEdit,
+  editorCommand,
+  editorName
+}: Props): JSX.Element {
   const [entries, setEntries] = useState<DirEntry[] | null>(null)
   const [version, setVersion] = useState(0)
 
@@ -255,6 +286,8 @@ export default function FileTree({ root, onOpenFile, onSend, onEdit }: Props): J
           onOpenFile={onOpenFile}
           onSend={onSend}
           onEdit={onEdit}
+          editorCommand={editorCommand}
+          editorName={editorName}
         />
       ))}
     </div>
