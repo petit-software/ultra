@@ -23,9 +23,13 @@ export default function TerminalPane(): JSX.Element {
       ? lastMainId.current
       : (stackIds[0] ?? null)
 
+  // Label the pane by the shell actually on screen — not activeSessionId, which
+  // may point at a split pane the user just clicked into.
+  const mainVisible = mainVisibleId ? sessions[mainVisibleId] : null
+
   return (
     <div className="group/section relative flex h-full flex-col">
-      <PaneHeader title={active?.title ?? 'terminal'} />
+      <PaneHeader title={mainVisible?.title ?? active?.title ?? 'terminal'} />
 
       <div className="relative min-h-0 flex-1">
         {ids.length === 0 && (
@@ -40,6 +44,9 @@ export default function TerminalPane(): JSX.Element {
             cwd={sessions[id].cwd}
             command={sessions[id].command}
             visible={id === mainVisibleId}
+            // Only the active shell grabs focus on mount, so a background pane
+            // can't steal the global active session just by rendering.
+            autoFocus={id === activeSessionId}
             transparent
           />
         ))}

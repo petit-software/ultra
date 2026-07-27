@@ -233,6 +233,48 @@ function pruneSplitPanels(
   return columns.map((c) => c.filter(keep)).filter((c) => c.length > 0)
 }
 
+/**
+ * One pane hosts exactly one shell. Older saves (from the removed in-pane "+")
+ * may have a pane holding several sessions — give each extra session its own
+ * pane, inserted right after the original in the same column, so no shell is
+ * left running but unreachable. New panes only ever hold one session.
+ */
+function explodeSplitPanes(
+  layouts: Record<string, PanelLayout>,
+  splitPanes: Record<string, string[]>
+): { layouts: Record<string, PanelLayout>; splitPanes: Record<string, string[]> } {
+  const nextPanes: Record<string, string[]> = {}
+  const expandedIds = new Map<string, string[]>()
+  for (const [paneId, list] of Object.entries(splitPanes)) {
+    const ids = (Array.isArray(list) ? list : []).filter(Boolean)
+    if (ids.length <= 1) {
+      nextPanes[paneId] = ids
+      continue
+    }
+    // First shell keeps the original pane id; the rest get fresh panes.
+    const paneIds = [paneId, ...ids.slice(1).map(() => newId('pane'))]
+    paneIds.forEach((pid, i) => {
+      nextPanes[pid] = [ids[i]]
+    })
+    expandedIds.set(paneId, paneIds)
+  }
+  if (expandedIds.size === 0) return { layouts, splitPanes: nextPanes }
+  const nextLayouts: Record<string, PanelLayout> = {}
+  for (const [pid, layout] of Object.entries(layouts)) {
+    const columns = layout.columns.map((col) => {
+      const out: PanelKey[] = []
+      for (const key of col) {
+        const expanded = isSplitPanel(key) ? expandedIds.get(splitPaneId(key)) : undefined
+        if (expanded) for (const np of expanded) out.push(`split:${np}`)
+        else out.push(key)
+      }
+      return out
+    })
+    nextLayouts[pid] = { ...layout, columns }
+  }
+  return { layouts: nextLayouts, splitPanes: nextPanes }
+}
+
 /** Same pruning applied to every project's layout. */
 function pruneAllLayouts(
   layouts: Record<string, PanelLayout>,
@@ -320,8 +362,6 @@ interface AppState extends PersistShape {
    * The new pane can then be swapped to any panel type from its title menu.
    */
   splitPanel: (direction: SplitDirection, anchor?: PanelKey) => void
-  /** Open another shell session inside an existing split pane. */
-  newSessionInSplitPane: (paneId: string) => void
   /** Close a split pane and every session it hosts. */
   closeSplitPane: (paneId: string) => void
   /** Close any panel: hide a regular panel, or close a split pane entirely. */
@@ -600,16 +640,22 @@ export const useStore = create<AppState>((set, get) => ({
           blocks: { ...DEFAULT_SIDEBAR_BLOCKS, ...(saved?.blocks ?? old.sidebarBlocks ?? {}) }
         }
       }
+      // Split any legacy multi-shell panes into one-shell panes before anything
+      // reads the layout, so the whole app sees the single-shell-per-pane model.
+      const { layouts: explodedLayouts, splitPanes: explodedPanes } = explodeSplitPanes(
+        panelLayouts,
+        splitPanes
+      )
       const activePid = active ? loaded.sessions[active]?.projectId : loaded.projects[0]?.id
-      const mirror = (activePid && panelLayouts[activePid]) || defaultPanelLayout()
+      const mirror = (activePid && explodedLayouts[activePid]) || defaultPanelLayout()
       set({
         ...loaded,
         agents,
         recentAgentIds: Array.isArray(loaded.recentAgentIds) ? loaded.recentAgentIds : [],
         theme,
         editorCommand,
-        panelLayouts,
-        splitPanes,
+        panelLayouts: explodedLayouts,
+        splitPanes: explodedPanes,
         panelColumns: mirror.columns,
         sidebarBlocks: mirror.blocks,
         onboarded: loaded.onboarded ?? false,
@@ -673,13 +719,20 @@ export const useStore = create<AppState>((set, get) => ({
       return next
     }),
 
-  // Open a new session in the active session's project (Cmd+D), falling back to
-  // the first project when nothing is active.
+  // A new shell (Cmd+D / menu) always opens as its own pane — split below the
+  // shell the user is working in, or the main Shells pane. One pane, one shell.
   newSessionInActiveProject: () => {
     const st = get()
-    const active = st.activeSessionId ? st.sessions[st.activeSessionId] : null
-    const projectId = active?.projectId ?? st.projects[0]?.id
-    if (projectId) get().newSession(projectId)
+    const activePid = st.activeSessionId ? st.sessions[st.activeSessionId]?.projectId : undefined
+    const fp = st.focusedPanel
+    // Only anchor to the focused split pane when it belongs to the project on
+    // screen — otherwise the shell would land in another project's column.
+    const focusedInActive =
+      !!fp &&
+      isSplitPanel(fp) &&
+      st.sessions[st.splitPanes[splitPaneId(fp)]?.[0] ?? '']?.projectId === activePid
+    const anchor: PanelKey = fp === 'shells' || focusedInActive ? (fp as PanelKey) : 'shells'
+    st.splitPanel('down', anchor)
   },
 
   // Close the active session (Cmd+W).
@@ -1147,31 +1200,10 @@ export const useStore = create<AppState>((set, get) => ({
           p.id === project.id ? { ...p, sessionIds: [...p.sessionIds, session.id] } : p
         ),
         sessions: { ...st.sessions, [session.id]: session },
-        splitPanes: { ...st.splitPanes, [paneId]: [session.id] }
-      }
-      schedulePersist(next)
-      return next
-    }),
-
-  newSessionInSplitPane: (paneId) =>
-    set((st) => {
-      const pane = st.splitPanes[paneId]
-      const first = pane?.[0] ? st.sessions[pane[0]] : null
-      const project = st.projects.find((p) => p.id === first?.projectId) ?? st.projects[0]
-      if (!pane || !project) return st
-      const session: Session = {
-        id: newId('sess'),
-        title: nextShellTitle(st.sessions, project),
-        cwd: project.path,
-        projectId: project.id
-      }
-      const next: AppState = {
-        ...st,
-        projects: st.projects.map((p) =>
-          p.id === project.id ? { ...p, sessionIds: [...p.sessionIds, session.id] } : p
-        ),
-        sessions: { ...st.sessions, [session.id]: session },
-        splitPanes: { ...st.splitPanes, [paneId]: [...pane, session.id] }
+        splitPanes: { ...st.splitPanes, [paneId]: [session.id] },
+        // Focus the new shell so panel input (Files/Git/Context/Tasks) and ⌘W
+        // act on it right away, matching where the cursor lands.
+        activeSessionId: session.id
       }
       schedulePersist(next)
       return next

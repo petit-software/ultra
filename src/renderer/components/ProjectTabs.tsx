@@ -134,11 +134,18 @@ export default function ProjectTabs(): JSX.Element {
               commitDrop(slotForPointer(e, index))
             }}
             className={cn(
-              'app-no-drag group/tab relative flex h-7 max-w-[11rem] shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-xs transition-colors',
+              'app-no-drag group/tab relative flex h-7 max-w-[11rem] shrink-0 items-center gap-1.5 rounded-full px-2.5 text-xs transition-colors',
               active
-                ? 'bg-accent text-accent-foreground'
+                ? 'text-foreground'
                 : 'text-muted-foreground hover:bg-secondary/70 hover:text-foreground'
             )}
+            // Active tab is marked by an inset outline matching the focused
+            // panel's border (muted-foreground/50), offset inward so it hugs the pill.
+            style={
+              active
+                ? { outline: '1px solid hsl(var(--muted-foreground) / 0.5)', outlineOffset: '-1px' }
+                : undefined
+            }
           >
             {/* Terminal mark that swaps into the close button on tab hover:
                 the mark scales down and fades out while the X scales in. While
@@ -190,7 +197,7 @@ export default function ProjectTabs(): JSX.Element {
             <div
               aria-hidden
               className={cn(
-                'pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-lg transition-opacity duration-150',
+                'pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-full transition-opacity duration-150',
                 dragId !== null ? 'opacity-100' : 'opacity-0'
               )}
             >

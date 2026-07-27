@@ -39,6 +39,12 @@ const api = {
       ) => cb(p.id, p.busy, p.processName ?? '')
       ipcRenderer.on('pty:busy', h)
       return () => ipcRenderer.removeListener('pty:busy', h)
+    },
+    onRunning: (cb: (id: string, running: boolean) => void): Unsubscribe => {
+      const h = (_e: IpcRendererEvent, p: { id: string; running: boolean }) =>
+        cb(p.id, p.running)
+      ipcRenderer.on('pty:running', h)
+      return () => ipcRenderer.removeListener('pty:running', h)
     }
   },
   menu: {
@@ -53,7 +59,13 @@ const api = {
       const h = (_e: IpcRendererEvent, fs: boolean): void => cb(fs)
       ipcRenderer.on('window:fullscreen', h)
       return () => ipcRenderer.removeListener('window:fullscreen', h)
-    }
+    },
+    getSize: (): Promise<{ width: number; height: number }> =>
+      ipcRenderer.invoke('window:getSize'),
+    // Set the window's content size; resolves with the actual size applied
+    // (the OS clamps to the window's minimum).
+    setSize: (width: number, height: number): Promise<{ width: number; height: number }> =>
+      ipcRenderer.invoke('window:setSize', width, height)
   },
   dialog: {
     pickDirectory: (): Promise<string | null> => ipcRenderer.invoke('dialog:pickDirectory'),
@@ -136,6 +148,8 @@ const api = {
       if (dir === 'reset') webFrame.setZoomLevel(0)
       else webFrame.setZoomLevel(webFrame.getZoomLevel() + (dir === 'in' ? 0.5 : -0.5))
     },
+    // Capture the window to a PNG on the Desktop; resolves with its path (or null).
+    screenshot: (): Promise<string | null> => ipcRenderer.invoke('app:screenshot'),
     openExternal: (url: string) => ipcRenderer.send('app:openExternal', url),
     setConfirmClose: (enabled: boolean) => ipcRenderer.send('app:setConfirmClose', enabled),
     setDockIcon: (dataUrl: string | null) => ipcRenderer.send('app:setDockIcon', dataUrl),

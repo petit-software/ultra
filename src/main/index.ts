@@ -11,6 +11,7 @@ import {
   type MenuItemConstructorOptions
 } from 'electron'
 import { join } from 'path'
+import { promises as fsp } from 'fs'
 import { createPty, writePty, resizePty, killPty, killAllPty, ptyPids } from './pty'
 import { listPorts, listSessionProcesses, killProcess, systemStats } from './system-service'
 import { loadWorkspace, saveWorkspace } from './store'
@@ -498,6 +499,39 @@ function registerIpc(): void {
   ipcMain.on('updates:check', (e) => {
     const win = BrowserWindow.fromWebContents(e.sender)
     void checkForUpdatesManually(win ?? undefined)
+  })
+
+  // Window sizing + screenshot, for the View menu's "Take screenshot": the user
+  // sets an exact content size, then captures the window to the Desktop. Sizing
+  // in content pixels keeps what they type matching what capturePage() records.
+  ipcMain.handle('window:getSize', (e) => {
+    const win = BrowserWindow.fromWebContents(e.sender) ?? mainWindow
+    const [width, height] = win?.getContentSize() ?? [0, 0]
+    return { width, height }
+  })
+  ipcMain.handle('window:setSize', (e, width: number, height: number) => {
+    const win = BrowserWindow.fromWebContents(e.sender) ?? mainWindow
+    if (!win) return { width: 0, height: 0 }
+    // A fixed size can't apply while the window fills the screen or is zoomed.
+    if (win.isFullScreen()) win.setFullScreen(false)
+    if (win.isMaximized()) win.unmaximize()
+    win.setContentSize(Math.max(1, Math.round(width)), Math.max(1, Math.round(height)))
+    const [w, h] = win.getContentSize() // may be clamped to minWidth/minHeight
+    return { width: w, height: h }
+  })
+  ipcMain.handle('app:screenshot', async (e) => {
+    const win = BrowserWindow.fromWebContents(e.sender) ?? mainWindow
+    if (!win) return null
+    const image = await win.webContents.capturePage()
+    if (image.isEmpty()) return null
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+    const file = join(app.getPath('desktop'), `Ultra ${stamp}.png`)
+    try {
+      await fsp.writeFile(file, image.toPNG())
+      return file
+    } catch {
+      return null
+    }
   })
 
   ipcMain.on('app:setTrayFrames', (_e, payload: unknown) => setTrayFrames(payload))

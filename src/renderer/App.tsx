@@ -65,6 +65,15 @@ export default function App(): JSX.Element {
     void hydrate()
   }, [hydrate])
 
+  // Agent-working ("running") state is owned by the main process and mirrored
+  // here from a single always-mounted listener, so it stays correct no matter
+  // which project tab is selected or whether a session's terminal is on screen.
+  useEffect(() => {
+    return window.api.pty.onRunning((id, running) =>
+      useStore.getState().setSessionRunning(id, running)
+    )
+  }, [])
+
   useEffect(() => {
     if (!draggingPanel) setHoverGap(null)
   }, [draggingPanel])

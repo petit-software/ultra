@@ -40,7 +40,19 @@ interface Session {
   process?: string
   /** Raw name from the pty, before any interpreter→script resolution. */
   raw?: string
+  /** Epoch ms of the most recent PTY output, for the "working" indicator. */
+  lastOutputAt?: number
+  /** Whether we last reported this session as actively producing output. */
+  running?: boolean
 }
+
+// "Running" = the PTY produced output within this window. Owning this in main
+// (instead of a renderer timer keyed to a mounted TerminalView) keeps the
+// Dock/menu-bar/tab "working" indicators alive regardless of which project tab
+// is selected, whether the pane is on screen, or whether the window is hidden
+// (Chromium throttles background-renderer timers). Widened past a single agent
+// "quiet moment" (API round-trip, tool call) so the indicator doesn't flicker.
+const RUNNING_SILENCE_MS = 2500
 
 const sessions = new Map<string, Session>()
 
@@ -57,7 +69,14 @@ function ensurePoller(): void {
       pollTimer = null
       return
     }
+    const now = Date.now()
     for (const [id, s] of sessions) {
+      // Retire "running" once output has been silent long enough.
+      if (s.running && now - (s.lastOutputAt ?? 0) >= RUNNING_SILENCE_MS) {
+        s.running = false
+        if (!s.win.isDestroyed()) s.win.webContents.send('pty:running', { id, running: false })
+      }
+
       let proc = ''
       try {
         proc = s.pty.process
@@ -146,10 +165,25 @@ export function createPty(
   })
 
   pty.onData((data) => {
-    if (!win.isDestroyed()) win.webContents.send('pty:data', { id, data })
+    if (win.isDestroyed()) return
+    win.webContents.send('pty:data', { id, data })
+    const s = sessions.get(id)
+    if (!s) return
+    s.lastOutputAt = Date.now()
+    // Turn "running" on immediately; the poller turns it off after the silence
+    // window so brief agent pauses don't drop the working indicator.
+    if (!s.running) {
+      s.running = true
+      win.webContents.send('pty:running', { id, running: true })
+    }
   })
   pty.onExit(({ exitCode }) => {
-    if (!win.isDestroyed()) win.webContents.send('pty:exit', { id, exitCode })
+    if (!win.isDestroyed()) {
+      // Clear the working indicator explicitly: the poller retires "running" by
+      // scanning live sessions, but this one is about to leave the map.
+      if (sessions.get(id)?.running) win.webContents.send('pty:running', { id, running: false })
+      win.webContents.send('pty:exit', { id, exitCode })
+    }
     sessions.delete(id)
   })
 

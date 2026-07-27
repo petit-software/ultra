@@ -75,24 +75,11 @@ export default function TerminalView({
       minimalPrompt
     })
 
-    // "Running" = the PTY produced output recently. A foreground-process check
-    // can't tell an agent that is working from one waiting at its prompt, so we
-    // treat a short output silence as idle instead.
-    let silenceTimer: ReturnType<typeof setTimeout> | null = null
-    const markOutput = (): void => {
-      useStore.getState().setSessionRunning(sessionId, true)
-      if (silenceTimer) clearTimeout(silenceTimer)
-      silenceTimer = setTimeout(
-        () => useStore.getState().setSessionRunning(sessionId, false),
-        1500
-      )
-    }
-
+    // Note: the "running" (agent-working) indicator is NOT tracked here. It is
+    // owned by the main process (pty:running) and applied globally in App, so it
+    // survives this view unmounting when its project tab isn't selected.
     const offData = window.api.pty.onData((sid, data) => {
-      if (sid === sessionId) {
-        term.write(data)
-        markOutput()
-      }
+      if (sid === sessionId) term.write(data)
     })
     const offExit = window.api.pty.onExit((sid) => {
       if (sid === sessionId) term.write('\r\n\x1b[90m[process exited]\x1b[0m\r\n')
@@ -106,14 +93,28 @@ export default function TerminalView({
       offData()
       offExit()
       offBusy()
-      if (silenceTimer) clearTimeout(silenceTimer)
       useStore.getState().setSessionBusy(sessionId, false)
-      useStore.getState().setSessionRunning(sessionId, false)
+      // Running state is owned by main and applied in App, so it is NOT cleared
+      // here — this view unmounts on tab switch while its agent keeps working.
       term.dispose()
       openedRef.current = false
       // PTY itself is killed via store.closeSession, not on unmount-from-hide.
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId])
+
+  // Clicking into a terminal makes its session the active one, so panel input
+  // (Files/Git/Context/Tasks) and ⌘W target the shell the user is looking at.
+  // Scratch terminals (sidebar) aren't real sessions, so the guard skips them.
+  useEffect(() => {
+    const host = hostRef.current
+    if (!host) return
+    const onFocusIn = (): void => {
+      const s = useStore.getState()
+      if (s.sessions[sessionId] && s.activeSessionId !== sessionId) s.setActiveSession(sessionId)
+    }
+    host.addEventListener('focusin', onFocusIn)
+    return () => host.removeEventListener('focusin', onFocusIn)
   }, [sessionId])
 
   // Live-update the palette when the user toggles light/dark.
