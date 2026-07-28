@@ -137,9 +137,7 @@ export default function PanelColumn({ index }: Props): JSX.Element {
               minSize={meta.minSize}
               className={cn(
                 SECTION,
-                'transition-colors duration-150',
-                // The panel being used right now carries a lighter border.
-                focused === key && 'border-muted-foreground/50',
+                focused === key && 'ultra-panel-active border-transparent',
                 dragging && 'border-transparent'
               )}
             >

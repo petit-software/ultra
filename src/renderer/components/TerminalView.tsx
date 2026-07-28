@@ -45,9 +45,8 @@ export default function TerminalView({
     transparent ? { ...xtermTheme(mode), background: 'rgba(0,0,0,0)' } : xtermTheme(mode)
 
   // Create the terminal + PTY at mount. We deliberately do NOT call term.open()
-  // here: opening on a zero-size (display:none) host makes xterm's Viewport throw
-  // asynchronously while reading render dimensions. Writes are buffered by xterm
-  // until the host is opened, so background sessions still capture their output.
+  // here: restored/background sessions may not have been visible yet. Writes are
+  // buffered by xterm until the host is opened, so they still capture output.
   useEffect(() => {
     const term = new Terminal({
       fontFamily: '"Server Mono", Menlo, "SF Mono", "JetBrains Mono", monospace',
@@ -142,9 +141,9 @@ export default function TerminalView({
           fit.fit()
           if (autoFocus) term.focus()
           window.api.pty.resize(sessionId, term.cols, term.rows)
-          // Rows hidden via display:none aren't repainted by xterm's renderer,
-          // so a session revealed by a tab switch can come back blank/black.
-          // Force a full redraw now that the host is laid out again.
+          // Force a full redraw after the visibility transition. The host keeps
+          // its geometry while hidden below, so xterm never observes a zero-size
+          // canvas between project tabs.
           term.refresh(0, term.rows - 1)
         } catch {
           /* not laid out yet */
@@ -181,8 +180,10 @@ export default function TerminalView({
 
   return (
     <div
-      className="absolute inset-0 pb-3 px-3"
-      style={{ display: visible ? 'block' : 'none' }}
+      className={`absolute inset-0 px-3 pb-3 ${
+        visible ? 'visible' : 'invisible pointer-events-none'
+      }`}
+      aria-hidden={!visible}
     >
       <div className="terminal-host" ref={hostRef} />
     </div>

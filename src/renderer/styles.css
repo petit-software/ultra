@@ -294,3 +294,20 @@
   height: 0;
   display: none;
 }
+
+/* Mouse and keyboard selection share the same active-panel background feedback. */
+.ultra-panel {
+  transition: background-color 150ms ease;
+}
+.ultra-panel-active {
+  background-color: hsl(var(--card));
+}
+.dark .ultra-panel-active {
+  background-color: hsl(0deg 0% 8%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ultra-panel {
+    transition: none;
+  }
+}
