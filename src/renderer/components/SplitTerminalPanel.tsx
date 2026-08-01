@@ -1,5 +1,6 @@
+import { useLayoutEffect, useRef } from 'react'
 import { useStore } from '../store/useStore'
-import TerminalView from './TerminalView'
+import { useSplitSlots } from '../store/useSplitSlots'
 import PaneHeader from './PaneHeader'
 
 interface Props {
@@ -10,31 +11,31 @@ interface Props {
  * A terminal split as a first-class panel hosting exactly one shell. More
  * shells come from splitting again — one pane, one shell — so there is no
  * in-pane tab strip. Closing the panel closes the session it hosts.
+ *
+ * The actual <TerminalView> lives in PersistentSplitTerminals, mounted once
+ * for the app's lifetime, and is portaled into the slot div below whenever
+ * this panel is on screen. That way switching project tabs (which unmounts
+ * this panel) relocates the terminal's DOM instead of destroying it, so its
+ * scrollback and PTY subscription survive the switch.
  */
 export default function SplitTerminalPanel({ paneId }: Props): JSX.Element {
   const pane = useStore((s) => s.splitPanes[paneId])
   const sessions = useStore((s) => s.sessions)
-  const activeSessionId = useStore((s) => s.activeSessionId)
+  const registerSlot = useSplitSlots((s) => s.registerSlot)
+  const slotRef = useRef<HTMLDivElement>(null)
+
+  useLayoutEffect(() => {
+    registerSlot(paneId, slotRef.current)
+    return () => registerSlot(paneId, null)
+  }, [paneId, registerSlot])
 
   const id = (pane ?? []).find((sid) => sessions[sid]) ?? null
-  if (!id) return <div className="h-full" />
-  const session = sessions[id]
+  const session = id ? sessions[id] : null
 
   return (
     <div className="group/section flex h-full flex-col">
-      <PaneHeader title={session.title} />
-      <div className="relative min-h-0 flex-1">
-        <TerminalView
-          sessionId={id}
-          cwd={session.cwd}
-          command={session.command}
-          visible
-          // Only the active shell grabs focus on mount; clicking still focuses
-          // it (and makes it active) via the terminal's own focus handler.
-          autoFocus={id === activeSessionId}
-          transparent
-        />
-      </div>
+      <PaneHeader title={session?.title ?? 'Shell'} />
+      <div className="relative min-h-0 flex-1" ref={slotRef} />
     </div>
   )
 }

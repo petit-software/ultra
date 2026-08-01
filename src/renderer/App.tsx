@@ -2,6 +2,7 @@ import { Fragment, useEffect, useState } from 'react'
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import PanelColumn from './components/PanelColumn'
+import PersistentSplitTerminals from './components/PersistentSplitTerminals'
 import ProjectTabs from './components/ProjectTabs'
 import ViewMenu from './components/ViewMenu'
 import SettingsModal from './components/SettingsModal'
@@ -155,6 +156,7 @@ export default function App(): JSX.Element {
   return (
     <TooltipProvider delayDuration={300}>
       <WelcomeModal />
+      <PersistentSplitTerminals />
       <div className={cn('flex h-full flex-col bg-background', introActive && 'ultra-intro')}>
         {/* h-12 vertically centers the traffic lights (positioned at y:18 in main). */}
         <header className="app-drag ultra-app-header flex h-12 flex-none items-center gap-2 pl-[92px] pr-2">
