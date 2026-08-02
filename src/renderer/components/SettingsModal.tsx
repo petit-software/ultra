@@ -97,6 +97,8 @@ export default function SettingsModal(): JSX.Element {
   const toggleConfirmOnClose = useStore((s) => s.toggleConfirmOnClose)
   const showMenuBarIcon = useStore((s) => s.showMenuBarIcon)
   const toggleMenuBarIcon = useStore((s) => s.toggleMenuBarIcon)
+  const preventSleepWhileAgentsRun = useStore((s) => s.preventSleepWhileAgentsRun)
+  const togglePreventSleepWhileAgentsRun = useStore((s) => s.togglePreventSleepWhileAgentsRun)
 
   const [available, setAvailable] = useState<Record<string, boolean>>({})
   const isCustom = !KNOWN_EDITORS.some((e) => e.command === editorCommand)
@@ -226,6 +228,13 @@ export default function SettingsModal(): JSX.Element {
 
             <Row label="Show in menu bar">
               <Switch checked={showMenuBarIcon} onClick={toggleMenuBarIcon} />
+            </Row>
+
+            <Row label="Keep Mac awake while agents run">
+              <Switch
+                checked={preventSleepWhileAgentsRun}
+                onClick={togglePreventSleepWhileAgentsRun}
+              />
             </Row>
 
             <Row label="Ask before closing">

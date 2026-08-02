@@ -32,8 +32,10 @@ export default function App(): JSX.Element {
   const sessions = useStore((s) => s.sessions)
   const agents = useStore((s) => s.agents)
   const sessionProcesses = useStore((s) => s.sessionProcesses)
+  const busySessions = useStore((s) => s.busySessions)
   const runningSessions = useStore((s) => s.runningSessions)
   const selectedAppIconId = useStore((s) => s.selectedAppIconId)
+  const preventSleepWhileAgentsRun = useStore((s) => s.preventSleepWhileAgentsRun)
   const panelLayoutResetCount = useStore((s) => s.panelLayoutResetCount)
   const draggingPanel = useStore((s) => s.draggingPanel)
   const movePanelToNewColumn = useStore((s) => s.movePanelToNewColumn)
@@ -46,6 +48,11 @@ export default function App(): JSX.Element {
     const agentSession = session.agentStarted || !!session.agentName
     const foregroundAgent = agentProcessNames.has(commandName(sessionProcesses[id] ?? ''))
     return (agentSession || foregroundAgent) && !!runningSessions[id]
+  })
+  const agentRunning = Object.entries(sessions).some(([id, session]) => {
+    const agentSession = session.agentStarted || !!session.agentName
+    const foregroundAgent = agentProcessNames.has(commandName(sessionProcesses[id] ?? ''))
+    return (agentSession || foregroundAgent) && !!busySessions[id]
   })
 
   // Columns whose every panel is toggled off collapse entirely.
@@ -96,6 +103,11 @@ export default function App(): JSX.Element {
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     void syncTrayState(agentWorking, !reduceMotion)
   }, [agentWorking])
+
+  useEffect(() => {
+    window.api.app.setPreventSleep(preventSleepWhileAgentsRun && agentRunning)
+    return () => window.api.app.setPreventSleep(false)
+  }, [agentRunning, preventSleepWhileAgentsRun])
 
   useEffect(() => {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches

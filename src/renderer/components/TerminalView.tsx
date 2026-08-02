@@ -81,7 +81,10 @@ export default function TerminalView({
       if (sid === sessionId) term.write(data)
     })
     const offExit = window.api.pty.onExit((sid) => {
-      if (sid === sessionId) term.write('\r\n\x1b[90m[process exited]\x1b[0m\r\n')
+      if (sid === sessionId) {
+        useStore.getState().setSessionBusy(sessionId, false)
+        term.write('\r\n\x1b[90m[process exited]\x1b[0m\r\n')
+      }
     })
     const offBusy = window.api.pty.onBusy((sid, busy, processName) => {
       if (sid === sessionId) useStore.getState().setSessionBusy(sessionId, busy, processName)

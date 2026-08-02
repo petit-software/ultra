@@ -152,6 +152,7 @@ const api = {
     screenshot: (): Promise<string | null> => ipcRenderer.invoke('app:screenshot'),
     openExternal: (url: string) => ipcRenderer.send('app:openExternal', url),
     setConfirmClose: (enabled: boolean) => ipcRenderer.send('app:setConfirmClose', enabled),
+    setPreventSleep: (active: boolean) => ipcRenderer.send('app:setPreventSleep', active),
     setDockIcon: (dataUrl: string | null) => ipcRenderer.send('app:setDockIcon', dataUrl),
     setTrayFrames: (payload: { idle: string; frames: string[]; intervalMs: number }) =>
       ipcRenderer.send('app:setTrayFrames', payload),

@@ -306,6 +306,8 @@ interface PersistShape {
   confirmOnClose: boolean
   /** Show the Ultra icon in the macOS menu bar (system tray). */
   showMenuBarIcon: boolean
+  /** Keep the Mac awake while any detected agent is actively working. */
+  preventSleepWhileAgentsRun: boolean
 }
 
 function applyTheme(theme: ThemeMode): void {
@@ -410,6 +412,7 @@ interface AppState extends PersistShape {
   completeOnboarding: () => void
   toggleConfirmOnClose: () => void
   toggleMenuBarIcon: () => void
+  togglePreventSleepWhileAgentsRun: () => void
 }
 
 let counter = 0
@@ -468,7 +471,8 @@ function makeDefault(): PersistShape {
     onboarded: false,
     selectedAppIconId: DEFAULT_APP_ICON_ID,
     confirmOnClose: true,
-    showMenuBarIcon: true
+    showMenuBarIcon: true,
+    preventSleepWhileAgentsRun: false
   }
 }
 
@@ -486,7 +490,8 @@ function snapshot(s: AppState): PersistShape {
     onboarded: s.onboarded,
     selectedAppIconId: s.selectedAppIconId,
     confirmOnClose: s.confirmOnClose,
-    showMenuBarIcon: s.showMenuBarIcon
+    showMenuBarIcon: s.showMenuBarIcon,
+    preventSleepWhileAgentsRun: s.preventSleepWhileAgentsRun
   }
 }
 
@@ -593,6 +598,7 @@ export const useStore = create<AppState>((set, get) => ({
       window.api.app.setConfirmClose(confirmOnClose)
       const showMenuBarIcon = loaded.showMenuBarIcon ?? true
       window.api.app.setTrayVisible(showMenuBarIcon)
+      const preventSleepWhileAgentsRun = loaded.preventSleepWhileAgentsRun ?? false
       // Layouts are per project. Older saves stored one global arrangement
       // (flat panelColumns/sidebarBlocks, or older still a fixed left/center/
       // right sidebar split) — carry that over to every project.
@@ -662,6 +668,7 @@ export const useStore = create<AppState>((set, get) => ({
         selectedAppIconId,
         confirmOnClose,
         showMenuBarIcon,
+        preventSleepWhileAgentsRun,
         activeSessionId: active,
         hydrated: true
       })
@@ -1096,6 +1103,13 @@ export const useStore = create<AppState>((set, get) => ({
       const showMenuBarIcon = !st.showMenuBarIcon
       window.api.app.setTrayVisible(showMenuBarIcon)
       const next = { ...st, showMenuBarIcon }
+      schedulePersist(next)
+      return next
+    }),
+
+  togglePreventSleepWhileAgentsRun: () =>
+    set((st) => {
+      const next = { ...st, preventSleepWhileAgentsRun: !st.preventSleepWhileAgentsRun }
       schedulePersist(next)
       return next
     }),

@@ -8,6 +8,7 @@ import {
   nativeImage,
   Menu,
   Tray,
+  powerSaveBlocker,
   type MenuItemConstructorOptions
 } from 'electron'
 import { join } from 'path'
@@ -31,6 +32,7 @@ import { probeCommand } from './agents'
 import * as git from './git-service'
 import { openInEditor } from './editor'
 import { initUpdater, checkForUpdatesManually, isQuittingForUpdate } from './updater'
+import { SleepPreventionController } from './sleep-prevention'
 
 let mainWindow: BrowserWindow | null = null
 let selectedDockIconDataUrl: string | null = null
@@ -39,6 +41,7 @@ let selectedDockIconDataUrl: string | null = null
 // persisted preference here on hydrate/toggle; default matches the store's.
 let confirmOnClose = true
 let isQuitting = false
+const sleepPrevention = new SleepPreventionController(powerSaveBlocker)
 
 /** Only ever hand real web URLs to the OS; anything else (about:blank from
  *  xterm's default link handler, file:, etc.) would make macOS show a
@@ -494,6 +497,9 @@ function registerIpc(): void {
   ipcMain.on('app:setConfirmClose', (_e, enabled: unknown) => {
     confirmOnClose = enabled !== false
   })
+  ipcMain.on('app:setPreventSleep', (_e, active: unknown) => {
+    if (process.platform === 'darwin') sleepPrevention.setActive(active === true)
+  })
 
   ipcMain.handle('app:getVersion', () => app.getVersion())
   ipcMain.on('updates:check', (e) => {
@@ -557,6 +563,7 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', () => {
+  sleepPrevention.stop()
   killAllPty()
   unwatchAll()
   if (process.platform !== 'darwin') app.quit()
@@ -571,6 +578,7 @@ app.on('before-quit', () => {
 })
 
 app.on('will-quit', () => {
+  sleepPrevention.stop()
   stopTrayTimer()
   killAllPty()
   unwatchAll()
