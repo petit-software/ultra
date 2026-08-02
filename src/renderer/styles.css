@@ -303,7 +303,7 @@
   background-color: hsl(var(--card));
 }
 .dark .ultra-panel-active {
-  background-color: hsl(0deg 0% 8%);
+  background-color: hsl(0deg 0% 10%);
 }
 
 @media (prefers-reduced-motion: reduce) {

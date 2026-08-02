@@ -136,16 +136,9 @@ export default function ProjectTabs(): JSX.Element {
             className={cn(
               'app-no-drag group/tab relative flex h-7 max-w-[11rem] shrink-0 items-center gap-1.5 rounded-full px-2.5 text-xs transition-colors',
               active
-                ? 'text-foreground'
+                ? 'ultra-panel-active text-foreground'
                 : 'text-muted-foreground hover:bg-secondary/70 hover:text-foreground'
             )}
-            // Active tab is marked by an inset outline matching the focused
-            // panel's border (muted-foreground/50), offset inward so it hugs the pill.
-            style={
-              active
-                ? { outline: '1px solid hsl(var(--muted-foreground) / 0.5)', outlineOffset: '-1px' }
-                : undefined
-            }
           >
             {/* Terminal mark that swaps into the close button on tab hover:
                 the mark scales down and fades out while the X scales in. While

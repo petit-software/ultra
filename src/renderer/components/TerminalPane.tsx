@@ -13,15 +13,25 @@ export default function TerminalPane(): JSX.Element {
   // Sessions that live in split panes render there, not here.
   const pinned = new Set(Object.values(splitPanes).flat())
   const stackIds = ids.filter((id) => !pinned.has(id))
+
   // When the active session belongs to a split panel, keep showing whatever
-  // non-pinned session this pane showed last instead of jumping around.
-  const lastMainId = useRef<string | null>(null)
-  if (activeSessionId && !pinned.has(activeSessionId) && sessions[activeSessionId])
-    lastMainId.current = activeSessionId
+  // non-pinned session this pane showed last for THAT project — keyed per
+  // project so switching to a project whose active session is a split pane
+  // doesn't leave another project's shell stuck on screen (and clickable,
+  // which would silently flip the active project tab back on focus).
+  const activeProjectId = active?.projectId
+  const lastMainByProject = useRef<Record<string, string>>({})
+  if (activeProjectId && activeSessionId && !pinned.has(activeSessionId) && sessions[activeSessionId])
+    lastMainByProject.current[activeProjectId] = activeSessionId
+  const remembered = activeProjectId ? lastMainByProject.current[activeProjectId] : undefined
+  const projectStackIds = stackIds.filter((id) => sessions[id].projectId === activeProjectId)
   const mainVisibleId =
-    lastMainId.current && sessions[lastMainId.current] && !pinned.has(lastMainId.current)
-      ? lastMainId.current
-      : (stackIds[0] ?? null)
+    remembered &&
+    sessions[remembered] &&
+    !pinned.has(remembered) &&
+    sessions[remembered].projectId === activeProjectId
+      ? remembered
+      : (projectStackIds[0] ?? null)
 
   // Label the pane by the shell actually on screen — not activeSessionId, which
   // may point at a split pane the user just clicked into.
