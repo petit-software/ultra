@@ -306,20 +306,29 @@
   background-color: hsl(0deg 0% 10%);
 }
 
-/* Active project tab: no fill, a hairline outline tucked just inside the pill,
-   with squircle corners. Faded foreground (reads as faded white in dark mode)
-   while idle; the terminal cursor's pink (see themes.ts) while an agent in the
-   project is working — matching the spinning sparkle in the tab.
+/* Active project tab, squircle-cornered pill with two states. Idle: the same
+   light-gray fill as a focused panel (see .ultra-panel-active). Working: the
+   fill drains away and a full-strength foreground outline pulses in step with
+   the spinning sparkle in the tab.
 
-   The pink lives on an ::after overlay drawn over the idle ring. Its opacity
-   (transition) handles entering/leaving the working state, while the pulse
-   keyframes animate only its outline-color — split across two properties so
-   the animation never overrides the enter/exit ease. */
+   The working ring lives on an ::after overlay drawn over the idle ring. Its
+   opacity (transition) handles entering/leaving the working state, while the
+   pulse keyframes animate only its outline-color — split across two properties
+   so the animation never overrides the enter/exit ease. */
 .ultra-tab-active {
   corner-shape: superellipse(1.1);
-  background: none;
+  background-color: hsl(var(--card));
   outline: 1px solid hsl(var(--foreground) / 0.35);
   outline-offset: -2px;
+  transition: background-color 200ms ease-out;
+}
+.dark .ultra-tab-active {
+  background-color: hsl(0deg 0% 10%);
+}
+/* While working the fill drains away and the pulsing outline takes over.
+   Doubled selector so it outranks the .dark idle rule in both themes. */
+.ultra-tab-active.ultra-tab-working {
+  background-color: transparent;
 }
 .ultra-tab-active::after {
   content: '';
@@ -328,7 +337,7 @@
   inset: 0;
   border-radius: inherit;
   corner-shape: superellipse(1.1);
-  outline: 1px solid #f81ce5;
+  outline: 1px solid hsl(var(--foreground));
   outline-offset: -2px;
   opacity: 0;
   transition: opacity 200ms ease-out;
@@ -339,10 +348,10 @@
 @keyframes ultra-tab-working-pulse {
   0%,
   100% {
-    outline-color: #f81ce5;
+    outline-color: hsl(var(--foreground));
   }
   50% {
-    outline-color: rgb(248 28 229 / 0.4);
+    outline-color: hsl(var(--foreground) / 0.4);
   }
 }
 .ultra-tab-working::after {
@@ -354,8 +363,9 @@
   .ultra-panel {
     transition: none;
   }
-  /* Working outline flips to solid pink with no fade or pulse — the state is
-     still shown, just without motion. */
+  /* Working state flips instantly with no fade or pulse — the state is still
+     shown, just without motion. */
+  .ultra-tab-active,
   .ultra-tab-active::after {
     transition: none;
   }
