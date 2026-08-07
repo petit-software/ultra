@@ -1,5 +1,5 @@
 export interface PowerSaveBlockerLike {
-  start: (type: 'prevent-display-sleep') => number
+  start: (type: 'prevent-app-suspension') => number
   stop: (id: number) => void
 }
 
@@ -12,7 +12,9 @@ export class SleepPreventionController {
   setActive(active: boolean): void {
     if (active) {
       if (this.blockerId === null) {
-        this.blockerId = this.blocker.start('prevent-display-sleep')
+        // prevent-app-suspension keeps the system awake but still lets the
+        // display sleep — the agent keeps working with the screen dark.
+        this.blockerId = this.blocker.start('prevent-app-suspension')
       }
       return
     }

@@ -383,6 +383,8 @@ interface AppState extends PersistShape {
   updateTodo: (projectId: string, todoId: string, text: string) => void
   toggleTodo: (projectId: string, todoId: string) => void
   removeTodo: (projectId: string, todoId: string) => void
+  /** Reorder: move a task before `beforeId`, or to the end when null. */
+  moveTodo: (projectId: string, todoId: string, beforeId: string | null) => void
   /** Remove every completed task from the project's list. */
   clearDoneTodos: (projectId: string) => void
   toggleTheme: () => void
@@ -910,6 +912,26 @@ export const useStore = create<AppState>((set, get) => ({
             ? { ...p, todos: (p.todos ?? []).filter((t) => t.id !== todoId) }
             : p
         )
+      }
+      schedulePersist(next)
+      return next
+    }),
+
+  moveTodo: (projectId, todoId, beforeId) =>
+    set((st) => {
+      const next = {
+        ...st,
+        projects: st.projects.map((p) => {
+          if (p.id !== projectId) return p
+          const todos = [...(p.todos ?? [])]
+          const from = todos.findIndex((t) => t.id === todoId)
+          if (from < 0) return p
+          const [moved] = todos.splice(from, 1)
+          const at = beforeId === null ? todos.length : todos.findIndex((t) => t.id === beforeId)
+          if (at < 0) return p
+          todos.splice(at, 0, moved)
+          return { ...p, todos }
+        })
       }
       schedulePersist(next)
       return next

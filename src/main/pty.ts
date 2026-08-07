@@ -10,8 +10,8 @@ const shell = os.platform() === 'win32' ? 'powershell.exe' : process.env.SHELL |
 const shellBase = (shell.split(/[/\\]/).pop() || 'zsh').replace(/\.exe$/, '')
 
 // A throwaway ZDOTDIR whose startup files source the user's real zsh config
-// (so PATH etc. stay intact) and then force a minimal prompt with no path — used
-// by the sidebar scratch terminal. Built once per app run and reused.
+// (so PATH etc. stay intact) and then blank the prompt entirely — used by the
+// sidebar scratch terminal. Built once per app run and reused.
 let minimalZdotdir: string | null = null
 function minimalPromptZdotdir(): string {
   if (minimalZdotdir) return minimalZdotdir
@@ -24,8 +24,13 @@ function minimalPromptZdotdir(): string {
   fs.writeFileSync(
     path.join(dir, '.zshrc'),
     sourceReal('.zshrc') +
-      '\n# Ultra sidebar terminal: minimal prompt, no working-directory path.\n' +
-      "PROMPT='%F{244}❯%f '\nRPROMPT=''\n"
+      '\n# Ultra sidebar terminal: no prompt at all — just the cursor. Prompt\n' +
+      '# frameworks (oh-my-zsh themes, starship, p10k) repaint via precmd hooks\n' +
+      '# on every command, so clearing the hooks is what makes it stick.\n' +
+      'precmd_functions=()\npreexec_functions=()\n' +
+      '(( $+functions[precmd] )) && unfunction precmd\n' +
+      '(( $+functions[preexec] )) && unfunction preexec\n' +
+      "PROMPT=''\nRPROMPT=''\n"
   )
   minimalZdotdir = dir
   process.on('exit', () => fs.rmSync(dir, { recursive: true, force: true }))
@@ -126,7 +131,7 @@ export function createPty(
     cols?: number
     rows?: number
     command?: string
-    /** Use a stripped-down prompt with no path (sidebar scratch terminal). */
+    /** Blank the shell prompt entirely (sidebar scratch terminal). */
     minimalPrompt?: boolean
   } = {}
 ): void {

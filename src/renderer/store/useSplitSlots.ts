@@ -12,7 +12,8 @@ interface SplitSlotState {
  * portaled into whichever slot is registered here (see SplitTerminalPanel),
  * so a pane's terminal survives its panel unmounting when its project isn't
  * the one on screen — the same "hidden, not unmounted" guarantee the main
- * Shells stack already has.
+ * Shells stack already has. The Termini panel reuses the store under its own
+ * fixed key (see PersistentSidebarTerminals).
  */
 export const useSplitSlots = create<SplitSlotState>((set) => ({
   slots: {},

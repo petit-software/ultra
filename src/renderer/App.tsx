@@ -3,6 +3,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/componen
 import { TooltipProvider } from '@/components/ui/tooltip'
 import PanelColumn from './components/PanelColumn'
 import PersistentSplitTerminals from './components/PersistentSplitTerminals'
+import PersistentSidebarTerminals from './components/PersistentSidebarTerminals'
 import ProjectTabs from './components/ProjectTabs'
 import ViewMenu from './components/ViewMenu'
 import SettingsModal from './components/SettingsModal'
@@ -32,7 +33,6 @@ export default function App(): JSX.Element {
   const sessions = useStore((s) => s.sessions)
   const agents = useStore((s) => s.agents)
   const sessionProcesses = useStore((s) => s.sessionProcesses)
-  const busySessions = useStore((s) => s.busySessions)
   const runningSessions = useStore((s) => s.runningSessions)
   const selectedAppIconId = useStore((s) => s.selectedAppIconId)
   const preventSleepWhileAgentsRun = useStore((s) => s.preventSleepWhileAgentsRun)
@@ -49,12 +49,6 @@ export default function App(): JSX.Element {
     const foregroundAgent = agentProcessNames.has(commandName(sessionProcesses[id] ?? ''))
     return (agentSession || foregroundAgent) && !!runningSessions[id]
   })
-  const agentRunning = Object.entries(sessions).some(([id, session]) => {
-    const agentSession = session.agentStarted || !!session.agentName
-    const foregroundAgent = agentProcessNames.has(commandName(sessionProcesses[id] ?? ''))
-    return (agentSession || foregroundAgent) && !!busySessions[id]
-  })
-
   // Columns whose every panel is toggled off collapse entirely.
   const visibleColumns = columns
     .map((column, index) => ({
@@ -104,10 +98,13 @@ export default function App(): JSX.Element {
     void syncTrayState(agentWorking, !reduceMotion)
   }, [agentWorking])
 
+  // Keyed to the same output-based "working" signal as the Dock/tray indicator,
+  // so the assertion releases once the agent goes quiet — not when its TUI
+  // exits (an idle agent at its prompt is still the foreground process).
   useEffect(() => {
-    window.api.app.setPreventSleep(preventSleepWhileAgentsRun && agentRunning)
+    window.api.app.setPreventSleep(preventSleepWhileAgentsRun && agentWorking)
     return () => window.api.app.setPreventSleep(false)
-  }, [agentRunning, preventSleepWhileAgentsRun])
+  }, [agentWorking, preventSleepWhileAgentsRun])
 
   useEffect(() => {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -169,6 +166,7 @@ export default function App(): JSX.Element {
     <TooltipProvider delayDuration={300}>
       <WelcomeModal />
       <PersistentSplitTerminals />
+      <PersistentSidebarTerminals />
       <div className={cn('flex h-full flex-col bg-background', introActive && 'ultra-intro')}>
         {/* h-12 vertically centers the traffic lights (positioned at y:18 in main). */}
         <header className="app-drag ultra-app-header flex h-12 flex-none items-center gap-2 pl-[92px] pr-2">

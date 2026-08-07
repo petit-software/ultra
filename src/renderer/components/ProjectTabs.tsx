@@ -136,7 +136,7 @@ export default function ProjectTabs(): JSX.Element {
             className={cn(
               'app-no-drag group/tab relative flex h-7 max-w-[11rem] shrink-0 items-center gap-1.5 rounded-full px-2.5 text-xs transition-colors',
               active
-                ? 'ultra-panel-active text-foreground'
+                ? cn('ultra-tab-active text-foreground', running && 'ultra-tab-working')
                 : 'text-muted-foreground hover:bg-secondary/70 hover:text-foreground'
             )}
           >

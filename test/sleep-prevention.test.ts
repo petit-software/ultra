@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { SleepPreventionController } from '../src/main/sleep-prevention'
 
 describe('SleepPreventionController', () => {
-  it('starts one display-sleep assertion and stops that assertion', () => {
+  it('starts one app-suspension assertion and stops that assertion', () => {
     const blocker = {
       start: vi.fn(() => 42),
       stop: vi.fn()
@@ -13,7 +13,7 @@ describe('SleepPreventionController', () => {
     controller.setActive(true)
 
     expect(blocker.start).toHaveBeenCalledOnce()
-    expect(blocker.start).toHaveBeenCalledWith('prevent-display-sleep')
+    expect(blocker.start).toHaveBeenCalledWith('prevent-app-suspension')
 
     controller.setActive(false)
     controller.setActive(false)

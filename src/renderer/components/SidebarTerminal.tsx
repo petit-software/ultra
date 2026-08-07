@@ -1,73 +1,47 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef } from 'react'
 import { useStore } from '../store/useStore'
-import TerminalView from './TerminalView'
+import { useSplitSlots } from '../store/useSplitSlots'
+import { TERMINI_SLOT } from './PersistentSidebarTerminals'
 import PaneHeader from './PaneHeader'
 
-const termId = (projectId: string): string => `sidebar-term-${projectId}`
-
 /**
- * A small scratch terminal block for the sidebar. One PTY per project, created
- * lazily when the project first becomes active and kept alive (hidden, not
- * unmounted) across project switches — same pattern as TerminalPane. All PTYs
- * are killed when the block unmounts (toggled off or sidebar hidden), since
- * their xterm state is lost either way.
+ * The Termini panel frame. The actual per-project <TerminalView>s live in
+ * PersistentSidebarTerminals, mounted once for the app's lifetime, and are
+ * portaled into the slot div below whenever this panel is on screen. That way
+ * switching project tabs (which can unmount this panel — layouts are per
+ * project) relocates the terminals instead of destroying them.
  */
 export default function SidebarTerminal(): JSX.Element {
-  const sessions = useStore((s) => s.sessions)
-  const projects = useStore((s) => s.projects)
-  const activeSessionId = useStore((s) => s.activeSessionId)
+  const hasProject = useStore((s) => s.projects.length > 0)
+  const setFocusedPanel = useStore((s) => s.setFocusedPanel)
+  const registerSlot = useSplitSlots((s) => s.registerSlot)
+  const slotRef = useRef<HTMLDivElement>(null)
 
-  const activeSession = activeSessionId ? sessions[activeSessionId] : null
-  const activeProject = activeSession
-    ? projects.find((p) => p.id === activeSession.projectId)
-    : projects[0]
+  useLayoutEffect(() => {
+    registerSlot(TERMINI_SLOT, slotRef.current)
+    return () => registerSlot(TERMINI_SLOT, null)
+  }, [registerSlot])
 
-  // Projects whose sidebar terminal has been created (and still exist).
-  const [mountedIds, setMountedIds] = useState<string[]>([])
-
+  // The portaled terminal is mounted outside this panel in the React tree, so
+  // its synthetic mousedown/focus events never reach PanelColumn's capture
+  // handlers — listen on the real DOM instead (same as SplitTerminalPanel).
   useEffect(() => {
-    if (activeProject && !mountedIds.includes(activeProject.id)) {
-      setMountedIds((ids) => [...ids, activeProject.id])
-    }
-  }, [activeProject, mountedIds])
-
-  // Drop terminals for removed projects and kill their PTYs.
-  useEffect(() => {
-    const gone = mountedIds.filter((id) => !projects.some((p) => p.id === id))
-    if (gone.length === 0) return
-    for (const id of gone) window.api.pty.kill(termId(id))
-    setMountedIds((ids) => ids.filter((id) => !gone.includes(id)))
-  }, [projects, mountedIds])
-
-  // Kill every sidebar PTY when the block goes away.
-  useEffect(() => {
+    const el = slotRef.current
+    if (!el) return
+    const onFocus = (): void => setFocusedPanel('terminal')
+    el.addEventListener('mousedown', onFocus, true)
+    el.addEventListener('focusin', onFocus)
     return () => {
-      for (const p of useStore.getState().projects) window.api.pty.kill(termId(p.id))
+      el.removeEventListener('mousedown', onFocus, true)
+      el.removeEventListener('focusin', onFocus)
     }
-  }, [])
-
-  const pathById = useMemo(
-    () => new Map(projects.map((p) => [p.id, p.path])),
-    [projects]
-  )
+  }, [setFocusedPanel])
 
   return (
     <div className="group/section flex h-full flex-col">
       <PaneHeader title="Termini" />
-      <div className="relative min-h-0 flex-1">
-        {mountedIds.map((id) => (
-          <TerminalView
-            key={termId(id)}
-            sessionId={termId(id)}
-            cwd={pathById.get(id) ?? ''}
-            visible={id === activeProject?.id}
-            autoFocus={false}
-            transparent
-            fontSize={11}
-            minimalPrompt
-          />
-        ))}
-        {!activeProject && (
+      <div className="relative min-h-0 flex-1" ref={slotRef}>
+        {!hasProject && (
           <div className="p-4 text-sm text-muted-foreground">No active project.</div>
         )}
       </div>

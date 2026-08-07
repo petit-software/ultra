@@ -188,8 +188,6 @@ export default function PanelColumn({ index }: Props): JSX.Element {
                   <DropZone
                     visible={dragging !== null}
                     dir={hover?.index === idx ? hover.dir : null}
-                    icon={meta.icon}
-                    label={meta.label}
                   />
                 </div>
               </PanelDndContext.Provider>
@@ -203,21 +201,17 @@ export default function PanelColumn({ index }: Props): JSX.Element {
 
 /**
  * Drop affordance layered over a panel. While a panel is held, every viable
- * target turns into a plain gray block labeled with the panel it holds. The one
- * under the cursor also shows a preview box in the half where the drop will land
- * — top/bottom to stack in this column, left/right to split off a new column.
- * Always mounted so the blocks fade in and out instead of popping.
+ * target turns into a plain gray block. The one under the cursor also shows a
+ * preview box in the half where the drop will land — top/bottom to stack in
+ * this column, left/right to split off a new column. Always mounted so the
+ * blocks fade in and out instead of popping.
  */
 function DropZone({
   visible,
-  dir,
-  icon,
-  label
+  dir
 }: {
   visible: boolean
   dir: DropDir | null
-  icon: JSX.Element
-  label: string
 }): JSX.Element {
   return (
     <div
@@ -239,10 +233,6 @@ function DropZone({
           dirBoxClass(dir)
         )}
       />
-      <div className="absolute inset-0 flex items-center justify-center gap-2 text-muted-foreground/50">
-        {icon}
-        <span className="text-xs font-semibold uppercase tracking-wider">{label}</span>
-      </div>
     </div>
   )
 }

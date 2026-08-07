@@ -17,7 +17,7 @@ interface Props {
   transparent?: boolean
   /** xterm font size in points (default 13). */
   fontSize?: number
-  /** Use a stripped-down shell prompt with no path (sidebar scratch terminal). */
+  /** Blank the shell prompt entirely (sidebar scratch terminal). */
   minimalPrompt?: boolean
 }
 

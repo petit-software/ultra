@@ -306,8 +306,60 @@
   background-color: hsl(0deg 0% 10%);
 }
 
+/* Active project tab: no fill, a hairline outline tucked just inside the pill,
+   with squircle corners. Faded foreground (reads as faded white in dark mode)
+   while idle; the terminal cursor's pink (see themes.ts) while an agent in the
+   project is working — matching the spinning sparkle in the tab.
+
+   The pink lives on an ::after overlay drawn over the idle ring. Its opacity
+   (transition) handles entering/leaving the working state, while the pulse
+   keyframes animate only its outline-color — split across two properties so
+   the animation never overrides the enter/exit ease. */
+.ultra-tab-active {
+  corner-shape: superellipse(1.1);
+  background: none;
+  outline: 1px solid hsl(var(--foreground) / 0.35);
+  outline-offset: -2px;
+}
+.ultra-tab-active::after {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  corner-shape: superellipse(1.1);
+  outline: 1px solid #f81ce5;
+  outline-offset: -2px;
+  opacity: 0;
+  transition: opacity 200ms ease-out;
+}
+/* Breathing pulse while working, phase-locked to the sparkle: both animations
+   start the moment "running" flips on and share the sparkle's 1.9s period, so
+   the outline and the spin read as one indicator. */
+@keyframes ultra-tab-working-pulse {
+  0%,
+  100% {
+    outline-color: #f81ce5;
+  }
+  50% {
+    outline-color: rgb(248 28 229 / 0.4);
+  }
+}
+.ultra-tab-working::after {
+  opacity: 1;
+  animation: ultra-tab-working-pulse 1.9s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ultra-panel {
     transition: none;
+  }
+  /* Working outline flips to solid pink with no fade or pulse — the state is
+     still shown, just without motion. */
+  .ultra-tab-active::after {
+    transition: none;
+  }
+  .ultra-tab-working::after {
+    animation: none;
   }
 }
