@@ -295,6 +295,14 @@
   display: none;
 }
 
+/* Fades scrolled content out at the bottom edge. Masks the content itself
+   rather than overlaying a colored gradient, so it works on any panel
+   background (idle or active, light or dark). */
+.ultra-fade-bottom {
+  -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 2rem), transparent 100%);
+  mask-image: linear-gradient(to bottom, black calc(100% - 2rem), transparent 100%);
+}
+
 /* Mouse and keyboard selection share the same active-panel background feedback. */
 .ultra-panel {
   transition: background-color 150ms ease;

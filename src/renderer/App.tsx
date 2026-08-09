@@ -2,6 +2,7 @@ import { Fragment, useEffect, useState } from 'react'
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import PanelColumn from './components/PanelColumn'
+import PersistentMainTerminals from './components/PersistentMainTerminals'
 import PersistentSplitTerminals from './components/PersistentSplitTerminals'
 import PersistentSidebarTerminals from './components/PersistentSidebarTerminals'
 import ProjectTabs from './components/ProjectTabs'
@@ -165,6 +166,7 @@ export default function App(): JSX.Element {
   return (
     <TooltipProvider delayDuration={300}>
       <WelcomeModal />
+      <PersistentMainTerminals />
       <PersistentSplitTerminals />
       <PersistentSidebarTerminals />
       <div className={cn('flex h-full flex-col bg-background', introActive && 'ultra-intro')}>

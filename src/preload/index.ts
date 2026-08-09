@@ -103,6 +103,50 @@ const api = {
   agent: {
     probe: (command: string): Promise<boolean> => ipcRenderer.invoke('agent:probe', command)
   },
+  transcripts: {
+    watch: (cwd: string) => ipcRenderer.send('transcript:watch', cwd),
+    unwatch: (cwd: string) => ipcRenderer.send('transcript:unwatch', cwd),
+    /** Pin the mirror to one agent's sessions born at/after `since`; null unpins. */
+    follow: (cwd: string, source: 'claude' | 'codex' | null, since: number) =>
+      ipcRenderer.send('transcript:follow', { cwd, source, since }),
+    onEvents: (cb: (cwd: string, events: ChatEvent[]) => void): Unsubscribe => {
+      const h = (_e: IpcRendererEvent, p: { cwd: string; events: ChatEvent[] }) =>
+        cb(p.cwd, p.events)
+      ipcRenderer.on('transcript:events', h)
+      return () => ipcRenderer.removeListener('transcript:events', h)
+    },
+    onReset: (cb: (cwd: string) => void): Unsubscribe => {
+      const h = (_e: IpcRendererEvent, p: { cwd: string }) => cb(p.cwd)
+      ipcRenderer.on('transcript:reset', h)
+      return () => ipcRenderer.removeListener('transcript:reset', h)
+    }
+  },
+  chatAgent: {
+    start: (id: string, cwd: string, agent: ChatAgentId, mode: ChatMode) =>
+      ipcRenderer.send('chatAgent:start', { id, cwd, agent, mode }),
+    send: (id: string, text: string) => ipcRenderer.send('chatAgent:send', { id, text }),
+    setMode: (id: string, mode: ChatMode) => ipcRenderer.send('chatAgent:setMode', { id, mode }),
+    setModel: (id: string, model: string | null) =>
+      ipcRenderer.send('chatAgent:setModel', { id, model }),
+    /** Models the given agent offers right now. */
+    models: (agent: ChatAgentId): Promise<ModelOption[]> =>
+      ipcRenderer.invoke('chatAgent:models', agent),
+    /** Stop the running turn but keep the session. */
+    interrupt: (id: string) => ipcRenderer.send('chatAgent:interrupt', id),
+    stop: (id: string) => ipcRenderer.send('chatAgent:stop', id),
+    /** Full session snapshot — the renderer's source of truth on mount. */
+    state: (id: string): Promise<ChatState | null> => ipcRenderer.invoke('chatAgent:state', id),
+    onUpdate: (cb: (update: ChatUpdate) => void): Unsubscribe => {
+      const h = (_e: IpcRendererEvent, p: ChatUpdate) => cb(p)
+      ipcRenderer.on('chatAgent:update', h)
+      return () => ipcRenderer.removeListener('chatAgent:update', h)
+    },
+    onClosed: (cb: (id: string) => void): Unsubscribe => {
+      const h = (_e: IpcRendererEvent, p: { id: string }) => cb(p.id)
+      ipcRenderer.on('chatAgent:closed', h)
+      return () => ipcRenderer.removeListener('chatAgent:closed', h)
+    }
+  },
   git: {
     status: (cwd: string) => ipcRenderer.invoke('git:status', cwd),
     init: (cwd: string) => ipcRenderer.invoke('git:init', cwd),
@@ -166,6 +210,56 @@ export interface DirEntry {
   name: string
   path: string
   isDir: boolean
+}
+
+/** Chat-session types, mirrored from src/main/chat-agent.ts. */
+export type ChatAgentId = 'claude' | 'codex'
+export type ChatMode = 'read-only' | 'auto' | 'full-access'
+
+export interface ChatMessage {
+  seq: number
+  kind: 'user' | 'assistant' | 'tool' | 'error' | 'notice'
+  text: string
+  tool?: string
+}
+
+export interface ModelOption {
+  id: string
+  label: string
+}
+
+export interface ChatState {
+  agent: ChatAgentId
+  mode: ChatMode
+  model: string | null
+  reportedModel: string | null
+  busy: boolean
+  queued: number
+  version: number
+  messages: ChatMessage[]
+}
+
+/** An incremental change to a chat session; `version` detects missed updates. */
+export interface ChatUpdate {
+  id: string
+  version: number
+  appended: ChatMessage[]
+  agent: ChatAgentId
+  mode: ChatMode
+  model: string | null
+  reportedModel: string | null
+  busy: boolean
+  queued: number
+}
+
+/** One parsed agent-transcript entry (see src/main/transcripts.ts). */
+export interface ChatEvent {
+  kind: 'user' | 'assistant' | 'tool' | 'mode'
+  text: string
+  tool?: string
+  source: 'claude' | 'codex'
+  uuid?: string
+  ts?: string
 }
 
 export interface PortInfo {

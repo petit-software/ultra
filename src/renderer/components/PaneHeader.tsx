@@ -16,7 +16,8 @@ import {
   Signpost,
   Gauge,
   CircleCheck,
-  MoreHorizontal
+  MoreHorizontal,
+  MessageCircle
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { usePanelDrag } from './panelDnd'
@@ -37,6 +38,7 @@ const SWAP_TARGETS: { key: SidebarBlockKey; label: string; icon: JSX.Element }[]
   { key: 'files', label: 'Files', icon: <GalleryVerticalEnd className="h-3.5 w-3.5" /> },
   { key: 'editor', label: 'Editor', icon: <Code className="h-3.5 w-3.5" /> },
   { key: 'context', label: 'Context', icon: <Paperclip className="h-3.5 w-3.5" /> },
+  { key: 'chat', label: 'Chat', icon: <MessageCircle className="h-3.5 w-3.5" /> },
   { key: 'terminal', label: 'Termini', icon: <SquareTerminal className="h-3.5 w-3.5" /> },
   { key: 'shells', label: 'Shells', icon: <Terminal className="h-3.5 w-3.5" /> },
   { key: 'ports', label: 'Ports', icon: <Globe className="h-3.5 w-3.5" /> },

@@ -63,6 +63,8 @@ export interface SidebarBlocks {
   files: boolean
   editor: boolean
   context: boolean
+  /** Styled chat mirror of the project's Claude Code session. */
+  chat: boolean
   terminal: boolean
   /** The main shells terminal. Always on; lives here so it can be a panel. */
   shells: boolean
@@ -105,6 +107,7 @@ const DEFAULT_SIDEBAR_BLOCKS: SidebarBlocks = {
   files: true,
   editor: false,
   context: true,
+  chat: true,
   terminal: false,
   shells: true,
   ports: true,
@@ -116,7 +119,7 @@ const DEFAULT_SIDEBAR_BLOCKS: SidebarBlocks = {
 const DEFAULT_PANEL_COLUMNS: PanelColumns = [
   ['git', 'ports', 'processes', 'resources'],
   ['shells'],
-  ['files', 'editor', 'context', 'terminal', 'tasks']
+  ['files', 'editor', 'context', 'chat', 'terminal', 'tasks']
 ]
 
 /** A project's whole panel arrangement: columns plus per-panel visibility. */

@@ -12,7 +12,8 @@ import {
   Signpost,
   Gauge,
   CircleCheck,
-  Camera
+  Camera,
+  MessageCircle
 } from 'lucide-react'
 import { HiMiniViewColumns } from 'react-icons/hi2'
 import { useStore, type SidebarBlockKey } from '../store/useStore'
@@ -37,6 +38,7 @@ const BLOCKS: { key: SidebarBlockKey; label: string; icon: JSX.Element }[] = [
   { key: 'files', label: 'Files', icon: <GalleryVerticalEnd className="h-3.5 w-3.5" /> },
   { key: 'editor', label: 'Editor', icon: <Code className="h-3.5 w-3.5" /> },
   { key: 'context', label: 'Context', icon: <Paperclip className="h-3.5 w-3.5" /> },
+  { key: 'chat', label: 'Chat', icon: <MessageCircle className="h-3.5 w-3.5" /> },
   { key: 'terminal', label: 'Termini', icon: <SquareTerminal className="h-3.5 w-3.5" /> },
   { key: 'ports', label: 'Ports', icon: <Globe className="h-3.5 w-3.5" /> },
   { key: 'processes', label: 'Processes', icon: <Signpost className="h-3.5 w-3.5" /> },

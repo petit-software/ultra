@@ -8,7 +8,8 @@ import {
   Globe,
   Signpost,
   Gauge,
-  CircleCheck
+  CircleCheck,
+  MessageCircle
 } from 'lucide-react'
 import {
   useStore,
@@ -28,6 +29,7 @@ import PortsPanel from './PortsPanel'
 import ProcessesPanel from './ProcessesPanel'
 import ResourcesPanel from './ResourcesPanel'
 import TasksPanel from './TasksPanel'
+import ChatPanel from './ChatPanel'
 
 export interface PanelMeta {
   /** Human label, shown in the drag ghost and menus. */
@@ -71,6 +73,13 @@ export const PANEL_REGISTRY: Record<SidebarBlockKey, PanelMeta> = {
     defaultSize: 25,
     minSize: 15,
     render: () => <ContextSection />
+  },
+  chat: {
+    label: 'Chat',
+    icon: <MessageCircle className="h-4 w-4" />,
+    defaultSize: 45,
+    minSize: 20,
+    render: () => <ChatPanel />
   },
   terminal: {
     label: 'Termini',

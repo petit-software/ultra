@@ -1,65 +1,63 @@
-import { useRef } from 'react'
-import { useStore } from '../store/useStore'
-import TerminalView from './TerminalView'
+import { useEffect, useLayoutEffect, useRef } from 'react'
+import { useStore, type PanelKey } from '../store/useStore'
+import { useSplitSlots } from '../store/useSplitSlots'
+import { useMainShellStack } from '../store/useMainShell'
+import { MAIN_SHELLS_SLOT } from './PersistentMainTerminals'
 import PaneHeader from './PaneHeader'
 
+/**
+ * The main Shells panel. The terminals themselves live in
+ * PersistentMainTerminals, mounted once for the app's lifetime and portaled
+ * into the slot below whenever this panel is on screen — so switching project
+ * tabs (which unmounts this panel, since layouts are per project) relocates
+ * their DOM instead of destroying it, keeping scrollback and PTY
+ * subscriptions alive.
+ */
 export default function TerminalPane(): JSX.Element {
   const sessions = useStore((s) => s.sessions)
-  const activeSessionId = useStore((s) => s.activeSessionId)
-  const splitPanes = useStore((s) => s.splitPanes)
-  const active = activeSessionId ? sessions[activeSessionId] : null
-  const ids = Object.keys(sessions)
+  const setFocusedPanel = useStore((s) => s.setFocusedPanel)
+  const registerSlot = useSplitSlots((s) => s.registerSlot)
+  const slotRef = useRef<HTMLDivElement>(null)
+  const { visibleId } = useMainShellStack()
 
-  // Sessions that live in split panes render there, not here.
-  const pinned = new Set(Object.values(splitPanes).flat())
-  const stackIds = ids.filter((id) => !pinned.has(id))
+  useLayoutEffect(() => {
+    registerSlot(MAIN_SHELLS_SLOT, slotRef.current)
+    return () => registerSlot(MAIN_SHELLS_SLOT, null)
+  }, [registerSlot])
 
-  // When the active session belongs to a split panel, keep showing whatever
-  // non-pinned session this pane showed last for THAT project — keyed per
-  // project so switching to a project whose active session is a split pane
-  // doesn't leave another project's shell stuck on screen (and clickable,
-  // which would silently flip the active project tab back on focus).
-  const activeProjectId = active?.projectId
-  const lastMainByProject = useRef<Record<string, string>>({})
-  if (activeProjectId && activeSessionId && !pinned.has(activeSessionId) && sessions[activeSessionId])
-    lastMainByProject.current[activeProjectId] = activeSessionId
-  const remembered = activeProjectId ? lastMainByProject.current[activeProjectId] : undefined
-  const projectStackIds = stackIds.filter((id) => sessions[id].projectId === activeProjectId)
-  const mainVisibleId =
-    remembered &&
-    sessions[remembered] &&
-    !pinned.has(remembered) &&
-    sessions[remembered].projectId === activeProjectId
-      ? remembered
-      : (projectStackIds[0] ?? null)
+  // The portaled terminals are mounted outside this panel in the React tree,
+  // so their focus events never bubble to PanelColumn's capture handlers —
+  // those follow the React tree, not the DOM tree the terminal is appended
+  // into. Listen on the real DOM here so clicking a shell still marks this
+  // panel focused (the "ultra-panel-active" background).
+  useEffect(() => {
+    const el = slotRef.current
+    const key: PanelKey = 'shells'
+    if (!el) return
+    const onFocus = (): void => setFocusedPanel(key)
+    el.addEventListener('mousedown', onFocus, true)
+    el.addEventListener('focusin', onFocus)
+    return () => {
+      el.removeEventListener('mousedown', onFocus, true)
+      el.removeEventListener('focusin', onFocus)
+    }
+  }, [setFocusedPanel])
 
-  // Label the pane by the shell actually on screen — not activeSessionId, which
-  // may point at a split pane the user just clicked into.
-  const mainVisible = mainVisibleId ? sessions[mainVisibleId] : null
+  const visible = visibleId ? sessions[visibleId] : null
 
   return (
     <div className="group/section relative flex h-full flex-col">
-      <PaneHeader title={mainVisible?.title ?? active?.title ?? 'terminal'} />
+      <PaneHeader title={visible?.title ?? 'terminal'} />
 
       <div className="relative min-h-0 flex-1">
-        {ids.length === 0 && (
+        {Object.keys(sessions).length === 0 && (
           <div className="p-4 text-sm text-muted-foreground">
             No active session. Open a project from the top bar.
           </div>
         )}
-        {stackIds.map((id) => (
-          <TerminalView
-            key={id}
-            sessionId={id}
-            cwd={sessions[id].cwd}
-            command={sessions[id].command}
-            visible={id === mainVisibleId}
-            // Only the active shell grabs focus on mount, so a background pane
-            // can't steal the global active session just by rendering.
-            autoFocus={id === activeSessionId}
-            transparent
-          />
-        ))}
+        {/* Terminals are appended here by PersistentMainTerminals; React must
+            own no children of this node. */}
+        <div className="absolute inset-0" ref={slotRef} />
       </div>
     </div>
   )

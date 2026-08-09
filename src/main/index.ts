@@ -29,6 +29,26 @@ import {
   unwatchAll
 } from './fs-service'
 import { probeCommand } from './agents'
+import {
+  watchTranscripts,
+  followTranscripts,
+  unwatchTranscripts,
+  unwatchAllTranscripts,
+  type TranscriptSource
+} from './transcripts'
+import {
+  startChatAgent,
+  sendChatAgent,
+  setChatAgentMode,
+  setChatAgentModel,
+  interruptChatAgent,
+  stopChatAgent,
+  stopAllChatAgents,
+  chatAgentState,
+  chatAgentModels,
+  type ChatAgentId,
+  type ChatMode
+} from './chat-agent'
 import * as git from './git-service'
 import { openInEditor } from './editor'
 import { initUpdater, checkForUpdatesManually, isQuittingForUpdate } from './updater'
@@ -453,6 +473,37 @@ function registerIpc(): void {
 
   ipcMain.handle('agent:probe', (_e, command: string) => probeCommand(command))
 
+  ipcMain.on('transcript:watch', (e, cwd: string) => {
+    const win = BrowserWindow.fromWebContents(e.sender)
+    if (win && cwd) watchTranscripts(win, cwd)
+  })
+  ipcMain.on('transcript:unwatch', (_e, cwd: string) => unwatchTranscripts(cwd))
+  ipcMain.on(
+    'transcript:follow',
+    (_e, p: { cwd: string; source: TranscriptSource | null; since: number }) =>
+      followTranscripts(p.cwd, p.source, p.since)
+  )
+
+  ipcMain.on(
+    'chatAgent:start',
+    (e, p: { id: string; cwd: string; agent: ChatAgentId; mode: ChatMode }) => {
+      const win = BrowserWindow.fromWebContents(e.sender)
+      if (win && p.id && p.cwd)
+        startChatAgent(win, p.id, { cwd: p.cwd, agent: p.agent, mode: p.mode })
+    }
+  )
+  ipcMain.on('chatAgent:send', (_e, p: { id: string; text: string }) => sendChatAgent(p.id, p.text))
+  ipcMain.on('chatAgent:setMode', (_e, p: { id: string; mode: ChatMode }) =>
+    setChatAgentMode(p.id, p.mode)
+  )
+  ipcMain.on('chatAgent:setModel', (_e, p: { id: string; model: string | null }) =>
+    setChatAgentModel(p.id, p.model)
+  )
+  ipcMain.handle('chatAgent:models', (_e, agent: ChatAgentId) => chatAgentModels(agent))
+  ipcMain.on('chatAgent:interrupt', (_e, id: string) => interruptChatAgent(id))
+  ipcMain.on('chatAgent:stop', (_e, id: string) => stopChatAgent(id))
+  ipcMain.handle('chatAgent:state', (_e, id: string) => chatAgentState(id))
+
   ipcMain.handle('git:status', (_e, cwd: string) => git.getStatus(cwd))
   ipcMain.handle('git:init', (_e, cwd: string) => git.init(cwd))
   ipcMain.handle('git:stage', (_e, cwd: string, file: string) => git.stage(cwd, file))
@@ -566,6 +617,8 @@ app.on('window-all-closed', () => {
   sleepPrevention.stop()
   killAllPty()
   unwatchAll()
+  unwatchAllTranscripts()
+  stopAllChatAgents()
   if (process.platform !== 'darwin') app.quit()
 })
 
@@ -582,4 +635,6 @@ app.on('will-quit', () => {
   stopTrayTimer()
   killAllPty()
   unwatchAll()
+  unwatchAllTranscripts()
+  stopAllChatAgents()
 })
